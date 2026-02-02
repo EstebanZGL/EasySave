@@ -158,6 +158,13 @@ namespace EasySave.Services
                     processedSize += fileSize;
                 }
 
+                // Remove files that don't exist in source anymore
+                if (job.Type == BackupType.Complete)
+                {
+                    // For complete backups, remove files that don't exist in source
+                    await RemoveDeletedFilesAsync(job.Name, job.SourcePath, job.TargetPath);
+                }
+
                 // Mark job as completed
                 await _stateManager.UpdateStateAsync(
                     job.Name,
@@ -184,6 +191,84 @@ namespace EasySave.Services
 
                 Console.WriteLine($"Error executing backup job {job.Name}: {ex.Message}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Removes files in the target directory that don't exist in the source directory
+        /// </summary>
+        /// <param name="backupName">Name of the backup job</param>
+        /// <param name="sourcePath">Source directory path</param>
+        /// <param name="targetPath">Target directory path</param>
+        private async Task RemoveDeletedFilesAsync(string backupName, string sourcePath, string targetPath)
+        {
+            Console.WriteLine("Checking for files to remove...");
+            
+            // Get all files in the target directory
+            var targetFiles = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
+            
+            foreach (string targetFile in targetFiles)
+            {
+                // Calculate the relative path
+                string relativePath = targetFile.Substring(targetPath.Length).TrimStart(Path.DirectorySeparatorChar);
+                string sourceFile = Path.Combine(sourcePath, relativePath);
+                
+                // If the file doesn't exist in the source, delete it from the target
+                if (!File.Exists(sourceFile))
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(targetFile);
+                        long fileSize = fileInfo.Length;
+                        
+                        File.Delete(targetFile);
+                        
+                        // Log the deletion
+                        await _logger.LogTransferAsync(
+                            $"{backupName} (Deletion)",
+                            "N/A",
+                            targetFile,
+                            fileSize,
+                            0);
+                        
+                        Console.WriteLine($"Deleted: {relativePath} (no longer exists in source)");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error deleting {relativePath}: {ex.Message}");
+                    }
+                }
+            }
+            
+            // Remove empty directories
+            RemoveEmptyDirectories(targetPath);
+        }
+
+        /// <summary>
+        /// Recursively removes empty directories
+        /// </summary>
+        /// <param name="directory">Directory to check</param>
+        private void RemoveEmptyDirectories(string directory)
+        {
+            // Process all subdirectories
+            foreach (var subDir in Directory.GetDirectories(directory))
+            {
+                RemoveEmptyDirectories(subDir);
+                
+                // If the directory is empty after processing subdirectories, delete it
+                if (Directory.GetFiles(subDir).Length == 0 && 
+                    Directory.GetDirectories(subDir).Length == 0)
+                {
+                    try
+                    {
+                        Directory.Delete(subDir);
+                        Console.WriteLine($"Removed empty directory: {Path.GetFileName(subDir)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error removing directory {Path.GetFileName(subDir)}: {ex.Message}");
+                    }
+                }
             }
         }
     }

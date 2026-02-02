@@ -16,7 +16,7 @@ namespace EasyLog
         /// <summary>
         /// Constructor that uses the default log directory (application execution folder/logs)
         /// </summary>
-        public JsonLogger() : this(GetLogDirectory())
+        public JsonLogger() : this(GetDefaultLogDirectory())
         {
         }
 
@@ -38,7 +38,7 @@ namespace EasyLog
         /// Gets the default log directory path
         /// </summary>
         /// <returns>Path to the logs directory</returns>
-        private static string GetLogDirectory()
+        private static string GetDefaultLogDirectory()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             string logDirectory = Path.Combine(baseDirectory, "logs");
@@ -134,5 +134,56 @@ namespace EasyLog
         /// Transfer time in milliseconds (negative if error)
         /// </summary>
         public long TransferTime { get; set; }
+    }
+
+    /// <summary>
+    /// Factory for creating logger instances
+    /// </summary>
+    public static class LoggerFactory
+    {
+        /// <summary>
+        /// Creates a JSON logger
+        /// </summary>
+        /// <param name="logDirectory">Optional custom log directory</param>
+        /// <returns>Logger instance</returns>
+        public static ILogger CreateJsonLogger(string logDirectory = null)
+        {
+            return logDirectory != null ? new JsonLogger(logDirectory) : new JsonLogger();
+        }
+        
+        // Future: Add CreateXmlLogger when needed for v1.1
+    }
+
+    /// <summary>
+    /// Decorator that adds performance metrics to logging
+    /// </summary>
+    public class PerformanceLogger : ILogger
+    {
+        private readonly ILogger _logger;
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public PerformanceLogger(ILogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        /// <summary>
+        /// Adds performance metrics before logging
+        /// </summary>
+        public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        {
+            // Calculate transfer rate in MB/s if transfer was successful
+            string performanceInfo = string.Empty;
+            if (transferTime > 0 && fileSize > 0)
+            {
+                double transferRateMBps = (fileSize / 1024.0 / 1024.0) / (transferTime / 1000.0);
+                performanceInfo = $" [{transferRateMBps:F2} MB/s]";
+            }
+
+            // Add performance info to backup name
+            await _logger.LogTransferAsync($"{backupName}{performanceInfo}", sourcePath, targetPath, fileSize, transferTime);
+        }
     }
 }
