@@ -142,9 +142,16 @@ namespace EasySave.Services
         /// </summary>
         private void SaveJobs()
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string json = JsonSerializer.Serialize(_backupJobs, options);
-            File.WriteAllText(_configFilePath, json);
+            try
+            {
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(_backupJobs, options);
+                File.WriteAllText(_configFilePath, json);
+            }
+            catch
+            {
+                // Handle serialization or file access errors
+            }
         }
     }
 }

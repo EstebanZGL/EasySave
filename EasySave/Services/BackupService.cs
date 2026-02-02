@@ -9,7 +9,7 @@ using EasyLog;
 namespace EasySave.Services
 {
     /// <summary>
-    /// Service for executing backup jobs
+    /// Service for executing backup operations
     /// </summary>
     public class BackupService
     {
@@ -23,89 +23,92 @@ namespace EasySave.Services
         /// <param name="stateManager">State manager for tracking backup progress</param>
         public BackupService(ILogger logger, StateManager stateManager)
         {
-            _logger = logger;
-            _stateManager = stateManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
         }
 
         /// <summary>
-        /// Execute a backup job
+        /// Executes a backup job
         /// </summary>
         /// <param name="job">Backup job to execute</param>
-        /// <returns>Task representing the asynchronous operation</returns>
+        /// <exception cref="ArgumentException">Thrown when job is invalid</exception>
+        /// <exception cref="DirectoryNotFoundException">Thrown when source directory doesn't exist</exception>
         public async Task ExecuteBackupJobAsync(BackupJob job)
         {
+            // Validate job
             if (job == null || !job.Validate())
             {
-                throw new ArgumentException("Invalid backup job");
+                throw new ArgumentException("Invalid backup job", nameof(job));
             }
 
             Console.WriteLine($"Starting backup job: {job.Name}");
 
             try
             {
-                // Check if source directory exists
+                // Check source directory
                 if (!Directory.Exists(job.SourcePath))
                 {
                     throw new DirectoryNotFoundException($"Source directory not found: {job.SourcePath}");
                 }
 
-                // Create target directory if it doesn't exist
+                // Create target directory if needed
                 if (!Directory.Exists(job.TargetPath))
                 {
                     Directory.CreateDirectory(job.TargetPath);
                 }
 
-                // Get all files in the source directory (including subdirectories)
+                // Get all source files
                 var sourceFiles = Directory.GetFiles(job.SourcePath, "*", SearchOption.AllDirectories);
+                long totalSize = sourceFiles.Sum(f => new FileInfo(f).Length);
 
-                // Update state to Active
+                // Initialize state
                 await _stateManager.UpdateStateAsync(
                     job.Name,
                     BackupState.Active,
                     sourceFiles.Length,
-                    sourceFiles.Sum(f => new FileInfo(f).Length),
+                    totalSize,
                     sourceFiles.Length,
-                    sourceFiles.Sum(f => new FileInfo(f).Length));
+                    totalSize
+                );
 
                 // Process each file
                 int processedCount = 0;
+                long processedSize = 0;
+                
                 foreach (string sourceFile in sourceFiles)
                 {
                     // Get relative path
                     string relativePath = sourceFile.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar);
-
-                    // Construct target file path
                     string targetFile = Path.Combine(job.TargetPath, relativePath);
 
-                    // Create target directory if it doesn't exist
+                    // Create target directory if needed
                     string targetDirectory = Path.GetDirectoryName(targetFile);
-                    if (!Directory.Exists(targetDirectory))
+                    if (!string.IsNullOrEmpty(targetDirectory) && !Directory.Exists(targetDirectory))
                     {
                         Directory.CreateDirectory(targetDirectory);
                     }
 
-                    // Get file info for size calculation
+                    // Get file info
                     var sourceFileInfo = new FileInfo(sourceFile);
                     long fileSize = sourceFileInfo.Length;
 
-                    // Update state with current file
+                    // Update state
                     await _stateManager.UpdateStateAsync(
                         job.Name,
                         BackupState.Active,
                         sourceFiles.Length,
-                        sourceFiles.Sum(f => new FileInfo(f).Length),
+                        totalSize,
                         sourceFiles.Length - processedCount,
-                        sourceFiles.Sum(f => new FileInfo(f).Length) - (processedCount > 0 ? processedCount * fileSize : 0),
+                        totalSize - processedSize,
                         sourceFile,
-                        targetFile);
+                        targetFile
+                    );
 
-                    // Check if file needs to be copied (based on backup type)
+                    // Check if file needs to be copied (for differential backup)
                     bool shouldCopy = true;
                     if (job.Type == BackupType.Differential && File.Exists(targetFile))
                     {
                         var targetFileInfo = new FileInfo(targetFile);
-
-                        // Only copy if source file is newer or different size
                         shouldCopy = sourceFileInfo.LastWriteTime > targetFileInfo.LastWriteTime || 
                                      sourceFileInfo.Length != targetFileInfo.Length;
                     }
@@ -116,14 +119,14 @@ namespace EasySave.Services
                         {
                             // Measure transfer time
                             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                            // Copy the file
+                            
+                            // Copy file
                             File.Copy(sourceFile, targetFile, true);
 
                             stopwatch.Stop();
                             long transferTime = stopwatch.ElapsedMilliseconds;
 
-                            // Log the transfer
+                            // Log transfer
                             await _logger.LogTransferAsync(
                                 job.Name,
                                 sourceFile,
@@ -135,7 +138,7 @@ namespace EasySave.Services
                         }
                         catch (Exception ex)
                         {
-                            // Log the error
+                            // Log error
                             await _logger.LogTransferAsync(
                                 job.Name,
                                 sourceFile,
@@ -152,29 +155,32 @@ namespace EasySave.Services
                     }
 
                     processedCount++;
+                    processedSize += fileSize;
                 }
 
-                // Update state to Completed
+                // Mark job as completed
                 await _stateManager.UpdateStateAsync(
                     job.Name,
                     BackupState.Completed,
                     sourceFiles.Length,
-                    sourceFiles.Sum(f => new FileInfo(f).Length),
+                    totalSize,
                     0,
-                    0);
+                    0
+                );
 
                 Console.WriteLine($"Backup job completed: {job.Name}");
             }
             catch (Exception ex)
             {
-                // Update state to Error
+                // Update state to error
                 await _stateManager.UpdateStateAsync(
                     job.Name,
                     BackupState.Error,
                     0,
                     0,
                     0,
-                    0);
+                    0
+                );
 
                 Console.WriteLine($"Error executing backup job {job.Name}: {ex.Message}");
                 throw;

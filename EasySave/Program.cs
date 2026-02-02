@@ -11,7 +11,8 @@ namespace EasySave
         /// <summary>
         /// Entry point of the application
         /// </summary>
-        /// <param name="args">Command line arguments</param>
+        /// <param name="args">Command line arguments for specifying backup jobs to execute</param>
+        /// <returns>Task representing the asynchronous operation</returns>
         static async Task Main(string[] args)
         {
             try
@@ -22,6 +23,7 @@ namespace EasySave
             }
             catch (Exception ex)
             {
+                // Global exception handler
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey();

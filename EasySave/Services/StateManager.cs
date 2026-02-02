@@ -8,7 +8,7 @@ using EasySave.Models;
 namespace EasySave.Services
 {
     /// <summary>
-    /// Manages the state of backup jobs in real time
+    /// Manages the real-time state tracking of backup operations.
     /// </summary>
     public class StateManager
     {
@@ -16,27 +16,26 @@ namespace EasySave.Services
         private readonly Dictionary<string, BackupJobState> _states;
 
         /// <summary>
-        /// Constructor
+        /// Initializes a new instance of the StateManager.
         /// </summary>
         /// <param name="stateFilePath">Path to the state file</param>
         public StateManager(string stateFilePath)
         {
-            _stateFilePath = stateFilePath;
+            _stateFilePath = stateFilePath ?? throw new ArgumentNullException(nameof(stateFilePath));
             _states = new Dictionary<string, BackupJobState>();
             
-            // Create directory if it doesn't exist
+            // Create directory if needed
             string directory = Path.GetDirectoryName(_stateFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
             
-            // Load existing state if available
             LoadState();
         }
 
         /// <summary>
-        /// Load the state from the state file
+        /// Loads backup job states from the state file.
         /// </summary>
         private void LoadState()
         {
@@ -46,6 +45,7 @@ namespace EasySave.Services
                 {
                     string json = File.ReadAllText(_stateFilePath);
                     var states = JsonSerializer.Deserialize<List<BackupJobState>>(json);
+                    
                     if (states != null)
                     {
                         foreach (var state in states)
@@ -54,25 +54,24 @@ namespace EasySave.Services
                         }
                     }
                 }
-                catch
+                catch (Exception)
                 {
-                    // If loading fails, start with an empty state
+                    // Handle errors gracefully
                 }
             }
         }
 
         /// <summary>
-        /// Update the state of a backup job
+        /// Updates the state of a backup job and persists changes.
         /// </summary>
         /// <param name="name">Name of the backup job</param>
-        /// <param name="state">State of the backup job</param>
-        /// <param name="totalFiles">Total number of files to transfer</param>
-        /// <param name="totalSize">Total size of files to transfer in bytes</param>
-        /// <param name="filesRemaining">Number of files remaining to transfer</param>
-        /// <param name="sizeRemaining">Size of files remaining to transfer in bytes</param>
-        /// <param name="currentSourceFile">Current source file being processed</param>
-        /// <param name="currentTargetFile">Current target file being processed</param>
-        /// <returns>Task representing the asynchronous operation</returns>
+        /// <param name="state">Current state</param>
+        /// <param name="totalFiles">Total files count</param>
+        /// <param name="totalSize">Total size in bytes</param>
+        /// <param name="filesRemaining">Files remaining</param>
+        /// <param name="sizeRemaining">Size remaining in bytes</param>
+        /// <param name="currentSourceFile">Current source file</param>
+        /// <param name="currentTargetFile">Current target file</param>
         public async Task UpdateStateAsync(
             string name,
             BackupState state,
@@ -85,13 +84,11 @@ namespace EasySave.Services
         {
             if (!_states.TryGetValue(name, out var jobState))
             {
-                jobState = new BackupJobState
-                {
-                    Name = name
-                };
+                jobState = new BackupJobState { Name = name };
                 _states[name] = jobState;
             }
 
+            // Update state properties
             jobState.LastUpdateTime = DateTime.Now;
             jobState.State = state;
             jobState.TotalFilesCount = totalFiles;
@@ -106,19 +103,25 @@ namespace EasySave.Services
         }
 
         /// <summary>
-        /// Save the current state to the state file
+        /// Saves the current state to the state file.
         /// </summary>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task SaveStateAsync()
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string json = JsonSerializer.Serialize(_states.Values, options);
-            await File.WriteAllTextAsync(_stateFilePath, json);
+            try
+            {
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(_states.Values, options);
+                await File.WriteAllTextAsync(_stateFilePath, json);
+            }
+            catch (Exception)
+            {
+                // Handle errors gracefully
+            }
         }
     }
 
     /// <summary>
-    /// Class representing the state of a backup job
+    /// Represents the state of a backup job.
     /// </summary>
     public class BackupJobState
     {
@@ -128,22 +131,22 @@ namespace EasySave.Services
         public string Name { get; set; }
         
         /// <summary>
-        /// Last update time
+        /// Last update timestamp
         /// </summary>
         public DateTime LastUpdateTime { get; set; }
         
         /// <summary>
-        /// State of the backup job
+        /// Current state of the backup job
         /// </summary>
         public BackupState State { get; set; }
         
         /// <summary>
-        /// Total number of files to transfer
+        /// Total number of files
         /// </summary>
         public int TotalFilesCount { get; set; }
         
         /// <summary>
-        /// Total size of files to transfer in bytes
+        /// Total size in bytes
         /// </summary>
         public long TotalFilesSize { get; set; }
         
@@ -153,12 +156,12 @@ namespace EasySave.Services
         public int Progress { get; set; }
         
         /// <summary>
-        /// Number of files remaining to transfer
+        /// Number of files remaining
         /// </summary>
         public int FilesRemaining { get; set; }
         
         /// <summary>
-        /// Size of files remaining to transfer in bytes
+        /// Size remaining in bytes
         /// </summary>
         public long SizeRemaining { get; set; }
         

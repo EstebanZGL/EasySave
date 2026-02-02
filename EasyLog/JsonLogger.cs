@@ -14,14 +14,20 @@ namespace EasyLog
         private readonly string _logDirectory;
 
         /// <summary>
-        /// Constructor
+        /// Constructor that uses the default log directory (application execution folder/logs)
+        /// </summary>
+        public JsonLogger() : this(GetLogDirectory())
+        {
+        }
+
+        /// <summary>
+        /// Constructor with specified log directory
         /// </summary>
         /// <param name="logDirectory">Directory where log files will be stored</param>
         public JsonLogger(string logDirectory)
         {
             _logDirectory = logDirectory;
             
-            // Create log directory if it doesn't exist
             if (!Directory.Exists(_logDirectory))
             {
                 Directory.CreateDirectory(_logDirectory);
@@ -29,14 +35,25 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Log a file transfer action
+        /// Gets the default log directory path
         /// </summary>
-        /// <param name="backupName">Name of the backup job</param>
-        /// <param name="sourcePath">Source file path</param>
-        /// <param name="targetPath">Target file path</param>
-        /// <param name="fileSize">Size of the file in bytes</param>
-        /// <param name="transferTime">Transfer time in milliseconds (negative if error)</param>
-        /// <returns>Task representing the asynchronous operation</returns>
+        /// <returns>Path to the logs directory</returns>
+        private static string GetLogDirectory()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string logDirectory = Path.Combine(baseDirectory, "logs");
+            
+            if (!Directory.Exists(logDirectory))
+            {
+                Directory.CreateDirectory(logDirectory);
+            }
+            
+            return logDirectory;
+        }
+
+        /// <summary>
+        /// Logs a file transfer action
+        /// </summary>
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             var logEntry = new LogEntry
@@ -53,15 +70,12 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Write a log entry to the daily log file
+        /// Writes a log entry to the daily log file
         /// </summary>
-        /// <param name="logEntry">Log entry to write</param>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task WriteLogEntryAsync(LogEntry logEntry)
         {
             string logFileName = Path.Combine(_logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
             
-            // Read existing log entries if the file exists
             List<LogEntry> logEntries = new List<LogEntry>();
             if (File.Exists(logFileName))
             {
@@ -77,18 +91,17 @@ namespace EasyLog
                 }
             }
             
-            // Add the new entry
             logEntries.Add(logEntry);
             
-            // Write back to the file with indentation for readability
             var options = new JsonSerializerOptions { WriteIndented = true };
             string json = JsonSerializer.Serialize(logEntries, options);
+            
             await File.WriteAllTextAsync(logFileName, json);
         }
     }
 
     /// <summary>
-    /// Class representing a log entry
+    /// Log entry for a file transfer operation
     /// </summary>
     public class LogEntry
     {

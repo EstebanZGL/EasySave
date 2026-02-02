@@ -22,7 +22,7 @@ namespace EasySave
         private readonly string _appDataPath;
 
         /// <summary>
-        /// Constructor
+        /// Constructor that initializes all required services
         /// </summary>
         public EasySaveController()
         {
@@ -31,7 +31,7 @@ namespace EasySave
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "EasySave");
             
-            // Create directories if they don't exist
+            // Create required directories
             Directory.CreateDirectory(_appDataPath);
             string logDirectory = Path.Combine(_appDataPath, "logs");
             Directory.CreateDirectory(logDirectory);
@@ -45,26 +45,26 @@ namespace EasySave
         }
 
         /// <summary>
-        /// Run the application with command line arguments
+        /// Entry point for application execution
         /// </summary>
         /// <param name="args">Command line arguments</param>
-        /// <returns>Task representing the asynchronous operation</returns>
         public async Task RunWithArgsAsync(string[] args)
         {
             if (args.Length > 0)
             {
+                // Execute specified jobs directly
                 await ExecuteCommandLineArgsAsync(args[0]);
             }
             else
             {
+                // Show interactive menu
                 await ShowMainMenuAsync();
             }
         }
 
         /// <summary>
-        /// Show the main menu
+        /// Displays the main application menu
         /// </summary>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task ShowMainMenuAsync()
         {
             bool exit = false;
@@ -72,6 +72,8 @@ namespace EasySave
             while (!exit)
             {
                 Console.Clear();
+                
+                // Display menu
                 Console.WriteLine(_translationService.GetTranslation("app_title"));
                 Console.WriteLine("---------------------------");
                 Console.WriteLine(_translationService.GetTranslation("menu_title"));
@@ -86,6 +88,7 @@ namespace EasySave
                 
                 string choice = Console.ReadLine();
                 
+                // Process selection
                 switch (choice)
                 {
                     case "1":
@@ -108,16 +111,15 @@ namespace EasySave
         }
 
         /// <summary>
-        /// Create a new backup job
+        /// Creates a new backup job based on user input
         /// </summary>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task CreateBackupJobAsync()
         {
             Console.Clear();
             Console.WriteLine(_translationService.GetTranslation("create_title"));
             Console.WriteLine("---------------------------");
             
-            // Check if maximum number of jobs has been reached
+            // Check maximum job limit
             if (_jobManager.GetJobs().Count >= 5)
             {
                 Console.WriteLine(_translationService.GetTranslation("create_max_reached"));
@@ -126,6 +128,7 @@ namespace EasySave
                 return;
             }
             
+            // Collect job parameters
             Console.Write(_translationService.GetTranslation("create_name"));
             string name = Console.ReadLine();
             
@@ -137,9 +140,10 @@ namespace EasySave
             
             Console.Write(_translationService.GetTranslation("create_type"));
             string typeInput = Console.ReadLine();
+            
             BackupType type = typeInput == "2" ? BackupType.Differential : BackupType.Complete;
             
-            // Create the backup job
+            // Create the job
             bool success = _jobManager.CreateJob(name, sourcePath, targetPath, type);
             
             if (success)
@@ -154,13 +158,12 @@ namespace EasySave
             Console.WriteLine(_translationService.GetTranslation("press_any_key"));
             Console.ReadKey();
             
-            await Task.CompletedTask; // For async consistency
+            await Task.CompletedTask;
         }
 
         /// <summary>
-        /// Execute backup job(s)
+        /// Executes one or more backup jobs selected by the user
         /// </summary>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task ExecuteBackupJobsAsync()
         {
             var jobs = _jobManager.GetJobs();
@@ -177,7 +180,7 @@ namespace EasySave
             Console.WriteLine(_translationService.GetTranslation("execute_title"));
             Console.WriteLine("---------------------------");
             
-            // List available backup jobs
+            // List available jobs
             for (int i = 0; i < jobs.Count; i++)
             {
                 Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type})");
@@ -187,10 +190,10 @@ namespace EasySave
             Console.Write(_translationService.GetTranslation("execute_select"));
             string input = Console.ReadLine();
             
-            // Parse the input
+            // Parse selection
             List<int> jobIndexes = ParseJobIndexes(input);
             
-            // Execute the selected backup jobs
+            // Execute selected jobs
             foreach (int index in jobIndexes)
             {
                 if (index >= 0 && index < jobs.Count)
@@ -212,7 +215,7 @@ namespace EasySave
         }
 
         /// <summary>
-        /// List all backup jobs
+        /// Displays a list of all configured backup jobs
         /// </summary>
         private void ListBackupJobs()
         {
@@ -228,6 +231,7 @@ namespace EasySave
             }
             else
             {
+                // Display job details
                 for (int i = 0; i < jobs.Count; i++)
                 {
                     var job = jobs[i];
@@ -244,18 +248,19 @@ namespace EasySave
         }
 
         /// <summary>
-        /// Change the current language
+        /// Changes the application's current language
         /// </summary>
         private void ChangeLanguage()
         {
             _translationService.ToggleLanguage();
+            
             Console.WriteLine(_translationService.GetTranslation("language_changed"));
             Console.WriteLine(_translationService.GetTranslation("press_any_key"));
             Console.ReadKey();
         }
 
         /// <summary>
-        /// Parse job indexes from input string
+        /// Parses user input to determine which backup jobs to execute
         /// </summary>
         /// <param name="input">Input string (e.g., '1', '1-3', or '1;3')</param>
         /// <returns>List of job indexes</returns>
@@ -263,12 +268,16 @@ namespace EasySave
         {
             var indexes = new List<int>();
             
-            // Split by semicolon
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return indexes;
+            }
+            
             string[] parts = input.Split(';');
             
             foreach (string part in parts)
             {
-                // Check if it's a range
+                // Handle range format (e.g., "1-3")
                 if (part.Contains('-'))
                 {
                     string[] range = part.Split('-');
@@ -280,6 +289,7 @@ namespace EasySave
                         }
                     }
                 }
+                // Handle single number
                 else if (int.TryParse(part, out int index))
                 {
                     indexes.Add(index - 1); // Convert to 0-based index
@@ -290,18 +300,15 @@ namespace EasySave
         }
 
         /// <summary>
-        /// Execute backup jobs based on command line arguments
+        /// Executes backup jobs specified by command line arguments
         /// </summary>
         /// <param name="arg">Command line argument</param>
-        /// <returns>Task representing the asynchronous operation</returns>
         private async Task ExecuteCommandLineArgsAsync(string arg)
         {
             var jobs = _jobManager.GetJobs();
             
-            // Parse the command line arguments
             List<int> jobIndexes = ParseJobIndexes(arg);
             
-            // Execute the selected backup jobs
             foreach (int index in jobIndexes)
             {
                 if (index >= 0 && index < jobs.Count)

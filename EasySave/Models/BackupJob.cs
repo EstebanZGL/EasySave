@@ -3,7 +3,7 @@ using System;
 namespace EasySave.Models
 {
     /// <summary>
-    /// Represents a backup job
+    /// Represents a backup job configuration
     /// </summary>
     public class BackupJob
     {
@@ -57,11 +57,11 @@ namespace EasySave.Models
             if (string.IsNullOrWhiteSpace(Name))
                 return false;
 
-            // Check if source path is not empty and exists
+            // Check if source path exists
             if (string.IsNullOrWhiteSpace(SourcePath) || !System.IO.Directory.Exists(SourcePath))
                 return false;
 
-            // Check if target path is not empty
+            // Check if target path is specified
             if (string.IsNullOrWhiteSpace(TargetPath))
                 return false;
 

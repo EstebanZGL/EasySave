@@ -4,12 +4,12 @@ using System.Threading.Tasks;
 namespace EasyLog
 {
     /// <summary>
-    /// Interface for logging operations
+    /// Interface for logging backup operations with support for different implementations.
     /// </summary>
     public interface ILogger
     {
         /// <summary>
-        /// Log a file transfer action
+        /// Logs a file transfer operation.
         /// </summary>
         /// <param name="backupName">Name of the backup job</param>
         /// <param name="sourcePath">Source file path</param>

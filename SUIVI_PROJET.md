@@ -98,9 +98,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] Validation des chemins réseau/externes
 
 #### Documentation
-- [ ] Documentation utilisateur (1 page)
-- [ ] Documentation technique
-- [ ] Documentation de l'API EasyLog.dll
+- [x] Documentation utilisateur (1 page)
+- [x] Documentation technique
+- [x] Documentation de l'API EasyLog.dll
 - [x] Commentaires du code (XML)
 
 #### Finalisation
@@ -270,6 +270,7 @@ Emplacement : dossier racine du répertoire d'exécution.
 3. **Robustesse :** Penser aux cas d'erreurs (disque plein, réseau coupé, fichier verrouillé).
 4. **CryptoSoft :** Attention, il est "Mono-instance" en v3.0, gérer les files d'attente.
 5. **Compatibilité :** La DLL `EasyLog` doit rester compatible v1.0 même après update v3.0.
+6. **Style de commentaires :** Les commentaires doivent être en anglais, concis et pertinents. Utiliser les balises XML pour documenter les classes et méthodes publiques, mais éviter la sur-documentation. Les commentaires doivent expliquer le "pourquoi" plutôt que le "comment" lorsque le code est suffisamment clair.
 
 ## Modifications et Mises à jour
 - 02/02/2026 : Création du fichier de suivi et configuration initiale du projet
@@ -277,3 +278,5 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 02/02/2026 : Développement des classes principales pour la version 1.0 (BackupJob, EasyLog, StateManager, BackupService, TranslationService)
 - 02/02/2026 : Compilation réussie du projet et tests fonctionnels initiaux
 - 02/02/2026 : Modification de l'emplacement des logs pour utiliser un dossier local au projet
+- 02/02/2026 : Création de la documentation utilisateur et technique
+- 02/02/2026 : Standardisation des commentaires de code (style concis)
