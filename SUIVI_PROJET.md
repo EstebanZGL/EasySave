@@ -1,0 +1,274 @@
+# 📝 Suivi du Projet EasySave (ProSoft)
+
+## 📌 Vision Globale
+Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évoluant de la version 1.0 (Console) à la version 3.0 (Graphique, Parallèle, Docker).
+- **Client :** ProSoft (Usage interne et revente).
+- **Prix unitaire :** 200 €HT
+- **Contrat de maintenance annuel :** 12% prix d'achat (5/7 8-17h, mises à jour incluses)
+- **Contrainte Critique :** Code, commentaires et logs 100% en ANGLAIS.
+- **Architecture :** Modulaire, maintenable, pas de duplication de code.
+
+## 🚀 État Actuel du Développement
+- **Version en cours de développement :** v1.0
+- **Dernier Livrable Validé :** Aucun
+- **Prochaine Échéance :** Livrable 1 - Version 1.0
+- **Focus Actuel :** Configuration initiale et structure du projet
+
+## 🛠️ Stack Technique & Contraintes
+- **Langage :** C# (.NET 8.0)
+- **IDE :** Visual Studio 2022
+- **UML :** ArgoUML
+- **Versioning :** GitHub (respect du flux de travail d'équipe)
+- **Architecture :** 
+  - MVVM (obligatoire à partir de la v2.0)
+  - DLL externe `EasyLog.dll` pour la gestion des logs.
+- **Formats de données :** JSON (v1.0), puis JSON/XML (v1.1+).
+
+## 📋 Liste des Tâches par Version
+
+### 🔄 Configuration Initiale
+- [x] Création de la solution Visual Studio
+- [X] Création du dépôt GitHub
+- [X] Invitation du tuteur sur le dépôt GitHub
+- [ ] Configuration des branches (main, develop, feature)
+- [ ] Mise en place du .gitignore pour Visual Studio
+- [ ] Définition des conventions de nommage et de codage
+
+### ✅ Version 1.0 (Console)
+
+#### Planification et Conception
+- [ ] Analyse des besoins détaillés
+- [ ] Création des diagrammes UML:
+  - [ ] Diagramme de cas d'utilisation
+  - [ ] Diagramme de classes
+  - [ ] Diagramme de séquence
+  - [ ] Diagramme d'activité
+- [ ] Définition de l'architecture du projet
+- [ ] Planification des tests
+
+#### Structure du Projet
+- [ ] Création du projet principal (Application Console)
+- [ ] Création du projet de bibliothèque EasyLog.dll
+- [ ] Configuration des références entre projets
+- [ ] Configuration du système de build
+
+#### Développement Core
+- [ ] Implémentation de la classe BackupJob
+  - [ ] Propriétés (Nom, Source, Cible, Type)
+  - [ ] Méthodes de validation
+- [ ] Implémentation du gestionnaire de travaux (max 5)
+  - [ ] Création des travaux
+  - [ ] Stockage des travaux
+  - [ ] Chargement des travaux
+- [ ] Implémentation des types de sauvegarde
+  - [ ] Sauvegarde complète
+  - [ ] Sauvegarde différentielle
+
+#### Développement EasyLog.dll
+- [ ] Création de l'interface de logging
+- [ ] Implémentation du logger JSON
+- [ ] Gestion des fichiers journaliers (YYYY-MM-DD.json)
+- [ ] Méthodes pour enregistrer les actions de sauvegarde
+
+#### Développement État en Temps Réel
+- [ ] Création du gestionnaire d'état
+- [ ] Implémentation de la mise à jour en temps réel
+- [ ] Sauvegarde dans state.json
+- [ ] Chargement de l'état au démarrage
+
+#### Interface Utilisateur
+- [ ] Implémentation du menu principal
+- [ ] Gestion des entrées utilisateur
+- [ ] Support multilingue (FR/EN)
+  - [ ] Système de traduction
+  - [ ] Fichiers de ressources
+  - [ ] Sélection de la langue
+
+#### Ligne de Commande
+- [ ] Parsing des arguments (ex: EasySave.exe 1-3 ou 1;3)
+- [ ] Exécution automatique des travaux spécifiés
+- [ ] Gestion des erreurs de syntaxe
+
+#### Tests et Validation
+- [ ] Tests unitaires
+- [ ] Tests d'intégration
+- [ ] Tests de performance
+- [ ] Tests multilingues
+- [ ] Validation des chemins réseau/externes
+
+#### Documentation
+- [ ] Documentation utilisateur (1 page)
+- [ ] Documentation technique
+- [ ] Documentation de l'API EasyLog.dll
+- [ ] Commentaires du code (XML)
+
+#### Finalisation
+- [ ] Revue de code
+- [ ] Optimisation des performances
+- [ ] Correction des bugs
+- [ ] Préparation du livrable
+- [ ] Démonstration
+
+### 🟦 Version 1.1 (Console améliorée)
+
+#### Planification et Conception
+- [ ] Mise à jour des diagrammes UML
+- [ ] Planification de l'intégration XML
+
+#### Développement
+- [ ] Mise à jour d'EasyLog.dll pour supporter XML
+  - [ ] Création de l'interface commune
+  - [ ] Implémentation du logger XML
+  - [ ] Factory pour sélection du format
+- [ ] Interface utilisateur pour sélection du format
+- [ ] Tests de compatibilité avec v1.0
+
+#### Finalisation
+- [ ] Tests de régression
+- [ ] Mise à jour de la documentation
+- [ ] Préparation du livrable
+
+### 🟦 Version 2.0 (Interface Graphique)
+
+#### Planification et Conception
+- [ ] Conception de l'interface graphique
+- [ ] Mise à jour des diagrammes UML pour MVVM
+- [ ] Planification de l'intégration de CryptoSoft
+
+#### Structure du Projet
+- [ ] Création du projet WPF
+- [ ] Configuration de l'architecture MVVM
+  - [ ] Dossiers Models
+  - [ ] Dossiers ViewModels
+  - [ ] Dossiers Views
+
+#### Développement Core
+- [ ] Adaptation du modèle pour nombre illimité de travaux
+- [ ] Intégration avec CryptoSoft
+  - [ ] Interface de communication
+  - [ ] Gestion des extensions à crypter
+- [ ] Détection de logiciel métier
+- [ ] Mise à jour des logs pour inclure le temps de cryptage
+
+#### Interface Utilisateur
+- [ ] Création des vues principales
+  - [ ] Liste des travaux
+  - [ ] Création/Édition de travail
+  - [ ] Paramètres
+  - [ ] Exécution et suivi
+- [ ] Implémentation des ViewModels
+- [ ] Binding des données
+- [ ] Support multilingue dans l'interface
+
+#### Tests et Validation
+- [ ] Tests unitaires
+- [ ] Tests d'interface utilisateur
+- [ ] Tests de compatibilité avec v1.0/1.1
+
+#### Documentation
+- [ ] Mise à jour de la documentation utilisateur
+- [ ] Mise à jour de la documentation technique
+- [ ] Documentation des nouvelles fonctionnalités
+
+#### Finalisation
+- [ ] Revue de code
+- [ ] Optimisation des performances
+- [ ] Tests de régression
+- [ ] Préparation du livrable
+
+### 🟪 Version 3.0 (Avancé & Docker)
+
+#### Planification et Conception
+- [ ] Conception du système de sauvegarde parallèle
+- [ ] Conception du service Docker
+- [ ] Mise à jour des diagrammes UML
+
+#### Développement Core
+- [ ] Implémentation des sauvegardes en parallèle
+  - [ ] Système de threading
+  - [ ] Gestion des ressources partagées
+- [ ] Gestion des fichiers prioritaires
+  - [ ] Système de priorité par extension
+  - [ ] File d'attente intelligente
+- [ ] Limitation de bande passante
+  - [ ] Détection des fichiers volumineux
+  - [ ] Gestion des transferts simultanés
+- [ ] CryptoSoft Mono-instance
+  - [ ] Implémentation du système de mutex
+  - [ ] File d'attente pour cryptage
+
+#### Interface Utilisateur
+- [ ] Contrôles Play/Pause/Stop pour chaque travail
+- [ ] Affichage en temps réel de la progression
+- [ ] Interface de configuration des priorités
+- [ ] Interface de configuration de la bande passante
+
+#### Docker
+- [ ] Création du service Docker
+- [ ] Système de centralisation des logs
+- [ ] Interface de configuration
+- [ ] Tests de communication
+
+#### Tests et Validation
+- [ ] Tests de performance parallèle
+- [ ] Tests de charge
+- [ ] Tests de priorité
+- [ ] Tests Docker
+- [ ] Tests de régression
+
+#### Documentation
+- [ ] Mise à jour de la documentation utilisateur
+- [ ] Documentation Docker
+- [ ] Documentation des nouvelles fonctionnalités
+
+#### Finalisation
+- [ ] Revue de code
+- [ ] Optimisation des performances
+- [ ] Tests de régression
+- [ ] Préparation du livrable
+- [ ] Préparation de la présentation finale
+
+## 📂 Spécifications des Données (Mémoire technique)
+
+### 1. Fichier Log Journalier (`YYYY-MM-DD.json/xml`)
+Emplacement relatif (pas de `C:\temp`).
+**Champs obligatoires :**
+- Timestamp
+- Nom de la sauvegarde
+- Source & Cible (Format UNC)
+- Taille fichier & Temps de transfert (ms)
+- *[v2.0+]* Temps de cryptage (ms, 0 si non, <0 si erreur)
+
+### 2. Fichier d'État Temps Réel (`state.json`)
+Mise à jour en continu.
+**Champs obligatoires :**
+- Nom du travail
+- Timestamp dernière action
+- État (Actif, Non Actif...)
+- Progression (Nb fichiers total/restant, Taille totale/restante, % progression)
+- Fichier en cours (Source/Dest)
+
+## Calendrier
+- **Livrable 1 (Version 1.0)** : À venir
+  - Diagrammes UML à livrer la veille
+  - Application console fonctionnelle
+  
+- **Livrable 2 (Versions 1.1 et 2.0)** : À venir
+  - Diagrammes UML à livrer la veille
+  - Version 1.1 avec support XML
+  - Version 2.0 avec interface graphique
+  
+- **Livrable 3 (Version 3.0)** : À venir
+  - Diagrammes UML à livrer l'avant-veille de la soutenance
+  - Version finale avec toutes les fonctionnalités
+
+## ⚠️ Règles d'or du développement
+1. **Zéro Duplication :** Si une logique se répète, refactoriser immédiatement.
+2. **Langue :** Tout le code (variables, fonctions) et commentaires doivent être en **Anglais**.
+3. **Robustesse :** Penser aux cas d'erreurs (disque plein, réseau coupé, fichier verrouillé).
+4. **CryptoSoft :** Attention, il est "Mono-instance" en v3.0, gérer les files d'attente.
+5. **Compatibilité :** La DLL `EasyLog` doit rester compatible v1.0 même après update v3.0.
+
+## Modifications et Mises à jour
+- 02/02/2026 : Création du fichier de suivi et configuration initiale du projet
+- 02/02/2026 : Ajout de la liste détaillée des tâches par version
