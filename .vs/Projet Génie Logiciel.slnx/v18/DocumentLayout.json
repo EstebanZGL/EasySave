@@ -1,12 +1,54 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EasySave\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\EasySaveController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:EasySave\\EasySaveController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\Program.cs",
+              "RelativeDocumentMoniker": "EasySave\\Program.cs",
+              "ToolTip": "C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\Program.cs",
+              "RelativeToolTip": "EasySave\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-02T10:25:38.526Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "EasySaveController.cs",
+              "DocumentMoniker": "C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\EasySaveController.cs",
+              "RelativeDocumentMoniker": "EasySave\\EasySaveController.cs",
+              "ToolTip": "C:\\Users\\CESI\\Documents (CESI)\\Projet G\u00E9nie Logiciel\\EasySave\\EasySaveController.cs",
+              "RelativeToolTip": "EasySave\\EasySaveController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-02T10:25:33.802Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }
