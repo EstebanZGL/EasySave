@@ -24,6 +24,19 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - DLL externe `EasyLog.dll` pour la gestion des logs.
 - **Formats de données :** JSON (v1.0), puis JSON/XML (v1.1+).
 
+## 🏗️ Design Patterns Utilisés
+
+### EasyLog.dll
+- **Strategy Pattern** - Interface `ILogger` avec implémentations spécifiques (`JsonLogger`)
+- **Factory Pattern** - `LoggerFactory` pour la création des différents types de loggers
+- **Decorator Pattern** - `PerformanceLogger` pour enrichir les logs avec des métriques de performance
+
+### BackupService
+- **Dependency Injection** - Injection de `ILogger` et `StateManager` dans le constructeur
+- **Template Method** - Structure de l'algorithme de sauvegarde dans `ExecuteBackupJobAsync`
+- **Command Pattern** - Encapsulation des opérations de sauvegarde dans des objets `BackupJob`
+- **State Pattern** - Gestion de l'état des sauvegardes via `StateManager`
+
 ## 📋 Liste des Tâches par Version
 
 ### 🔄 Configuration Initiale
@@ -63,12 +76,14 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Implémentation des types de sauvegarde
   - [x] Sauvegarde complète
   - [x] Sauvegarde différentielle
+- [x] Gestion des fichiers supprimés dans les sauvegardes complètes
 
 #### Développement EasyLog.dll
 - [x] Création de l'interface de logging
 - [x] Implémentation du logger JSON
 - [x] Gestion des fichiers journaliers (YYYY-MM-DD.json)
 - [x] Méthodes pour enregistrer les actions de sauvegarde
+- [x] Implémentation de design patterns (Factory, Decorator)
 
 #### Développement État en Temps Réel
 - [x] Création du gestionnaire d'état
@@ -107,7 +122,8 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Compilation réussie du projet
 - [ ] Revue de code
 - [ ] Optimisation des performances
-- [ ] Correction des bugs
+- [x] Correction des bugs
+  - [x] Gestion des fichiers supprimés dans les sauvegardes complètes
 - [ ] Préparation du livrable
 - [ ] Démonstration
 
@@ -271,6 +287,7 @@ Emplacement : dossier racine du répertoire d'exécution.
 4. **CryptoSoft :** Attention, il est "Mono-instance" en v3.0, gérer les files d'attente.
 5. **Compatibilité :** La DLL `EasyLog` doit rester compatible v1.0 même après update v3.0.
 6. **Style de commentaires :** Les commentaires doivent être en anglais, concis et pertinents. Utiliser les balises XML pour documenter les classes et méthodes publiques, mais éviter la sur-documentation. Les commentaires doivent expliquer le "pourquoi" plutôt que le "comment" lorsque le code est suffisamment clair.
+7. **Design Patterns :** Utiliser des design patterns appropriés pour améliorer la maintenabilité et l'extensibilité du code, mais éviter la sur-ingénierie.
 
 ## Modifications et Mises à jour
 - 02/02/2026 : Création du fichier de suivi et configuration initiale du projet
@@ -280,3 +297,6 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 02/02/2026 : Modification de l'emplacement des logs pour utiliser un dossier local au projet
 - 02/02/2026 : Création de la documentation utilisateur et technique
 - 02/02/2026 : Standardisation des commentaires de code (style concis)
+- 02/02/2026 : Implémentation de design patterns dans EasyLog.dll (Factory, Decorator)
+- 02/02/2026 : Correction du bug de gestion des fichiers supprimés dans les sauvegardes complètes
+- 02/02/2026 : Identification et documentation des design patterns utilisés dans le projet
