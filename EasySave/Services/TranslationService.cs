@@ -91,6 +91,8 @@ namespace EasySave.Services
             translations["en_list_source"] = "Source: ";
             translations["en_list_target"] = "Target: ";
             translations["en_list_type"] = "Type: ";
+            translations["en_list_last_backup"] = "Last backup: ";
+            translations["en_list_never"] = "Never";
             
             translations["en_language_changed"] = "Language changed to English";
             
@@ -125,6 +127,8 @@ namespace EasySave.Services
             translations["fr_list_source"] = "Source : ";
             translations["fr_list_target"] = "Cible : ";
             translations["fr_list_type"] = "Type : ";
+            translations["fr_list_last_backup"] = "Dernière sauvegarde : ";
+            translations["fr_list_never"] = "Jamais";
             
             translations["fr_language_changed"] = "Langue changée en Français";
             

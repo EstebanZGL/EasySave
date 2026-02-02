@@ -20,6 +20,7 @@ namespace EasySave
         private readonly ILogger _logger;
         private readonly StateManager _stateManager;
         private readonly string _appDataPath;
+        private readonly Dictionary<string, DateTime> _lastBackupTimes;
 
         /// <summary>
         /// Constructor that initializes all required services
@@ -42,6 +43,9 @@ namespace EasySave
             _stateManager = new StateManager(Path.Combine(_appDataPath, "state.json"));
             _jobManager = new BackupJobManager(Path.Combine(_appDataPath, "config.json"));
             _backupService = new BackupService(_logger, _stateManager);
+            
+            // Initialize last backup times tracking
+            _lastBackupTimes = new Dictionary<string, DateTime>();
         }
 
         /// <summary>
@@ -201,6 +205,9 @@ namespace EasySave
                     try
                     {
                         await _backupService.ExecuteBackupJobAsync(jobs[index]);
+                        
+                        // Record the backup time
+                        _lastBackupTimes[jobs[index].Name] = DateTime.Now;
                     }
                     catch (Exception ex)
                     {
@@ -239,6 +246,17 @@ namespace EasySave
                     Console.WriteLine($"   {_translationService.GetTranslation("list_source")}{job.SourcePath}");
                     Console.WriteLine($"   {_translationService.GetTranslation("list_target")}{job.TargetPath}");
                     Console.WriteLine($"   {_translationService.GetTranslation("list_type")}{job.Type}");
+                    
+                    // Display last backup time if available
+                    if (_lastBackupTimes.TryGetValue(job.Name, out DateTime lastBackup))
+                    {
+                        Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{lastBackup:yyyy-MM-dd HH:mm:ss}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{_translationService.GetTranslation("list_never")}");
+                    }
+                    
                     Console.WriteLine();
                 }
             }
@@ -316,6 +334,9 @@ namespace EasySave
                     try
                     {
                         await _backupService.ExecuteBackupJobAsync(jobs[index]);
+                        
+                        // Record the backup time
+                        _lastBackupTimes[jobs[index].Name] = DateTime.Now;
                     }
                     catch (Exception ex)
                     {
