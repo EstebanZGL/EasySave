@@ -12,7 +12,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - **Version en cours de développement :** v1.0
 - **Dernier Livrable Validé :** Aucun
 - **Prochaine Échéance :** Livrable 1 - Version 1.0
-- **Focus Actuel :** Développement des fonctionnalités de base
+- **Focus Actuel :** Tests et finalisation de la version 1.0
 
 ## 🛠️ Stack Technique & Contraintes
 - **Langage :** C# (.NET 8.0)
@@ -49,8 +49,8 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 #### Structure du Projet
 - [x] Création du projet principal (Application Console)
 - [x] Création du projet de bibliothèque EasyLog.dll
-- [ ] Configuration des références entre projets
-- [ ] Configuration du système de build
+- [x] Configuration des références entre projets
+- [x] Configuration du système de build
 
 #### Développement Core
 - [x] Implémentation de la classe BackupJob
@@ -90,6 +90,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Gestion des erreurs de syntaxe
 
 #### Tests et Validation
+- [x] Tests fonctionnels de base
 - [ ] Tests unitaires
 - [ ] Tests d'intégration
 - [ ] Tests de performance
@@ -103,6 +104,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Commentaires du code (XML)
 
 #### Finalisation
+- [x] Compilation réussie du projet
 - [ ] Revue de code
 - [ ] Optimisation des performances
 - [ ] Correction des bugs
@@ -231,7 +233,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 ## 📂 Spécifications des Données (Mémoire technique)
 
 ### 1. Fichier Log Journalier (`YYYY-MM-DD.json/xml`)
-Emplacement relatif (pas de `C:\temp`).
+Emplacement : dossier "logs" dans le répertoire d'exécution.
 **Champs obligatoires :**
 - Timestamp
 - Nom de la sauvegarde
@@ -240,7 +242,7 @@ Emplacement relatif (pas de `C:\temp`).
 - *[v2.0+]* Temps de cryptage (ms, 0 si non, <0 si erreur)
 
 ### 2. Fichier d'État Temps Réel (`state.json`)
-Mise à jour en continu.
+Emplacement : dossier racine du répertoire d'exécution.
 **Champs obligatoires :**
 - Nom du travail
 - Timestamp dernière action
@@ -273,3 +275,5 @@ Mise à jour en continu.
 - 02/02/2026 : Création du fichier de suivi et configuration initiale du projet
 - 02/02/2026 : Ajout de la liste détaillée des tâches par version
 - 02/02/2026 : Développement des classes principales pour la version 1.0 (BackupJob, EasyLog, StateManager, BackupService, TranslationService)
+- 02/02/2026 : Compilation réussie du projet et tests fonctionnels initiaux
+- 02/02/2026 : Modification de l'emplacement des logs pour utiliser un dossier local au projet
