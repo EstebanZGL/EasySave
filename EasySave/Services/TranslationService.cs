@@ -69,8 +69,15 @@ namespace EasySave.Services
             translations["en_menu_execute"] = "2. Execute backup job(s)";
             translations["en_menu_list"] = "3. List backup jobs";
             translations["en_menu_language"] = "4. Change language (English/Français)";
-            translations["en_menu_exit"] = "5. Exit";
+            translations["en_menu_format"] = "5. Change log format";
+            translations["en_menu_exit"] = "6. Exit";
             translations["en_menu_choice"] = "Enter your choice: ";
+
+            // Ajoutez ces lignes pour le format des logs
+            translations["en_format_title"] = "Log Format Selection";
+            translations["en_format_current"] = "Current format: ";
+            translations["en_format_choice"] = "Select log format (1-2): ";
+            translations["en_format_changed"] = "Log format changed to: ";
             
             translations["en_create_title"] = "Create a new backup job";
             translations["en_create_name"] = "Enter a name for the backup job: ";
@@ -111,9 +118,12 @@ namespace EasySave.Services
             translations["en_delete_cancelled"] = "Deletion cancelled.";
             translations["en_delete_invalid"] = "Invalid job number.";
             
+            
             translations["en_language_changed"] = "Language changed to English";
             
             translations["en_press_any_key"] = "Press any key to continue...";
+
+            
 
             // French translations
             translations["fr_app_title"] = "EasySave 1.0 - Logiciel de Sauvegarde";
@@ -122,8 +132,14 @@ namespace EasySave.Services
             translations["fr_menu_execute"] = "2. Exécuter un/des travail(aux) de sauvegarde";
             translations["fr_menu_list"] = "3. Lister les travaux de sauvegarde";
             translations["fr_menu_language"] = "4. Changer de langue (English/Français)";
-            translations["fr_menu_exit"] = "5. Quitter";
+            translations["fr_menu_format"] = "5. Changer le format des logs";
+            translations["fr_menu_exit"] = "6. Quitter";
             translations["fr_menu_choice"] = "Entrez votre choix : ";
+
+            translations["fr_format_title"] = "Sélection du Format de Log";
+            translations["fr_format_current"] = "Format actuel : ";
+            translations["fr_format_choice"] = "Sélectionnez le format de log (1-2) : ";
+            translations["fr_format_changed"] = "Format de log changé en : ";
             
             translations["fr_create_title"] = "Créer un nouveau travail de sauvegarde";
             translations["fr_create_name"] = "Entrez un nom pour le travail de sauvegarde : ";
