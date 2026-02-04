@@ -29,14 +29,10 @@ namespace EasySave
         public EasySaveController()
         {
             // Initialize application data path - use application directory instead of AppData
-            _appDataPath = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "EasySave");
+            _appDataPath = AppDomain.CurrentDomain.BaseDirectory;
 
-            // Create required directories
-            Directory.CreateDirectory(_appDataPath);
-            Directory.CreateDirectory(Path.Combine(_appDataPath, "Log"));
-            string logDirectory = Path.Combine(_appDataPath, "Log");
+            // Create logs directory directly in the base directory
+            string logDirectory = Path.Combine(_appDataPath, "logs");
             Directory.CreateDirectory(logDirectory);
 
             
