@@ -3,64 +3,47 @@ using System.Collections.Generic;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Service for handling translations
-    /// </summary>
+    // Service for handling translations
     public class TranslationService
     {
         private readonly Dictionary<string, string> _translations;
         private string _currentLanguage;
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="defaultLanguage">Default language code (en or fr)</param>
+        // Constructor with optional default language parameter
         public TranslationService(string defaultLanguage = "en")
         {
             _currentLanguage = defaultLanguage.ToLower() == "fr" ? "fr" : "en";
             _translations = InitializeTranslations();
         }
 
-        /// <summary>
-        /// Get the current language
-        /// </summary>
+        // Get the current language
         public string CurrentLanguage => _currentLanguage;
 
-        /// <summary>
-        /// Change the current language
-        /// </summary>
-        /// <param name="language">Language code (en or fr)</param>
+        // Change the current language
         public void ChangeLanguage(string language)
         {
             _currentLanguage = language.ToLower() == "fr" ? "fr" : "en";
         }
 
-        /// <summary>
-        /// Toggle between available languages
-        /// </summary>
+        // Toggle between available languages
         public void ToggleLanguage()
         {
             _currentLanguage = _currentLanguage == "en" ? "fr" : "en";
         }
 
-        /// <summary>
-        /// Get translation for a key
-        /// </summary>
-        /// <param name="key">Translation key without language prefix</param>
-        /// <returns>Translated text</returns>
+        // Get translation for a key
         public string GetTranslation(string key)
         {
             string fullKey = $"{_currentLanguage}_{key}";
-            return _translations.ContainsKey(fullKey) ? _translations[fullKey] : $"[{key}]";
+            // Use TryGetValue for better performance than ContainsKey + indexer
+            return _translations.TryGetValue(fullKey, out string translation) ? translation : $"[{key}]";
         }
 
-        /// <summary>
-        /// Initialize translations
-        /// </summary>
-        /// <returns>Dictionary containing all translations</returns>
+        // Initialize translations dictionary
         private Dictionary<string, string> InitializeTranslations()
         {
-            var translations = new Dictionary<string, string>();
+            // Use initial capacity to avoid resizing
+            var translations = new Dictionary<string, string>(100);
 
             // English translations
             translations["en_app_title"] = "EasySave 1.0 - Backup Software";

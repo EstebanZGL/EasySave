@@ -3,20 +3,16 @@ using System.Threading.Tasks;
 
 namespace EasyLog
 {
-    /// <summary>
-    /// Interface for logging backup operations with support for different implementations.
-    /// </summary>
+    // Interface for logging backup operations with support for different implementations
     public interface ILogger
     {
-        /// <summary>
-        /// Logs a file transfer operation.
-        /// </summary>
-        /// <param name="backupName">Name of the backup job</param>
-        /// <param name="sourcePath">Source file path</param>
-        /// <param name="targetPath">Target file path</param>
-        /// <param name="fileSize">Size of the file in bytes</param>
-        /// <param name="transferTime">Transfer time in milliseconds (negative if error)</param>
-        /// <returns>Task representing the asynchronous operation</returns>
+        // Logs a file transfer operation
+        // backupName: Name of the backup job
+        // sourcePath: Source file path
+        // targetPath: Target file path
+        // fileSize: Size of the file in bytes
+        // transferTime: Transfer time in milliseconds (negative if error)
+        // Returns: Task representing the asynchronous operation
         Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime);
     }
 }

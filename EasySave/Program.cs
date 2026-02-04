@@ -3,16 +3,11 @@ using System.Threading.Tasks;
 
 namespace EasySave
 {
-    /// <summary>
-    /// Main entry point for EasySave application
-    /// </summary>
+    // Main entry point for EasySave application
     class Program
     {
-        /// <summary>
-        /// Entry point of the application
-        /// </summary>
-        /// <param name="args">Command line arguments for specifying backup jobs to execute</param>
-        /// <returns>Task representing the asynchronous operation</returns>
+        // Entry point of the application
+        // args: Command line arguments for specifying backup jobs to execute
         static async Task Main(string[] args)
         {
             try
@@ -37,9 +32,7 @@ namespace EasySave
             }
         }
         
-        /// <summary>
-        /// Displays command line help information
-        /// </summary>
+        // Displays command line help information
         private static void DisplayHelp()
         {
             Console.WriteLine("EasySave 1.0 - Command Line Usage");

@@ -43,7 +43,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Création de la solution Visual Studio
 - [x] Création du dépôt GitHub
 - [x] Invitation du tuteur sur le dépôt GitHub
-- [ ] Configuration des branches (main, develop, feature)
+- [X] Configuration des branches (main, develop, feature)
 - [ ] Mise en place du .gitignore pour Visual Studio
 - [ ] Définition des conventions de nommage et de codage
 

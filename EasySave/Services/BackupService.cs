@@ -8,31 +8,22 @@ using EasyLog;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Service for executing backup operations
-    /// </summary>
+    // Service for executing backup operations
     public class BackupService
     {
         private readonly ILogger _logger;
         private readonly StateManager _stateManager;
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="logger">Logger for recording backup operations</param>
-        /// <param name="stateManager">State manager for tracking backup progress</param>
+        // Constructor that initializes the logger and state manager
         public BackupService(ILogger logger, StateManager stateManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
         }
 
-        /// <summary>
-        /// Executes a backup job
-        /// </summary>
-        /// <param name="job">Backup job to execute</param>
-        /// <exception cref="ArgumentException">Thrown when job is invalid</exception>
-        /// <exception cref="DirectoryNotFoundException">Thrown when source directory doesn't exist</exception>
+        // Executes a backup job asynchronously
+        // Throws ArgumentException if job is invalid
+        // Throws DirectoryNotFoundException if source directory doesn't exist
         public async Task ExecuteBackupJobAsync(BackupJob job)
         {
             // Validate job
@@ -78,8 +69,8 @@ namespace EasySave.Services
                 
                 foreach (string sourceFile in sourceFiles)
                 {
-                    // Get relative path
-                    string relativePath = sourceFile.Substring(job.SourcePath.Length).TrimStart(Path.DirectorySeparatorChar);
+                    // Get relative path - optimization: use Path methods instead of string operations
+                    string relativePath = Path.GetRelativePath(job.SourcePath, sourceFile);
                     string targetFile = Path.Combine(job.TargetPath, relativePath);
 
                     // Create target directory if needed
@@ -159,10 +150,9 @@ namespace EasySave.Services
                     processedSize += fileSize;
                 }
 
-                // Remove files that don't exist in source anymore
+                // Remove files that don't exist in source anymore for complete backups
                 if (job.Type == BackupType.Complete)
                 {
-                    // For complete backups, remove files that don't exist in source
                     Console.WriteLine();
                     await RemoveDeletedFilesAsync(job.Name, job.SourcePath, job.TargetPath);
                 }
@@ -200,12 +190,7 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Removes files in the target directory that don't exist in the source directory
-        /// </summary>
-        /// <param name="backupName">Name of the backup job</param>
-        /// <param name="sourcePath">Source directory path</param>
-        /// <param name="targetPath">Target directory path</param>
+        // Removes files in the target directory that don't exist in the source directory
         private async Task RemoveDeletedFilesAsync(string backupName, string sourcePath, string targetPath)
         {
             Console.WriteLine("Checking for files to remove...");
@@ -215,8 +200,8 @@ namespace EasySave.Services
             
             foreach (string targetFile in targetFiles)
             {
-                // Calculate the relative path
-                string relativePath = targetFile.Substring(targetPath.Length).TrimStart(Path.DirectorySeparatorChar);
+                // Calculate the relative path using Path.GetRelativePath for better performance
+                string relativePath = Path.GetRelativePath(targetPath, targetFile);
                 string sourceFile = Path.Combine(sourcePath, relativePath);
                 
                 // If the file doesn't exist in the source, delete it from the target
@@ -250,10 +235,7 @@ namespace EasySave.Services
             RemoveEmptyDirectories(targetPath);
         }
 
-        /// <summary>
-        /// Recursively removes empty directories
-        /// </summary>
-        /// <param name="directory">Directory to check</param>
+        // Recursively removes empty directories
         private void RemoveEmptyDirectories(string directory)
         {
             // Process all subdirectories
@@ -262,8 +244,7 @@ namespace EasySave.Services
                 RemoveEmptyDirectories(subDir);
                 
                 // If the directory is empty after processing subdirectories, delete it
-                if (Directory.GetFiles(subDir).Length == 0 && 
-                    Directory.GetDirectories(subDir).Length == 0)
+                if (!Directory.EnumerateFileSystemEntries(subDir).Any())
                 {
                     try
                     {
