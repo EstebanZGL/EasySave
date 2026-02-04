@@ -87,17 +87,20 @@ namespace EasySave
             Console.WriteLine();
             Console.WriteLine("OPTIONS:");
             Console.WriteLine("  -h, --help, /?    Display this help information");
+            Console.WriteLine("  all, 0           Execute all backup jobs sequentially");
             Console.WriteLine();
             Console.WriteLine("JOB SELECTION:");
             Console.WriteLine("  Specify which backup jobs to execute using the following formats:");
             Console.WriteLine();
             Console.WriteLine("  In CMD:");
+            Console.WriteLine("  - All jobs:        EasySave.exe all");
             Console.WriteLine("  - Single job:      EasySave.exe 1");
             Console.WriteLine("  - Multiple jobs:   EasySave.exe 1;3;5");
             Console.WriteLine("  - Range of jobs:   EasySave.exe 1-3");
             Console.WriteLine("  - Combined:        EasySave.exe 1;3-5");
             Console.WriteLine();
             Console.WriteLine("  In PowerShell:");
+            Console.WriteLine("  - All jobs:        .\\EasySave.exe all");
             Console.WriteLine("  - Single job:      .\\EasySave.exe 1");
             Console.WriteLine("  - Multiple jobs:   .\\EasySave.exe 1 3 5");
             Console.WriteLine("  - Range of jobs:   .\\EasySave.exe \"1-3\"");
@@ -106,6 +109,7 @@ namespace EasySave
             Console.WriteLine("EXAMPLES:");
             Console.WriteLine("  EasySave.exe 1     Execute backup job #1");
             Console.WriteLine("  EasySave.exe 1 3   Execute backup jobs #1 and #3");
+            Console.WriteLine("  EasySave.exe all   Execute all backup jobs sequentially");
             Console.WriteLine();
             Console.WriteLine("NOTE: Job numbers refer to the position in the job list (starting from 1).");
             Console.WriteLine("      If no arguments are provided, the interactive menu will be displayed.");
@@ -236,31 +240,91 @@ namespace EasySave
             }
             
             Console.WriteLine("---------------------------");
+            Console.WriteLine(_translationService.GetTranslation("execute_all_option"));
+            Console.WriteLine("---------------------------");
             Console.Write(_translationService.GetTranslation("execute_select"));
             string input = Console.ReadLine();
             
-            // Parse selection
-            List<int> jobIndexes = ParseJobIndexes(input);
-            
-            // Execute selected jobs
-            foreach (int index in jobIndexes)
+            // Check if user wants to execute all jobs
+            if (input == "0" || input.ToLower() == "all")
             {
-                if (index >= 0 && index < jobs.Count)
+                // Execute all jobs sequentially
+                Console.WriteLine();
+                Console.WriteLine(_translationService.GetTranslation("execute_all_jobs"));
+                Console.WriteLine();
+                
+                // Variables pour suivre les résultats de l'exécution
+                int menuSuccessCount = 0;
+                int menuFailCount = 0;
+                
+                for (int i = 0; i < jobs.Count; i++)
                 {
                     try
                     {
-                        await _backupService.ExecuteBackupJobAsync(jobs[index]);
+                        if (i > 0)
+                        {
+                            // Add extra line between jobs
+                            Console.WriteLine();
+                        }
+                        
+                        Console.WriteLine($"{_translationService.GetTranslation("execute_job_progress")} {i + 1}/{jobs.Count}: {jobs[i].Name}");
+                        await _backupService.ExecuteBackupJobAsync(jobs[i]);
                         
                         // Record the backup time
-                        _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        _lastBackupTimes[jobs[i].Name] = DateTime.Now;
+                        
+                        menuSuccessCount++;
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.Message}");
+                        Console.WriteLine($"{_translationService.GetTranslation("execute_job_error")}: {ex.Message}");
+                        menuFailCount++;
+                    }
+                }
+                
+                Console.WriteLine();
+                Console.WriteLine($"{_translationService.GetTranslation("execute_summary")}: {menuSuccessCount} {_translationService.GetTranslation("execute_succeeded")}, {menuFailCount} {_translationService.GetTranslation("execute_failed")}");
+            }
+            else
+            {
+                // Parse selection for specific jobs
+                List<int> jobIndexes = ParseJobIndexes(input);
+                
+                // Execute selected jobs
+                Console.WriteLine();
+                
+                int jobCount = jobIndexes.Count;
+                int currentJob = 0;
+                
+                foreach (int index in jobIndexes)
+                {
+                    if (index >= 0 && index < jobs.Count)
+                    {
+                        try
+                        {
+                            currentJob++;
+                            
+                            if (currentJob > 1)
+                            {
+                                // Add extra line between jobs
+                                Console.WriteLine();
+                            }
+                            
+                            Console.WriteLine($"{_translationService.GetTranslation("execute_job_progress")} {currentJob}/{jobCount}: {jobs[index].Name}");
+                            await _backupService.ExecuteBackupJobAsync(jobs[index]);
+                            
+                            // Record the backup time
+                            _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"{_translationService.GetTranslation("execute_job_error")}: {ex.Message}");
+                        }
                     }
                 }
             }
             
+            Console.WriteLine();
             Console.WriteLine(_translationService.GetTranslation("execute_success"));
             Console.WriteLine(_translationService.GetTranslation("press_any_key"));
             Console.ReadKey();
@@ -458,6 +522,49 @@ namespace EasySave
             }
             Console.WriteLine("---------------------------");
             
+            // Check if user wants to execute all jobs
+            if (args.Contains("0") || args.Contains("all", StringComparer.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Executing all backup jobs sequentially:");
+                Console.WriteLine();
+                
+                // Variables pour suivre les résultats de l'exécution en ligne de commande
+                int cmdSuccessCount = 0;
+                int cmdFailCount = 0;
+                
+                for (int i = 0; i < jobs.Count; i++)
+                {
+                    try
+                    {
+                        if (i > 0)
+                        {
+                            // Add extra line between jobs
+                            Console.WriteLine();
+                        }
+                        
+                        Console.WriteLine($"Executing job ({i + 1}/{jobs.Count}): {jobs[i].Name}...");
+                        await _backupService.ExecuteBackupJobAsync(jobs[i]);
+                        
+                        // Record the backup time
+                        _lastBackupTimes[jobs[i].Name] = DateTime.Now;
+                        
+                        Console.WriteLine($"Job '{jobs[i].Name}' completed successfully.");
+                        cmdSuccessCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error executing job '{jobs[i].Name}': {ex.Message}");
+                        cmdFailCount++;
+                    }
+                }
+                
+                // Display summary
+                Console.WriteLine();
+                Console.WriteLine("---------------------------");
+                Console.WriteLine($"Execution complete: {cmdSuccessCount} job(s) succeeded, {cmdFailCount} job(s) failed.");
+                return;
+            }
+            
             // Process all arguments to support both PowerShell and CMD syntax
             var jobIndexes = new List<int>();
             
@@ -483,10 +590,12 @@ namespace EasySave
                 Console.WriteLine("No valid job numbers specified");
                 Console.WriteLine("Usage examples:");
                 Console.WriteLine("  In CMD:");
+                Console.WriteLine("    EasySave.exe all   (Execute all jobs)");
                 Console.WriteLine("    EasySave.exe 1     (Execute job #1)");
                 Console.WriteLine("    EasySave.exe 1;3   (Execute jobs #1 and #3)");
                 Console.WriteLine();
                 Console.WriteLine("  In PowerShell:");
+                Console.WriteLine("    .\\EasySave.exe all  (Execute all jobs)");
                 Console.WriteLine("    .\\EasySave.exe 1    (Execute job #1)");
                 Console.WriteLine("    .\\EasySave.exe 1 3  (Execute jobs #1 and #3)");
                 Console.WriteLine("    .\\EasySave.exe \"1;3\" (Execute jobs #1 and #3)");
@@ -505,10 +614,12 @@ namespace EasySave
                 }
             }
             Console.WriteLine("---------------------------");
+            Console.WriteLine();
             
             // Execute selected jobs
-            int successCount = 0;
-            int failCount = 0;
+            int cmdJobSuccessCount = 0;
+            int cmdJobFailCount = 0;
+            int currentJob = 0;
             
             foreach (int index in jobIndexes)
             {
@@ -516,6 +627,14 @@ namespace EasySave
                 {
                     try
                     {
+                        currentJob++;
+                        
+                        if (currentJob > 1)
+                        {
+                            // Add extra line between jobs
+                            Console.WriteLine();
+                        }
+                        
                         Console.WriteLine($"Executing job: {jobs[index].Name}...");
                         await _backupService.ExecuteBackupJobAsync(jobs[index]);
                         
@@ -523,12 +642,12 @@ namespace EasySave
                         _lastBackupTimes[jobs[index].Name] = DateTime.Now;
                         
                         Console.WriteLine($"Job '{jobs[index].Name}' completed successfully.");
-                        successCount++;
+                        cmdJobSuccessCount++;
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Error executing job '{jobs[index].Name}': {ex.Message}");
-                        failCount++;
+                        cmdJobFailCount++;
                     }
                 }
                 else
@@ -538,8 +657,9 @@ namespace EasySave
             }
             
             // Display summary
+            Console.WriteLine();
             Console.WriteLine("---------------------------");
-            Console.WriteLine($"Execution complete: {successCount} job(s) succeeded, {failCount} job(s) failed.");
+            Console.WriteLine($"Execution complete: {cmdJobSuccessCount} job(s) succeeded, {cmdJobFailCount} job(s) failed.");
         }
     }
 }
