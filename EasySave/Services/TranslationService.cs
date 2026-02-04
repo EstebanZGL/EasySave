@@ -93,6 +93,16 @@ namespace EasySave.Services
             translations["en_list_type"] = "Type: ";
             translations["en_list_last_backup"] = "Last backup: ";
             translations["en_list_never"] = "Never";
+            translations["en_list_delete_option"] = "Type 'D' or 'delete' to delete a backup job";
+            translations["en_list_back_option"] = "Press any other key to return to the main menu";
+            translations["en_list_choice"] = "Enter your choice: ";
+            
+            translations["en_delete_select"] = "Enter the number of the backup job to delete: ";
+            translations["en_delete_confirm"] = "Are you sure you want to delete the backup job '{0}'? (Y/N): ";
+            translations["en_delete_success"] = "Backup job deleted successfully.";
+            translations["en_delete_error"] = "Error deleting backup job.";
+            translations["en_delete_cancelled"] = "Deletion cancelled.";
+            translations["en_delete_invalid"] = "Invalid job number.";
             
             translations["en_language_changed"] = "Language changed to English";
             
@@ -129,6 +139,16 @@ namespace EasySave.Services
             translations["fr_list_type"] = "Type : ";
             translations["fr_list_last_backup"] = "Dernière sauvegarde : ";
             translations["fr_list_never"] = "Jamais";
+            translations["fr_list_delete_option"] = "Tapez 'D' ou 'delete' pour supprimer un travail de sauvegarde";
+            translations["fr_list_back_option"] = "Appuyez sur une autre touche pour revenir au menu principal";
+            translations["fr_list_choice"] = "Entrez votre choix : ";
+            
+            translations["fr_delete_select"] = "Entrez le numéro du travail de sauvegarde à supprimer : ";
+            translations["fr_delete_confirm"] = "Êtes-vous sûr de vouloir supprimer le travail de sauvegarde '{0}' ? (O/N) : ";
+            translations["fr_delete_success"] = "Travail de sauvegarde supprimé avec succès.";
+            translations["fr_delete_error"] = "Erreur lors de la suppression du travail de sauvegarde.";
+            translations["fr_delete_cancelled"] = "Suppression annulée.";
+            translations["fr_delete_invalid"] = "Numéro de travail invalide.";
             
             translations["fr_language_changed"] = "Langue changée en Français";
             

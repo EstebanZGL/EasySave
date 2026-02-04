@@ -102,7 +102,7 @@ namespace EasySave
                         await ExecuteBackupJobsAsync();
                         break;
                     case "3":
-                        ListBackupJobs();
+                        await ManageBackupJobsAsync();
                         break;
                     case "4":
                         ChangeLanguage();
@@ -222,9 +222,9 @@ namespace EasySave
         }
 
         /// <summary>
-        /// Displays a list of all configured backup jobs
+        /// Manages backup jobs (list, view details, delete)
         /// </summary>
-        private void ListBackupJobs()
+        private async Task ManageBackupJobsAsync()
         {
             var jobs = _jobManager.GetJobs();
             
@@ -235,34 +235,105 @@ namespace EasySave
             if (jobs.Count == 0)
             {
                 Console.WriteLine(_translationService.GetTranslation("list_no_jobs"));
+                Console.WriteLine(_translationService.GetTranslation("press_any_key"));
+                Console.ReadKey();
+                return;
+            }
+            
+            // Display job details
+            for (int i = 0; i < jobs.Count; i++)
+            {
+                var job = jobs[i];
+                Console.WriteLine($"{i + 1}. {job.Name}");
+                Console.WriteLine($"   {_translationService.GetTranslation("list_source")}{job.SourcePath}");
+                Console.WriteLine($"   {_translationService.GetTranslation("list_target")}{job.TargetPath}");
+                Console.WriteLine($"   {_translationService.GetTranslation("list_type")}{job.Type}");
+                
+                // Display last backup time if available
+                if (_lastBackupTimes.TryGetValue(job.Name, out DateTime lastBackup))
+                {
+                    Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{lastBackup:yyyy-MM-dd HH:mm:ss}");
+                }
+                else
+                {
+                    Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{_translationService.GetTranslation("list_never")}");
+                }
+                
+                Console.WriteLine();
+            }
+            
+            // Show delete option
+            Console.WriteLine("---------------------------");
+            Console.WriteLine(_translationService.GetTranslation("list_delete_option"));
+            Console.WriteLine(_translationService.GetTranslation("list_back_option"));
+            Console.WriteLine("---------------------------");
+            Console.Write(_translationService.GetTranslation("list_choice"));
+            
+            string input = Console.ReadLine();
+            
+            if (input.ToLower() == "d" || input.ToLower() == "delete")
+            {
+                await DeleteBackupJobAsync();
             }
             else
             {
-                // Display job details
-                for (int i = 0; i < jobs.Count; i++)
+                // Just return to main menu
+                await Task.CompletedTask;
+            }
+        }
+
+        /// <summary>
+        /// Deletes a backup job selected by the user
+        /// </summary>
+        private async Task DeleteBackupJobAsync()
+        {
+            var jobs = _jobManager.GetJobs();
+            
+            Console.WriteLine("---------------------------");
+            Console.Write(_translationService.GetTranslation("delete_select"));
+            
+            if (int.TryParse(Console.ReadLine(), out int jobNumber) && jobNumber >= 1 && jobNumber <= jobs.Count)
+            {
+                int index = jobNumber - 1;
+                string jobName = jobs[index].Name;
+                
+                Console.Write(_translationService.GetTranslation("delete_confirm").Replace("{0}", jobName));
+                string confirmation = Console.ReadLine();
+                
+                if (confirmation.ToLower() == "y" || confirmation.ToLower() == "yes" || 
+                    confirmation.ToLower() == "o" || confirmation.ToLower() == "oui")
                 {
-                    var job = jobs[i];
-                    Console.WriteLine($"{i + 1}. {job.Name}");
-                    Console.WriteLine($"   {_translationService.GetTranslation("list_source")}{job.SourcePath}");
-                    Console.WriteLine($"   {_translationService.GetTranslation("list_target")}{job.TargetPath}");
-                    Console.WriteLine($"   {_translationService.GetTranslation("list_type")}{job.Type}");
+                    bool success = _jobManager.DeleteJob(index);
                     
-                    // Display last backup time if available
-                    if (_lastBackupTimes.TryGetValue(job.Name, out DateTime lastBackup))
+                    if (success)
                     {
-                        Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{lastBackup:yyyy-MM-dd HH:mm:ss}");
+                        // Remove from last backup times if exists
+                        if (_lastBackupTimes.ContainsKey(jobName))
+                        {
+                            _lastBackupTimes.Remove(jobName);
+                        }
+                        
+                        Console.WriteLine(_translationService.GetTranslation("delete_success"));
                     }
                     else
                     {
-                        Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{_translationService.GetTranslation("list_never")}");
+                        Console.WriteLine(_translationService.GetTranslation("delete_error"));
                     }
-                    
-                    Console.WriteLine();
                 }
+                else
+                {
+                    Console.WriteLine(_translationService.GetTranslation("delete_cancelled"));
+                }
+            }
+            else
+            {
+                Console.WriteLine(_translationService.GetTranslation("delete_invalid"));
             }
             
             Console.WriteLine(_translationService.GetTranslation("press_any_key"));
             Console.ReadKey();
+            
+            await Task.CompletedTask;
         }
 
         /// <summary>

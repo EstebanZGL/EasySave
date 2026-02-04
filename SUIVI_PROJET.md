@@ -73,6 +73,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Création des travaux
   - [x] Stockage des travaux
   - [x] Chargement des travaux
+  - [x] Suppression des travaux
 - [x] Implémentation des types de sauvegarde
   - [x] Sauvegarde complète
   - [x] Sauvegarde différentielle
@@ -98,6 +99,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Système de traduction
   - [x] Fichiers de ressources
   - [x] Sélection de la langue
+- [x] Gestion des travaux de sauvegarde
+  - [x] Affichage de l'horodatage de la dernière sauvegarde
+  - [x] Suppression des travaux
 
 #### Ligne de Commande
 - [x] Parsing des arguments (ex: EasySave.exe 1-3 ou 1;3)
@@ -300,3 +304,5 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 02/02/2026 : Implémentation de design patterns dans EasyLog.dll (Factory, Decorator)
 - 02/02/2026 : Correction du bug de gestion des fichiers supprimés dans les sauvegardes complètes
 - 02/02/2026 : Identification et documentation des design patterns utilisés dans le projet
+- 04/02/2026 : Ajout de l'horodatage de la dernière sauvegarde dans la liste des travaux
+- 04/02/2026 : Implémentation de la fonctionnalité de suppression des travaux de sauvegarde
