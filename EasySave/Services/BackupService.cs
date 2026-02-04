@@ -42,6 +42,7 @@ namespace EasySave.Services
             }
 
             Console.WriteLine($"Starting backup job: {job.Name}");
+            Console.WriteLine();
 
             try
             {
@@ -162,6 +163,7 @@ namespace EasySave.Services
                 if (job.Type == BackupType.Complete)
                 {
                     // For complete backups, remove files that don't exist in source
+                    Console.WriteLine();
                     await RemoveDeletedFilesAsync(job.Name, job.SourcePath, job.TargetPath);
                 }
 
@@ -175,7 +177,9 @@ namespace EasySave.Services
                     0
                 );
 
+                Console.WriteLine();
                 Console.WriteLine($"Backup job completed: {job.Name}");
+                Console.WriteLine();
             }
             catch (Exception ex)
             {
@@ -189,7 +193,9 @@ namespace EasySave.Services
                     0
                 );
 
+                Console.WriteLine();
                 Console.WriteLine($"Error executing backup job {job.Name}: {ex.Message}");
+                Console.WriteLine();
                 throw;
             }
         }

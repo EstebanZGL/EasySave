@@ -83,6 +83,13 @@ namespace EasySave.Services
             
             translations["en_execute_title"] = "Execute backup job(s)";
             translations["en_execute_select"] = "Enter the number(s) of the backup job(s) to execute (e.g., '1', '1-3', or '1;3'): ";
+            translations["en_execute_all_option"] = "Enter '0' or 'all' to execute all backup jobs sequentially";
+            translations["en_execute_all_jobs"] = "Executing all backup jobs sequentially...";
+            translations["en_execute_job_progress"] = "Executing job";
+            translations["en_execute_job_error"] = "Error";
+            translations["en_execute_summary"] = "Summary";
+            translations["en_execute_succeeded"] = "succeeded";
+            translations["en_execute_failed"] = "failed";
             translations["en_execute_success"] = "Backup job(s) executed successfully.";
             translations["en_execute_no_jobs"] = "No backup jobs available.";
             
@@ -129,6 +136,13 @@ namespace EasySave.Services
             
             translations["fr_execute_title"] = "Exécuter un/des travail(aux) de sauvegarde";
             translations["fr_execute_select"] = "Entrez le(s) numéro(s) du/des travail(aux) de sauvegarde à exécuter (ex : '1', '1-3', ou '1;3') : ";
+            translations["fr_execute_all_option"] = "Entrez '0' ou 'all' pour exécuter tous les travaux de sauvegarde séquentiellement";
+            translations["fr_execute_all_jobs"] = "Exécution de tous les travaux de sauvegarde séquentiellement...";
+            translations["fr_execute_job_progress"] = "Exécution du travail";
+            translations["fr_execute_job_error"] = "Erreur";
+            translations["fr_execute_summary"] = "Résumé";
+            translations["fr_execute_succeeded"] = "réussi(s)";
+            translations["fr_execute_failed"] = "échoué(s)";
             translations["fr_execute_success"] = "Travail(aux) de sauvegarde exécuté(s) avec succès.";
             translations["fr_execute_no_jobs"] = "Aucun travail de sauvegarde disponible.";
             
