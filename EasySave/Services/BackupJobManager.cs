@@ -7,19 +7,15 @@ using EasySave.Models;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Manages backup jobs
-    /// </summary>
+    // Manages backup jobs
     public class BackupJobManager
     {
         private const int MaxJobs = 5; // Maximum number of backup jobs allowed
         private readonly List<BackupJob> _backupJobs;
         private readonly string _configFilePath;
+        private readonly object _lockObject = new object(); // For thread safety
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="configFilePath">Path to the configuration file</param>
+        // Constructor
         public BackupJobManager(string configFilePath)
         {
             _configFilePath = configFilePath;
@@ -36,78 +32,72 @@ namespace EasySave.Services
             LoadJobs();
         }
 
-        /// <summary>
-        /// Get all backup jobs
-        /// </summary>
-        /// <returns>List of backup jobs</returns>
+        // Get all backup jobs
         public IReadOnlyList<BackupJob> GetJobs()
         {
-            return _backupJobs.AsReadOnly();
+            lock (_lockObject)
+            {
+                return _backupJobs.AsReadOnly();
+            }
         }
 
-        /// <summary>
-        /// Get a backup job by index
-        /// </summary>
-        /// <param name="index">Index of the job (0-based)</param>
-        /// <returns>Backup job or null if index is invalid</returns>
+        // Get a backup job by index
         public BackupJob GetJob(int index)
         {
-            if (index >= 0 && index < _backupJobs.Count)
+            lock (_lockObject)
             {
-                return _backupJobs[index];
+                if (index >= 0 && index < _backupJobs.Count)
+                {
+                    return _backupJobs[index];
+                }
+                return null;
             }
-            return null;
         }
 
-        /// <summary>
-        /// Create a new backup job
-        /// </summary>
-        /// <param name="name">Name of the backup job</param>
-        /// <param name="sourcePath">Source directory path</param>
-        /// <param name="targetPath">Target directory path</param>
-        /// <param name="type">Type of backup</param>
-        /// <returns>True if job was created, false otherwise</returns>
+        // Create a new backup job
+        // Returns: True if job was created, false otherwise
         public bool CreateJob(string name, string sourcePath, string targetPath, BackupType type)
         {
-            // Check if maximum number of jobs has been reached
-            if (_backupJobs.Count >= MaxJobs)
+            lock (_lockObject)
             {
-                return false;
-            }
-            
-            // Create and validate the job
-            var job = new BackupJob(name, sourcePath, targetPath, type);
-            if (!job.Validate())
-            {
-                return false;
-            }
-            
-            // Add the job and save
-            _backupJobs.Add(job);
-            SaveJobs();
-            
-            return true;
-        }
-
-        /// <summary>
-        /// Delete a backup job
-        /// </summary>
-        /// <param name="index">Index of the job to delete (0-based)</param>
-        /// <returns>True if job was deleted, false otherwise</returns>
-        public bool DeleteJob(int index)
-        {
-            if (index >= 0 && index < _backupJobs.Count)
-            {
-                _backupJobs.RemoveAt(index);
+                // Check if maximum number of jobs has been reached
+                if (_backupJobs.Count >= MaxJobs)
+                {
+                    return false;
+                }
+                
+                // Create and validate the job
+                var job = new BackupJob(name, sourcePath, targetPath, type);
+                if (!job.Validate())
+                {
+                    return false;
+                }
+                
+                // Add the job and save
+                _backupJobs.Add(job);
                 SaveJobs();
+                
                 return true;
             }
-            return false;
         }
 
-        /// <summary>
-        /// Load backup jobs from the configuration file
-        /// </summary>
+        // Delete a backup job
+        // Returns: True if job was deleted, false otherwise
+        public bool DeleteJob(int index)
+        {
+            lock (_lockObject)
+            {
+                if (index >= 0 && index < _backupJobs.Count)
+                {
+                    _backupJobs.RemoveAt(index);
+                    SaveJobs();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // Load backup jobs from the configuration file
         private void LoadJobs()
         {
             if (File.Exists(_configFilePath))
@@ -137,16 +127,18 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Save backup jobs to the configuration file
-        /// </summary>
+        // Save backup jobs to the configuration file
         private void SaveJobs()
         {
             try
             {
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(_backupJobs, options);
-                File.WriteAllText(_configFilePath, json);
+                
+                // Use atomic write operation to prevent file corruption
+                string tempFile = Path.GetTempFileName();
+                File.WriteAllText(tempFile, json);
+                File.Move(tempFile, _configFilePath, true);
             }
             catch
             {

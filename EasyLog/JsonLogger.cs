@@ -6,24 +6,17 @@ using System.Threading.Tasks;
 
 namespace EasyLog
 {
-    /// <summary>
-    /// JSON implementation of the logger interface
-    /// </summary>
+    // JSON implementation of the logger interface
     public class JsonLogger : ILogger
     {
         private readonly string _logDirectory;
 
-        /// <summary>
-        /// Constructor that uses the default log directory (application execution folder/logs)
-        /// </summary>
+        // Constructor that uses the default log directory (application execution folder/logs)
         public JsonLogger() : this(GetDefaultLogDirectory())
         {
         }
 
-        /// <summary>
-        /// Constructor with specified log directory
-        /// </summary>
-        /// <param name="logDirectory">Directory where log files will be stored</param>
+        // Constructor with specified log directory
         public JsonLogger(string logDirectory)
         {
             _logDirectory = logDirectory;
@@ -34,16 +27,21 @@ namespace EasyLog
             }
         }
 
-        /// <summary>
-        /// Gets the default log directory path
-        /// </summary>
-        /// <returns>Path to the logs directory</returns>
+        // Gets the default log directory path
         private static string GetDefaultLogDirectory()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string logDirectory = Path.Combine(baseDirectory, "logs");
+            string easySaveDirectory = Path.Combine(baseDirectory, "EasySave");
             
-            // Créer le dossier logs s'il n'existe pas
+            // Create EasySave directory if it doesn't exist
+            if (!Directory.Exists(easySaveDirectory))
+            {
+                Directory.CreateDirectory(easySaveDirectory);
+            }
+            
+            string logDirectory = Path.Combine(easySaveDirectory, "logs");
+            
+            // Create logs directory if it doesn't exist
             if (!Directory.Exists(logDirectory))
             {
                 Directory.CreateDirectory(logDirectory);
@@ -52,9 +50,7 @@ namespace EasyLog
             return logDirectory;
         }
 
-        /// <summary>
-        /// Logs a file transfer action
-        /// </summary>
+        // Logs a file transfer action
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             var logEntry = new LogEntry
@@ -70,19 +66,20 @@ namespace EasyLog
             await WriteLogEntryAsync(logEntry);
         }
 
-        /// <summary>
-        /// Writes a log entry to the daily log file
-        /// </summary>
+        // Writes a log entry to the daily log file
         private async Task WriteLogEntryAsync(LogEntry logEntry)
         {
             string logFileName = Path.Combine(_logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
             
-            List<LogEntry> logEntries = new List<LogEntry>();
+            // Optimization: Use a more efficient approach to read and write log entries
+            List<LogEntry> logEntries;
+            
             if (File.Exists(logFileName))
             {
-                string existingJson = await File.ReadAllTextAsync(logFileName);
                 try
                 {
+                    // Read existing log file
+                    string existingJson = await File.ReadAllTextAsync(logFileName);
                     logEntries = JsonSerializer.Deserialize<List<LogEntry>>(existingJson) ?? new List<LogEntry>();
                 }
                 catch
@@ -91,62 +88,52 @@ namespace EasyLog
                     logEntries = new List<LogEntry>();
                 }
             }
+            else
+            {
+                // If file doesn't exist, create a new list
+                logEntries = new List<LogEntry>();
+            }
             
+            // Add new entry
             logEntries.Add(logEntry);
             
+            // Write back to file with indentation for readability
             var options = new JsonSerializerOptions { WriteIndented = true };
             string json = JsonSerializer.Serialize(logEntries, options);
             
-            await File.WriteAllTextAsync(logFileName, json);
+            // Use atomic write operation to prevent file corruption
+            string tempFile = Path.GetTempFileName();
+            await File.WriteAllTextAsync(tempFile, json);
+            File.Move(tempFile, logFileName, true);
         }
     }
 
-    /// <summary>
-    /// Log entry for a file transfer operation
-    /// </summary>
+    // Log entry for a file transfer operation
     public class LogEntry
     {
-        /// <summary>
-        /// Timestamp of the log entry
-        /// </summary>
+        // Timestamp of the log entry
         public DateTime Timestamp { get; set; }
         
-        /// <summary>
-        /// Name of the backup job
-        /// </summary>
+        // Name of the backup job
         public string BackupName { get; set; }
         
-        /// <summary>
-        /// Source file path
-        /// </summary>
+        // Source file path
         public string SourcePath { get; set; }
         
-        /// <summary>
-        /// Target file path
-        /// </summary>
+        // Target file path
         public string TargetPath { get; set; }
         
-        /// <summary>
-        /// Size of the file in bytes
-        /// </summary>
+        // Size of the file in bytes
         public long FileSize { get; set; }
         
-        /// <summary>
-        /// Transfer time in milliseconds (negative if error)
-        /// </summary>
+        // Transfer time in milliseconds (negative if error)
         public long TransferTime { get; set; }
     }
 
-    /// <summary>
-    /// Factory for creating logger instances
-    /// </summary>
+    // Factory for creating logger instances
     public static class LoggerFactory
     {
-        /// <summary>
-        /// Creates a JSON logger
-        /// </summary>
-        /// <param name="logDirectory">Optional custom log directory</param>
-        /// <returns>Logger instance</returns>
+        // Creates a JSON logger
         public static ILogger CreateJsonLogger(string logDirectory = null)
         {
             return logDirectory != null ? new JsonLogger(logDirectory) : new JsonLogger();
@@ -155,24 +142,18 @@ namespace EasyLog
         // Future: Add CreateXmlLogger when needed for v1.1
     }
 
-    /// <summary>
-    /// Decorator that adds performance metrics to logging
-    /// </summary>
+    // Decorator that adds performance metrics to logging
     public class PerformanceLogger : ILogger
     {
         private readonly ILogger _logger;
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
+        // Constructor
         public PerformanceLogger(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        /// <summary>
-        /// Adds performance metrics before logging
-        /// </summary>
+        // Adds performance metrics before logging
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             // Calculate transfer rate in MB/s if transfer was successful
