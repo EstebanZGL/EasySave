@@ -275,9 +275,10 @@ namespace EasySave
                         await _backupService.ExecuteBackupJobAsync(jobs[i]);
                         
                         // Record the backup time
-                        _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        _lastBackupTimes[jobs[i].Name] = DateTime.Now;
                         SaveLastBackupTimes();
-
+                        
+                        menuSuccessCount++;
                     }
                     catch (Exception ex)
                     {
@@ -299,6 +300,8 @@ namespace EasySave
                 
                 int jobCount = jobIndexes.Count;
                 int currentJob = 0;
+                int successCount = 0;
+                int failCount = 0;
                 
                 foreach (int index in jobIndexes)
                 {
@@ -319,12 +322,23 @@ namespace EasySave
                             
                             // Record the backup time
                             _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                            SaveLastBackupTimes();
+                            
+                            successCount++;
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine($"{_translationService.GetTranslation("execute_job_error")}: {ex.Message}");
+                            failCount++;
                         }
                     }
+                }
+                
+                // Afficher un résumé pour les travaux sélectionnés également
+                if (jobCount > 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"{_translationService.GetTranslation("execute_summary")}: {successCount} {_translationService.GetTranslation("execute_succeeded")}, {failCount} {_translationService.GetTranslation("execute_failed")}");
                 }
             }
             
@@ -552,6 +566,7 @@ namespace EasySave
                         
                         // Record the backup time
                         _lastBackupTimes[jobs[i].Name] = DateTime.Now;
+                        SaveLastBackupTimes();
                         
                         Console.WriteLine($"Job '{jobs[i].Name}' completed successfully.");
                         cmdSuccessCount++;
@@ -667,6 +682,7 @@ namespace EasySave
             Console.WriteLine("---------------------------");
             Console.WriteLine($"Execution complete: {cmdJobSuccessCount} job(s) succeeded, {cmdJobFailCount} job(s) failed.");
         }
+        
         /// <summary>
         /// Saves the last backup times to a JSON file
         /// </summary>
@@ -713,8 +729,5 @@ namespace EasySave
                 }
             }
         }
-
     }
-    
-    
 }
