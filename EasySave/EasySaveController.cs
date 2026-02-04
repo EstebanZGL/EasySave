@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using EasySave.Models;
 using EasySave.Services;
 using EasyLog;
@@ -27,15 +28,17 @@ namespace EasySave
         /// </summary>
         public EasySaveController()
         {
-            // Initialize application data path
+            // Initialize application data path - use application directory instead of AppData
             _appDataPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                AppDomain.CurrentDomain.BaseDirectory,
                 "EasySave");
-            
+
             // Create required directories
             Directory.CreateDirectory(_appDataPath);
-            string logDirectory = Path.Combine(_appDataPath, "logs");
+            Directory.CreateDirectory(Path.Combine(_appDataPath, "Log"));
+            string logDirectory = Path.Combine(_appDataPath, "Log");
             Directory.CreateDirectory(logDirectory);
+
             
             // Initialize services
             _translationService = new TranslationService();
@@ -46,6 +49,7 @@ namespace EasySave
             
             // Initialize last backup times tracking
             _lastBackupTimes = new Dictionary<string, DateTime>();
+            LoadLastBackupTimes();
         }
 
         /// <summary>
@@ -271,9 +275,9 @@ namespace EasySave
                         await _backupService.ExecuteBackupJobAsync(jobs[i]);
                         
                         // Record the backup time
-                        _lastBackupTimes[jobs[i].Name] = DateTime.Now;
-                        
-                        menuSuccessCount++;
+                        _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        SaveLastBackupTimes();
+
                     }
                     catch (Exception ex)
                     {
@@ -420,6 +424,7 @@ namespace EasySave
                         if (_lastBackupTimes.ContainsKey(jobName))
                         {
                             _lastBackupTimes.Remove(jobName);
+                            SaveLastBackupTimes();
                         }
                         
                         Console.WriteLine(_translationService.GetTranslation("delete_success"));
@@ -640,6 +645,7 @@ namespace EasySave
                         
                         // Record the backup time
                         _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        SaveLastBackupTimes();
                         
                         Console.WriteLine($"Job '{jobs[index].Name}' completed successfully.");
                         cmdJobSuccessCount++;
@@ -661,5 +667,54 @@ namespace EasySave
             Console.WriteLine("---------------------------");
             Console.WriteLine($"Execution complete: {cmdJobSuccessCount} job(s) succeeded, {cmdJobFailCount} job(s) failed.");
         }
+        /// <summary>
+        /// Saves the last backup times to a JSON file
+        /// </summary>
+        private void SaveLastBackupTimes()
+        {
+            try
+            {
+                string lastBackupFilePath = Path.Combine(_appDataPath, "lastbackups.json");
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(_lastBackupTimes, options);
+                File.WriteAllText(lastBackupFilePath, json);
+            }
+            catch (Exception)
+            {
+                // Handle errors gracefully (log if possible)
+            }
+        }
+
+        /// <summary>
+        /// Loads the last backup times from a JSON file
+        /// </summary>
+        private void LoadLastBackupTimes()
+        {
+            string lastBackupFilePath = Path.Combine(_appDataPath, "lastbackups.json");
+
+            if (File.Exists(lastBackupFilePath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(lastBackupFilePath);
+                    var loadedTimes = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(json);
+
+                    if (loadedTimes != null)
+                    {
+                        foreach (var item in loadedTimes)
+                        {
+                            _lastBackupTimes[item.Key] = item.Value;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Handle errors gracefully
+                }
+            }
+        }
+
     }
+    
+    
 }
