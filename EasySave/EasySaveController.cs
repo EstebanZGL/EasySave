@@ -56,14 +56,59 @@ namespace EasySave
         {
             if (args.Length > 0)
             {
+                // Check if we need to show help
+                if (args[0] == "-h" || args[0] == "--help" || args[0] == "/?")
+                {
+                    DisplayCommandLineHelp();
+                    return;
+                }
+                
                 // Execute specified jobs directly
-                await ExecuteCommandLineArgsAsync(args[0]);
+                // We now support multiple arguments for PowerShell compatibility
+                await ExecuteCommandLineArgsAsync(args);
             }
             else
             {
                 // Show interactive menu
                 await ShowMainMenuAsync();
             }
+        }
+
+        /// <summary>
+        /// Displays command line help information
+        /// </summary>
+        private void DisplayCommandLineHelp()
+        {
+            Console.WriteLine("EasySave 1.0 - Command Line Usage");
+            Console.WriteLine("================================");
+            Console.WriteLine();
+            Console.WriteLine("USAGE:");
+            Console.WriteLine("  EasySave.exe [options] [job_numbers]");
+            Console.WriteLine();
+            Console.WriteLine("OPTIONS:");
+            Console.WriteLine("  -h, --help, /?    Display this help information");
+            Console.WriteLine();
+            Console.WriteLine("JOB SELECTION:");
+            Console.WriteLine("  Specify which backup jobs to execute using the following formats:");
+            Console.WriteLine();
+            Console.WriteLine("  In CMD:");
+            Console.WriteLine("  - Single job:      EasySave.exe 1");
+            Console.WriteLine("  - Multiple jobs:   EasySave.exe 1;3;5");
+            Console.WriteLine("  - Range of jobs:   EasySave.exe 1-3");
+            Console.WriteLine("  - Combined:        EasySave.exe 1;3-5");
+            Console.WriteLine();
+            Console.WriteLine("  In PowerShell:");
+            Console.WriteLine("  - Single job:      .\\EasySave.exe 1");
+            Console.WriteLine("  - Multiple jobs:   .\\EasySave.exe 1 3 5");
+            Console.WriteLine("  - Range of jobs:   .\\EasySave.exe \"1-3\"");
+            Console.WriteLine("  - Using semicolon: .\\EasySave.exe \"1;3;5\"");
+            Console.WriteLine();
+            Console.WriteLine("EXAMPLES:");
+            Console.WriteLine("  EasySave.exe 1     Execute backup job #1");
+            Console.WriteLine("  EasySave.exe 1 3   Execute backup jobs #1 and #3");
+            Console.WriteLine();
+            Console.WriteLine("NOTE: Job numbers refer to the position in the job list (starting from 1).");
+            Console.WriteLine("      If no arguments are provided, the interactive menu will be displayed.");
         }
 
         /// <summary>
@@ -391,12 +436,79 @@ namespace EasySave
         /// <summary>
         /// Executes backup jobs specified by command line arguments
         /// </summary>
-        /// <param name="arg">Command line argument</param>
-        private async Task ExecuteCommandLineArgsAsync(string arg)
+        /// <param name="args">Command line arguments</param>
+        private async Task ExecuteCommandLineArgsAsync(string[] args)
         {
             var jobs = _jobManager.GetJobs();
             
-            List<int> jobIndexes = ParseJobIndexes(arg);
+            // Display available jobs in command line mode
+            Console.WriteLine("EasySave 1.0 - Command Line Mode");
+            Console.WriteLine("---------------------------");
+            
+            if (jobs.Count == 0)
+            {
+                Console.WriteLine("No backup jobs available. Please run the application without arguments to create jobs first.");
+                return;
+            }
+            
+            Console.WriteLine("Available backup jobs:");
+            for (int i = 0; i < jobs.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type})");
+            }
+            Console.WriteLine("---------------------------");
+            
+            // Process all arguments to support both PowerShell and CMD syntax
+            var jobIndexes = new List<int>();
+            
+            foreach (string arg in args)
+            {
+                // Check if the argument is a simple number
+                if (int.TryParse(arg, out int jobNumber))
+                {
+                    jobIndexes.Add(jobNumber - 1); // Convert to 0-based index
+                }
+                else
+                {
+                    // It might be a range or semicolon-separated list
+                    jobIndexes.AddRange(ParseJobIndexes(arg));
+                }
+            }
+            
+            // Remove duplicates and sort
+            jobIndexes = jobIndexes.Distinct().OrderBy(i => i).ToList();
+            
+            if (jobIndexes.Count == 0)
+            {
+                Console.WriteLine("No valid job numbers specified");
+                Console.WriteLine("Usage examples:");
+                Console.WriteLine("  In CMD:");
+                Console.WriteLine("    EasySave.exe 1     (Execute job #1)");
+                Console.WriteLine("    EasySave.exe 1;3   (Execute jobs #1 and #3)");
+                Console.WriteLine();
+                Console.WriteLine("  In PowerShell:");
+                Console.WriteLine("    .\\EasySave.exe 1    (Execute job #1)");
+                Console.WriteLine("    .\\EasySave.exe 1 3  (Execute jobs #1 and #3)");
+                Console.WriteLine("    .\\EasySave.exe \"1;3\" (Execute jobs #1 and #3)");
+                Console.WriteLine();
+                Console.WriteLine("For more information, run: EasySave.exe --help");
+                return;
+            }
+            
+            // Show which jobs will be executed
+            Console.WriteLine("Executing the following jobs:");
+            foreach (int index in jobIndexes)
+            {
+                if (index >= 0 && index < jobs.Count)
+                {
+                    Console.WriteLine($"- {jobs[index].Name}");
+                }
+            }
+            Console.WriteLine("---------------------------");
+            
+            // Execute selected jobs
+            int successCount = 0;
+            int failCount = 0;
             
             foreach (int index in jobIndexes)
             {
@@ -404,17 +516,30 @@ namespace EasySave
                 {
                     try
                     {
+                        Console.WriteLine($"Executing job: {jobs[index].Name}...");
                         await _backupService.ExecuteBackupJobAsync(jobs[index]);
                         
                         // Record the backup time
                         _lastBackupTimes[jobs[index].Name] = DateTime.Now;
+                        
+                        Console.WriteLine($"Job '{jobs[index].Name}' completed successfully.");
+                        successCount++;
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.Message}");
+                        Console.WriteLine($"Error executing job '{jobs[index].Name}': {ex.Message}");
+                        failCount++;
                     }
                 }
+                else
+                {
+                    Console.WriteLine($"Job #{index + 1} does not exist. Skipping.");
+                }
             }
+            
+            // Display summary
+            Console.WriteLine("---------------------------");
+            Console.WriteLine($"Execution complete: {successCount} job(s) succeeded, {failCount} job(s) failed.");
         }
     }
 }
