@@ -18,7 +18,7 @@ This initial version (v1.0) provides a solid foundation for file backup operatio
 - **Command Line Execution**: Execute specific backup jobs directly from command line
   - Single job: `EasySave.exe 1`
   - Range of jobs: `EasySave.exe 1-3`
-  - Specific jobs: `EasySave.exe 1;3;5`
+  - Specific jobs: `EasySave.exe "1;3;5"`
 
 ### Monitoring & Logging
 - **Real-time Progress**: Visual feedback during backup operations

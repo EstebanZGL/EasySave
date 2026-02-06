@@ -19,7 +19,7 @@ Launch the application by double-clicking on `EasySave.exe`. You will see the ma
 2. Execute a backup job
 3. Display backup jobs
 4. Change language (FR/EN)
-0. Exit
+5. Exit
 Your choice: 
 ```
 
@@ -38,7 +38,7 @@ Your choice:
 ### Via the Menu
 
 1. Select option **2** from the main menu
-2. Enter the number of the job to execute (visible in the job list)
+2. Enter the number of the job to execute (Enter '0' or 'all' to execute all jobs) 
 3. The backup progress will be displayed on screen
 
 ### Via Command Line
@@ -57,6 +57,15 @@ To execute specific jobs without going through the menu:
    - Source folder
    - Target folder
    - Backup type (Complete/Differential)
+   - Last Backup Date
+
+
+### Deleting Backup Jobs
+
+1. Select option **3** from the main menu
+2. Enter 'D' or 'delete'
+3. Select the job to delete (visible in the job list)
+
 
 ## Changing Language
 

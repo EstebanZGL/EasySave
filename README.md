@@ -1,79 +1,65 @@
 # EasySave
 
-## Présentation
+## Overview
 
-EasySave est une solution de sauvegarde robuste et évolutive développée par ProSoft. Cette application console permet de créer et d'exécuter jusqu'à 5 travaux de sauvegarde différents, avec support des sauvegardes complètes et différentielles.
+EasySave is a robust and scalable backup solution developed by ProSoft. This console application allows you to create and execute up to 5 different backup jobs, with support for both complete and differential backups.
 
 ![Version](https://img.shields.io/badge/version-1.0-blue)
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple)
-![Langage](https://img.shields.io/badge/langage-C%23-green)
+![Language](https://img.shields.io/badge/language-C%23-green)
 
-## Fonctionnalités
+## Features
 
-- **Gestion de travaux de sauvegarde** : Création, exécution et suivi de jusqu'à 5 travaux
-- **Types de sauvegarde** : Support des sauvegardes complètes et différentielles
-- **Interface multilingue** : Support du français et de l'anglais
-- **Journalisation** : Logs détaillés au format JSON
-- **Suivi en temps réel** : État et progression des travaux de sauvegarde
-- **Exécution par ligne de commande** : Possibilité d'exécuter des travaux spécifiques via arguments
+- **Backup Job Management**: Creation, execution, and monitoring of up to 5 jobs
+- **Backup Types**: Support for complete and differential backups
+- **Multilingual Interface**: Support for French and English
+- **Logging**: Detailed logs in JSON format
+- **Real-time Monitoring**: Status and progress of backup jobs
+- **Command Line Execution**: Ability to execute specific jobs via arguments
 
-## Structure du projet
+## Project Structure
 
-Le projet est divisé en deux composants principaux :
+The project is divided into two main components:
 
-- **EasySave** : Application console principale
-- **EasyLog** : Bibliothèque de gestion des logs
+- **EasySave**: Main console application
+- **EasyLog**: Logging management library
 
-## Prérequis
+## Prerequisites
 
 - Windows 10/11
 - .NET 8.0 Runtime
-- Droits d'accès aux dossiers source et cible
+- Access rights to source and target folders
 
 ## Installation
 
-1. Téléchargez la dernière version depuis la page des releases
-2. Décompressez l'archive dans le dossier de votre choix
-3. Lancez l'application via `EasySave.exe`
+1. Download the latest version from the releases page
+2. Extract the archive to the folder of your choice
+3. Launch the application via `EasySave.exe`
 
-## Utilisation rapide
+## Quick Start
 
-### Via l'interface console
+### Via Console Interface
 
-1. Lancez `EasySave.exe`
-2. Suivez les instructions à l'écran pour créer et exécuter des travaux de sauvegarde
+1. Launch `EasySave.exe`
+2. Follow the on-screen instructions to create and execute backup jobs
 
-### Via ligne de commande
+### Via Command Line
 
-Exécutez des travaux spécifiques directement :
+Execute specific jobs directly:
 
 ```
-EasySave.exe 1     # Exécute le travail n°1
-EasySave.exe 1-3   # Exécute les travaux n°1 à 3
-EasySave.exe 1;3;5 # Exécute les travaux n°1, 3 et 5
+EasySave.exe 1     # Executes job #1
+EasySave.exe 1-3   # Executes jobs #1 to #3
+EasySave.exe "1;3;5" # Executes jobs #1, #3, and #5
 ```
 
 ## Documentation
 
-- [Manuel d'utilisation](./MANUEL_UTILISATION.md) - Guide pour les utilisateurs finaux
-- [Documentation technique](./DOCUMENTATION_TECHNIQUE.md) - Documentation pour le support technique et les développeurs
+- [User Manual](./USER_MANUAL.md) - Guide for end users
+- [Technical Documentation](./TECHNICAL_DOCUMENTATION.md) - Documentation for technical support and developers
 
 ## Roadmap
 
-- **Version 1.1** : Support du format XML pour les logs
-- **Version 2.0** : Interface graphique WPF avec architecture MVVM
-- **Version 3.0** : Sauvegardes parallèles, gestion des priorités et conteneurisation Docker
-
-## Contribution
-
-Ce projet est développé dans le cadre d'un projet interne ProSoft. Pour contribuer :
-
-1. Forkez le dépôt
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/ma-fonctionnalite`)
-3. Committez vos changements (`git commit -m 'Ajout de ma fonctionnalité'`)
-4. Poussez vers la branche (`git push origin feature/ma-fonctionnalite`)
-5. Ouvrez une Pull Request
-
-## Licence
-
-© 2026 ProSoft. Tous droits réservés.
+- **Version 1.1**: XML format support for logs
+- **Version 2.0**: WPF graphical interface with MVVM architecture
+- **Version 3.0**: Parallel backups, priority management, and Docker containerization
