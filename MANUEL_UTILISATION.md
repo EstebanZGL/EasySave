@@ -72,18 +72,4 @@ EasySave automatically generates two types of files to track activity:
 1. **Daily log files**: Located in the `logs` folder next to the executable, in `YYYY-MM-DD.json` format
 2. **State file**: Located in the execution folder, named `state.json`
 
-These files can be consulted to verify the proper execution of backups.
 
-## Troubleshooting Common Issues
-
-| Problem | Solution |
-|----------|----------|
-| Source path not found | Verify that the folder exists and that you have access rights |
-| Target path inaccessible | Verify that the folder exists, that you have write permissions, and that there is sufficient disk space |
-| Locked file | Close applications that might be using the files to be backed up |
-
-## Technical Support
-
-For additional assistance, contact ProSoft technical support:
-- Email: support@prosoft.com
-- Phone: 01 23 45 67 89 (5/7 days, 8am-5pm)
