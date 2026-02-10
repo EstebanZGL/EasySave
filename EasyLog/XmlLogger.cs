@@ -54,6 +54,24 @@ namespace EasyLog
         }
 
         /// <summary>
+        /// Implements the ILogger.LogBackupOperationAsync method
+        /// </summary>
+        public Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        {
+            // Réutiliser la méthode LogTransferAsync existante
+            return LogTransferAsync(jobName, sourcePath, targetPath, fileSize, transferTime);
+        }
+
+        /// <summary>
+        /// Implements the ILogger.LogApplicationEventAsync method
+        /// </summary>
+        public Task LogApplicationEventAsync(string eventName, string details)
+        {
+            // Réutiliser la méthode LogApplicationEventAsync existante avec un paramètre null pour le troisième argument
+            return LogApplicationEventAsync(eventName, details, null);
+        }
+
+        /// <summary>
         /// Logs a file transfer action
         /// </summary>
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
@@ -133,7 +151,7 @@ namespace EasyLog
         /// <summary>
         /// Logs an application event (startup, shutdown, error, etc.).
         /// </summary>
-        public async Task LogApplicationEventAsync(string eventType, string message, string details = null)
+        public async Task LogApplicationEventAsync(string eventType, string message, string? details = null)
         {
             // Implement this method as needed
             await Task.CompletedTask;
@@ -142,7 +160,7 @@ namespace EasyLog
         /// <summary>
         /// Logs a backup job management operation (creation, deletion, modification).
         /// </summary>
-        public async Task LogJobManagementAsync(string operationType, string jobName, string details = null)
+        public async Task LogJobManagementAsync(string operationType, string jobName, string? details = null)
         {
             // Implement this method as needed
             await Task.CompletedTask;

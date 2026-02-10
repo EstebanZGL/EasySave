@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EasySave.Models;
+using EasySave.ViewModels;
 using EasyLog;
 
 namespace EasySave.Services
@@ -13,12 +16,18 @@ namespace EasySave.Services
     {
         private readonly ILogger _logger;
         private readonly StateManager _stateManager;
+        private readonly SettingsViewModel _settings;
+        private CancellationTokenSource _cancellationTokenSource;
+        private bool _isPaused;
+        private readonly object _pauseLock = new object();
 
         // Constructor that initializes the logger and state manager
         public BackupService(ILogger logger, StateManager stateManager)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
+            _settings = new SettingsViewModel();
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         // Executes a backup job asynchronously
@@ -32,10 +41,23 @@ namespace EasySave.Services
                 throw new ArgumentException("Invalid backup job", nameof(job));
             }
 
-            Console.WriteLine($"Starting backup job: {job.Name}");
+            // Check if business software is running
+            if (_settings.IsBusinessSoftwareRunning())
+            {
+                await _logger.LogApplicationEventAsync(
+                    "BackupCancelled",
+                    $"Backup job {job.JobName} cancelled because business software is running: {_settings.BusinessSoftwareName}");
+                throw new InvalidOperationException($"Cannot start backup: Business software ({_settings.BusinessSoftwareName}) is running.");
+            }
+
+            Debug.WriteLine($"Starting backup job: {job.JobName}");
 
             try
             {
+                // Reset cancellation token
+                _cancellationTokenSource = new CancellationTokenSource();
+                _isPaused = false;
+
                 // Check source directory
                 if (!Directory.Exists(job.SourcePath))
                 {
@@ -54,7 +76,7 @@ namespace EasySave.Services
 
                 // Initialize state
                 await _stateManager.UpdateStateAsync(
-                    job.Name,
+                    job.JobName,
                     BackupState.Active,
                     sourceFiles.Length,
                     totalSize,
@@ -68,6 +90,50 @@ namespace EasySave.Services
                 
                 foreach (string sourceFile in sourceFiles)
                 {
+                    // Check for cancellation
+                    if (_cancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        await _stateManager.UpdateStateAsync(
+                            job.JobName,
+                            BackupState.Cancelled,
+                            sourceFiles.Length,
+                            totalSize,
+                            sourceFiles.Length - processedCount,
+                            totalSize - processedSize
+                        );
+                        return;
+                    }
+
+                    // Check for pause
+                    while (_isPaused)
+                    {
+                        await Task.Delay(500);
+                        
+                        // Also check for cancellation while paused
+                        if (_cancellationTokenSource.Token.IsCancellationRequested)
+                        {
+                            await _stateManager.UpdateStateAsync(
+                                job.JobName,
+                                BackupState.Cancelled,
+                                sourceFiles.Length,
+                                totalSize,
+                                sourceFiles.Length - processedCount,
+                                totalSize - processedSize
+                            );
+                            return;
+                        }
+                    }
+
+                    // Check if business software started during backup
+                    if (_settings.IsBusinessSoftwareRunning())
+                    {
+                        // Complete the current file but then pause
+                        _isPaused = true;
+                        await _logger.LogApplicationEventAsync(
+                            "BackupPaused",
+                            $"Backup job {job.JobName} paused because business software started: {_settings.BusinessSoftwareName}");
+                    }
+
                     // Get relative path - optimization: use Path methods instead of string operations
                     string relativePath = Path.GetRelativePath(job.SourcePath, sourceFile);
                     string targetFile = Path.Combine(job.TargetPath, relativePath);
@@ -85,7 +151,7 @@ namespace EasySave.Services
 
                     // Update state
                     await _stateManager.UpdateStateAsync(
-                        job.Name,
+                        job.JobName,
                         BackupState.Active,
                         sourceFiles.Length,
                         totalSize,
@@ -109,7 +175,7 @@ namespace EasySave.Services
                         try
                         {
                             // Measure transfer time
-                            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                            var stopwatch = Stopwatch.StartNew();
                             
                             // Copy file
                             File.Copy(sourceFile, targetFile, true);
@@ -118,31 +184,31 @@ namespace EasySave.Services
                             long transferTime = stopwatch.ElapsedMilliseconds;
 
                             // Log transfer
-                            await _logger.LogTransferAsync(
-                                job.Name,
+                            await _logger.LogBackupOperationAsync(
+                                job.JobName,
                                 sourceFile,
                                 targetFile,
                                 fileSize,
                                 transferTime);
 
-                            Console.WriteLine($"Copied: {relativePath}");
+                            Debug.WriteLine($"Copied: {relativePath}");
                         }
                         catch (Exception ex)
                         {
                             // Log error
-                            await _logger.LogTransferAsync(
-                                job.Name,
+                            await _logger.LogBackupOperationAsync(
+                                job.JobName,
                                 sourceFile,
                                 targetFile,
                                 fileSize,
-                                -1); // Negative time indicates error
+                                -1);  // Negative time indicates error
 
-                            Console.WriteLine($"Error copying {relativePath}: {ex.Message}");
+                            Debug.WriteLine($"Error copying {relativePath}: {ex.Message}");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Skipped (unchanged): {relativePath}");
+                        Debug.WriteLine($"Skipped (unchanged): {relativePath}");
                     }
 
                     processedCount++;
@@ -152,12 +218,12 @@ namespace EasySave.Services
                 // Remove files that don't exist in source anymore for complete backups
                 if (job.Type == BackupType.Complete)
                 {
-                    await RemoveDeletedFilesAsync(job.Name, job.SourcePath, job.TargetPath);
+                    await RemoveDeletedFilesAsync(job.JobName, job.SourcePath, job.TargetPath);
                 }
 
                 // Mark job as completed
                 await _stateManager.UpdateStateAsync(
-                    job.Name,
+                    job.JobName,
                     BackupState.Completed,
                     sourceFiles.Length,
                     totalSize,
@@ -165,14 +231,13 @@ namespace EasySave.Services
                     0
                 );
 
-                Console.WriteLine($"Backup job completed: {job.Name}");
-                Console.WriteLine();
+                Debug.WriteLine($"Backup job completed: {job.JobName}");
             }
             catch (Exception ex)
             {
                 // Update state to error
                 await _stateManager.UpdateStateAsync(
-                    job.Name,
+                    job.JobName,
                     BackupState.Error,
                     0,
                     0,
@@ -180,7 +245,7 @@ namespace EasySave.Services
                     0
                 );
 
-                Console.WriteLine($"Error executing backup job {job.Name}: {ex.Message}");
+                Debug.WriteLine($"Error executing backup job {job.JobName}: {ex.Message}");
                 throw;
             }
         }
@@ -188,7 +253,7 @@ namespace EasySave.Services
         // Removes files in the target directory that don't exist in the source directory
         private async Task RemoveDeletedFilesAsync(string backupName, string sourcePath, string targetPath)
         {
-            Console.WriteLine("Checking for files to remove...");
+            Debug.WriteLine("Checking for files to remove...");
             
             // Get all files in the target directory
             var targetFiles = Directory.GetFiles(targetPath, "*", SearchOption.AllDirectories);
@@ -210,18 +275,18 @@ namespace EasySave.Services
                         File.Delete(targetFile);
                         
                         // Log the deletion
-                        await _logger.LogTransferAsync(
+                        await _logger.LogBackupOperationAsync(
                             $"{backupName} (Deletion)",
                             "N/A",
                             targetFile,
                             fileSize,
                             0);
                         
-                        Console.WriteLine($"Deleted: {relativePath} (no longer exists in source)");
+                        Debug.WriteLine($"Deleted: {relativePath} (no longer exists in source)");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error deleting {relativePath}: {ex.Message}");
+                        Debug.WriteLine($"Error deleting {relativePath}: {ex.Message}");
                     }
                 }
             }
@@ -244,14 +309,38 @@ namespace EasySave.Services
                     try
                     {
                         Directory.Delete(subDir);
-                        Console.WriteLine($"Removed empty directory: {Path.GetFileName(subDir)}");
+                        Debug.WriteLine($"Removed empty directory: {Path.GetFileName(subDir)}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error removing directory {Path.GetFileName(subDir)}: {ex.Message}");
+                        Debug.WriteLine($"Error removing directory {Path.GetFileName(subDir)}: {ex.Message}");
                     }
                 }
             }
+        }
+
+        // Pauses the current backup job
+        public void PauseBackupJob()
+        {
+            lock (_pauseLock)
+            {
+                _isPaused = true;
+            }
+        }
+
+        // Resumes the current backup job
+        public void ResumeBackupJob()
+        {
+            lock (_pauseLock)
+            {
+                _isPaused = false;
+            }
+        }
+
+        // Stops the current backup job
+        public void StopBackupJob()
+        {
+            _cancellationTokenSource.Cancel();
         }
     }
 }

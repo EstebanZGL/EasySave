@@ -10,6 +10,7 @@ namespace EasyLog
     public class JsonLogger : ILogger
     {
         private readonly string _logDirectory;
+        private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { WriteIndented = true };
 
         // Constructor that uses the default log directory (application execution folder/logs)
         public JsonLogger() : this(GetDefaultLogDirectory())
@@ -48,6 +49,41 @@ namespace EasyLog
             }
             
             return logDirectory;
+        }
+
+        // Implémentation de LogBackupOperationAsync (nouvelle méthode requise par l'interface)
+        public Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        {
+            // Réutilise la méthode LogTransferAsync existante
+            return LogTransferAsync(jobName, sourcePath, targetPath, fileSize, transferTime);
+        }
+
+        // Implémentation de LogApplicationEventAsync (nouvelle méthode requise par l'interface)
+        public async Task LogApplicationEventAsync(string eventName, string details)
+        {
+            var logEntry = new
+            {
+                Timestamp = DateTime.Now,
+                Event = eventName,
+                Details = details
+            };
+            
+            string logFilePath = Path.Combine(_logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
+            
+            try
+            {
+                string json = JsonSerializer.Serialize(logEntry, _jsonOptions);
+                
+                // Créer le répertoire de logs s'il n'existe pas
+                Directory.CreateDirectory(_logDirectory);
+                
+                // Ajouter l'entrée au fichier de log
+                await File.AppendAllTextAsync(logFilePath, json + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error logging application event: {ex.Message}");
+            }
         }
 
         // Logs a file transfer action
@@ -115,13 +151,13 @@ namespace EasyLog
         public DateTime Timestamp { get; set; }
         
         // Name of the backup job
-        public string BackupName { get; set; }
+        public string BackupName { get; set; } = string.Empty;
         
         // Source file path
-        public string SourcePath { get; set; }
+        public string SourcePath { get; set; } = string.Empty;
         
         // Target file path
-        public string TargetPath { get; set; }
+        public string TargetPath { get; set; } = string.Empty;
         
         // Size of the file in bytes
         public long FileSize { get; set; }
@@ -134,7 +170,7 @@ namespace EasyLog
     public static class LoggerFactory
     {
         // Creates a JSON logger
-        public static ILogger CreateJsonLogger(string logDirectory = null)
+        public static ILogger CreateJsonLogger(string? logDirectory = null)
         {
             return logDirectory != null ? new JsonLogger(logDirectory) : new JsonLogger();
         }
@@ -145,7 +181,7 @@ namespace EasyLog
         /// </summary>
         /// <param name="logDirectory">Optional custom log directory</param>
         /// <returns>Logger instance</returns>
-        public static ILogger CreateXmlLogger(string logDirectory = null)
+        public static ILogger CreateXmlLogger(string? logDirectory = null)
         {
             return logDirectory != null ? new XmlLogger(logDirectory) : new XmlLogger();
         }
@@ -156,13 +192,12 @@ namespace EasyLog
         /// <param name="format">Log format (json or xml)</param>
         /// <param name="logDirectory">Optional custom log directory</param>
         /// <returns>Logger instance</returns>
-        public static ILogger CreateLogger(string format, string logDirectory = null)
+        public static ILogger CreateLogger(string format = "json", string? logDirectory = null)
         {
             return format.ToLower() == "xml" 
                 ? CreateXmlLogger(logDirectory) 
                 : CreateJsonLogger(logDirectory);
         }
-
     }
 
     // Decorator that adds performance metrics to logging
@@ -174,6 +209,28 @@ namespace EasyLog
         public PerformanceLogger(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        // Implémentation de LogBackupOperationAsync
+        public Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        {
+            // Calculate transfer rate in MB/s if transfer was successful
+            string performanceInfo = string.Empty;
+            if (transferTime > 0 && fileSize > 0)
+            {
+                double transferRateMBps = (fileSize / 1024.0 / 1024.0) / (transferTime / 1000.0);
+                performanceInfo = $" [{transferRateMBps:F2} MB/s]";
+            }
+
+            // Add performance info to job name
+            return _logger.LogBackupOperationAsync($"{jobName}{performanceInfo}", sourcePath, targetPath, fileSize, transferTime);
+        }
+
+        // Implémentation de LogApplicationEventAsync
+        public Task LogApplicationEventAsync(string eventName, string details)
+        {
+            // Simplement déléguer à l'implémentation sous-jacente
+            return _logger.LogApplicationEventAsync(eventName, details);
         }
 
         // Adds performance metrics before logging

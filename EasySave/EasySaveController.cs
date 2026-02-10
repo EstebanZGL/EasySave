@@ -1,814 +1,263 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Text.Json;
 using EasySave.Models;
 using EasySave.Services;
 using EasyLog;
 
 namespace EasySave
 {
-    // Main controller for the EasySave application
+    // Controller for EasySave application
     public class EasySaveController
     {
-        private readonly BackupJobManager _jobManager;
-        private BackupService _backupService;
         private readonly TranslationService _translationService;
-        private ILogger _logger;
+        private readonly BackupJobManager _jobManager;
+        private readonly BackupService _backupService;
         private readonly StateManager _stateManager;
-        private readonly string _appDataPath;
+        private readonly ILogger _logger;
         private readonly Dictionary<string, DateTime> _lastBackupTimes;
-        private string _logFormat = "json"; // Format par défaut
-        private readonly SemaphoreSlim _backupLock = new SemaphoreSlim(1, 1); // Thread safety for backup operations
 
-        // Constructor that initializes all required services
+        // Constructor
         public EasySaveController()
         {
-            // Initialize application data path - use application directory
-            _appDataPath = AppDomain.CurrentDomain.BaseDirectory;
-
-            // Create logs directory directly in the base directory
-            string logDirectory = Path.Combine(_appDataPath, "logs");
-            Directory.CreateDirectory(logDirectory);
-
-            // Load the saved log format preference
-            LoadLogFormat();
-
-
             // Initialize services
             _translationService = new TranslationService();
-            _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
-            _stateManager = new StateManager(Path.Combine(_appDataPath, "state.json"));
-            _jobManager = new BackupJobManager(Path.Combine(_appDataPath, "config.json"));
+            _stateManager = new StateManager("state.json"); // Ajout du chemin du fichier d'état
+            
+            // Load log format preference
+            string logFormat = LoadLogFormat();
+            _logger = LoggerFactory.CreateLogger(logFormat);
+            
+            _jobManager = new BackupJobManager();
             _backupService = new BackupService(_logger, _stateManager);
-
-            // Initialize last backup times tracking
             _lastBackupTimes = new Dictionary<string, DateTime>();
+            
+            // Load last backup times
             LoadLastBackupTimes();
         }
 
-        // Entry point for application execution
+        // Run the application with command line arguments
         public async Task RunWithArgsAsync(string[] args)
         {
-            if (args.Length > 0)
+            if (args.Length == 0)
             {
-                // Check if we need to show help
-                if (args[0] == "-h" || args[0] == "--help" || args[0] == "/?")
+                // No arguments, show interactive menu
+                await ShowMainMenuAsync();
+            }
+            else
+            {
+                // Parse and execute jobs based on arguments
+                await ExecuteCommandLineArgsAsync(args);
+            }
+        }
+
+        // Execute backup jobs based on command line arguments
+        private async Task ExecuteCommandLineArgsAsync(string[] args)
+        {
+            try
+            {
+                // Parse job indexes from arguments
+                List<int> jobIndexes = ParseJobIndexes(args[0]);
+                
+                if (jobIndexes.Count == 0)
                 {
+                    Console.WriteLine("No valid job indexes provided.");
                     DisplayCommandLineHelp();
                     return;
                 }
                 
-                // Execute specified jobs directly
-                // We now support multiple arguments for PowerShell compatibility
-                await ExecuteCommandLineArgsAsync(args);
+                // Get all jobs
+                var jobs = _jobManager.GetJobs();
+                
+                // Execute specified jobs
+                foreach (int index in jobIndexes)
+                {
+                    // Convert from 1-based to 0-based index
+                    int zeroBasedIndex = index - 1;
+                    
+                    if (zeroBasedIndex >= 0 && zeroBasedIndex < jobs.Count)
+                    {
+                        var job = jobs[zeroBasedIndex];
+                        Console.WriteLine($"Executing job #{index}: {job.JobName}");
+                        
+                        try
+                        {
+                            await _backupService.ExecuteBackupJobAsync(job);
+                            
+                            // Update last backup time
+                            _lastBackupTimes[job.JobName] = DateTime.Now;
+                            SaveLastBackupTimes();
+                            
+                            Console.WriteLine($"Job #{index} completed successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error executing job #{index}: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Job #{index} not found.");
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Show interactive menu
-                await ShowMainMenuAsync();
+                Console.WriteLine($"Error parsing job indexes: {ex.Message}");
+                DisplayCommandLineHelp();
             }
         }
 
-        // Displays command line help information
+        // Parse job indexes from a string like "1;3-5"
+        private List<int> ParseJobIndexes(string input)
+        {
+            var result = new List<int>();
+            
+            // Split by semicolon
+            string[] parts = input.Split(';');
+            
+            foreach (string part in parts)
+            {
+                // Check if it's a range (contains '-')
+                if (part.Contains('-'))
+                {
+                    string[] range = part.Split('-');
+                    if (range.Length == 2 && 
+                        int.TryParse(range[0], out int start) && 
+                        int.TryParse(range[1], out int end))
+                    {
+                        // Add all numbers in the range
+                        for (int i = start; i <= end; i++)
+                        {
+                            result.Add(i);
+                        }
+                    }
+                }
+                // Otherwise treat as a single number
+                else if (int.TryParse(part, out int index))
+                {
+                    result.Add(index);
+                }
+            }
+            
+            return result;
+        }
+
+        // Display help for command line usage
         private void DisplayCommandLineHelp()
         {
-            Console.WriteLine("EasySave 1.0 - Command Line Usage");
+            Console.WriteLine("EasySave 2.0 - Command Line Usage");
             Console.WriteLine("================================");
             Console.WriteLine();
             Console.WriteLine("USAGE:");
-            Console.WriteLine("  EasySave.exe [options] [job_numbers]");
+            Console.WriteLine("  EasySave.exe [options] [job_selection]");
             Console.WriteLine();
             Console.WriteLine("OPTIONS:");
             Console.WriteLine("  -h, --help, /?    Display this help information");
-            Console.WriteLine("  all, 0           Execute all backup jobs sequentially");
             Console.WriteLine();
             Console.WriteLine("JOB SELECTION:");
             Console.WriteLine("  Specify which backup jobs to execute using the following formats:");
-            Console.WriteLine();
-            Console.WriteLine("  In CMD:");
-            Console.WriteLine("  - All jobs:        EasySave.exe all");
             Console.WriteLine("  - Single job:      EasySave.exe 1");
             Console.WriteLine("  - Multiple jobs:   EasySave.exe 1;3;5");
             Console.WriteLine("  - Range of jobs:   EasySave.exe 1-3");
             Console.WriteLine("  - Combined:        EasySave.exe 1;3-5");
             Console.WriteLine();
-            Console.WriteLine("  In PowerShell:");
-            Console.WriteLine("  - All jobs:        .\\EasySave.exe all");
-            Console.WriteLine("  - Single job:      .\\EasySave.exe 1");
-            Console.WriteLine("  - Multiple jobs:   .\\EasySave.exe 1 3 5");
-            Console.WriteLine("  - Range of jobs:   .\\EasySave.exe \"1-3\"");
-            Console.WriteLine("  - Using semicolon: .\\EasySave.exe \"1;3;5\"");
-            Console.WriteLine();
             Console.WriteLine("EXAMPLES:");
             Console.WriteLine("  EasySave.exe 1     Execute backup job #1");
-            Console.WriteLine("  EasySave.exe 1 3   Execute backup jobs #1 and #3");
-            Console.WriteLine("  EasySave.exe all   Execute all backup jobs sequentially");
+            Console.WriteLine("  EasySave.exe 1;3   Execute backup jobs #1 and #3");
+            Console.WriteLine("  EasySave.exe 1-3   Execute backup jobs #1, #2, and #3");
             Console.WriteLine();
             Console.WriteLine("NOTE: Job numbers refer to the position in the job list (starting from 1).");
-            Console.WriteLine("      If no arguments are provided, the interactive menu will be displayed.");
         }
 
-        // Displays the main application menu
+        // Show the main interactive menu
         private async Task ShowMainMenuAsync()
         {
-            bool exit = false;
-            
-            while (!exit)
-            {
-                Console.Clear();
-                
-                // Display menu
-                Console.WriteLine(_translationService.GetTranslation("app_title"));
-                Console.WriteLine("---------------------------");
-                Console.WriteLine(_translationService.GetTranslation("menu_title"));
-                Console.WriteLine("---------------------------");
-                Console.WriteLine(_translationService.GetTranslation("menu_create"));
-                Console.WriteLine(_translationService.GetTranslation("menu_execute"));
-                Console.WriteLine(_translationService.GetTranslation("menu_list"));
-                Console.WriteLine(_translationService.GetTranslation("menu_language"));
-                Console.WriteLine(_translationService.GetTranslation("menu_format"));
-                Console.WriteLine(_translationService.GetTranslation("menu_exit"));
-                Console.WriteLine("---------------------------");
-                Console.Write(_translationService.GetTranslation("menu_choice"));
-                
-                string choice = Console.ReadLine();
-                
-                // Process selection
-                switch (choice)
-                {
-                    case "1":
-                        await CreateBackupJobAsync();
-                        break;
-                    case "2":
-                        await ExecuteBackupJobsAsync();
-                        break;
-                    case "3":
-                        await ManageBackupJobsAsync();
-                        break;
-                    case "4":
-                        ChangeLanguage();
-                        break;
-                    case "5":
-                        ChangeLogFormat();  // Nouvelle option
-                        break;
-                    case "6":  // Changé de 5 à 6
-                        exit = true;
-                        break;
-                }
-            }
-        }
-
-        // Creates a new backup job based on user input
-        private async Task CreateBackupJobAsync()
-        {
-            Console.Clear();
-            Console.WriteLine(_translationService.GetTranslation("create_title"));
-            Console.WriteLine("---------------------------");
-            
-            // Check maximum job limit
-            if (_jobManager.GetJobs().Count >= 5)
-            {
-                Console.WriteLine(_translationService.GetTranslation("create_max_reached"));
-                Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-                Console.ReadKey();
-                return;
-            }
-            
-            // Collect job parameters
-            Console.Write(_translationService.GetTranslation("create_name"));
-            string name = Console.ReadLine();
-            
-            Console.Write(_translationService.GetTranslation("create_source"));
-            string sourcePath = Console.ReadLine();
-            
-            Console.Write(_translationService.GetTranslation("create_target"));
-            string targetPath = Console.ReadLine();
-            
-            Console.Write(_translationService.GetTranslation("create_type"));
-            string typeInput = Console.ReadLine();
-            
-            BackupType type = typeInput == "2" ? BackupType.Differential : BackupType.Complete;
-            
-            // Create the job
-            bool success = _jobManager.CreateJob(name, sourcePath, targetPath, type);
-            
-            if (success)
-            {
-                Console.WriteLine(_translationService.GetTranslation("create_success"));
-            }
-            else
-            {
-                Console.WriteLine(_translationService.GetTranslation("create_error"));
-            }
-            
-            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
+            // This method is only used in console mode, which is no longer needed in v2.0
+            // But we keep it for backward compatibility with command-line mode
+            Console.WriteLine("EasySave 2.0 - Console Mode");
+            Console.WriteLine("Please use the graphical interface for full functionality.");
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
-            
             await Task.CompletedTask;
         }
 
-        // Executes one or more backup jobs selected by the user
-        private async Task ExecuteBackupJobsAsync()
-        {
-            var jobs = _jobManager.GetJobs();
-            
-            if (jobs.Count == 0)
-            {
-                Console.WriteLine(_translationService.GetTranslation("execute_no_jobs"));
-                Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-                Console.ReadKey();
-                return;
-            }
-            
-            Console.Clear();
-            Console.WriteLine(_translationService.GetTranslation("execute_title"));
-            Console.WriteLine("---------------------------");
-            
-            // List available jobs
-            for (int i = 0; i < jobs.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type})");
-            }
-            
-            Console.WriteLine("---------------------------");
-            Console.WriteLine(_translationService.GetTranslation("execute_all_option"));
-            Console.WriteLine("---------------------------");
-            Console.Write(_translationService.GetTranslation("execute_select"));
-            string input = Console.ReadLine();
-            
-            // Acquire backup lock to prevent concurrent operations
-            await _backupLock.WaitAsync();
-            
-            try
-            {
-                // Check if user wants to execute all jobs
-                if (input == "0" || input.ToLower() == "all")
-                {
-                    // Execute all jobs sequentially
-                    Console.WriteLine();
-                    Console.WriteLine(_translationService.GetTranslation("execute_all_jobs"));
-                    Console.WriteLine();
-                    
-                    // Variables to track execution results
-                    int menuSuccessCount = 0;
-                    int menuFailCount = 0;
-                    
-                    for (int i = 0; i < jobs.Count; i++)
-                    {
-                        try
-                        {
-                            if (i > 0)
-                            {
-                                // Add extra line between jobs
-                                Console.WriteLine();
-                            }
-                            
-                            Console.WriteLine($"{_translationService.GetTranslation("execute_job_progress")} {i + 1}/{jobs.Count}: {jobs[i].Name}");
-                            await _backupService.ExecuteBackupJobAsync(jobs[i]);
-                            
-                            // Record the backup time
-                            _lastBackupTimes[jobs[i].Name] = DateTime.Now;
-                            SaveLastBackupTimes();
-                            
-                            menuSuccessCount++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"{_translationService.GetTranslation("execute_job_error")}: {ex.Message}");
-                            menuFailCount++;
-                        }
-                    }
-                    
-                    Console.WriteLine();
-                    Console.WriteLine($"{_translationService.GetTranslation("execute_summary")}: {menuSuccessCount} {_translationService.GetTranslation("execute_succeeded")}, {menuFailCount} {_translationService.GetTranslation("execute_failed")}");
-                }
-                else
-                {
-                    // Parse selection for specific jobs
-                    List<int> jobIndexes = ParseJobIndexes(input);
-                    
-                    // Execute selected jobs
-                    Console.WriteLine();
-                    
-                    int jobCount = jobIndexes.Count;
-                    int currentJob = 0;
-                    int successCount = 0;
-                    int failCount = 0;
-                    
-                    foreach (int index in jobIndexes)
-                    {
-                        if (index >= 0 && index < jobs.Count)
-                        {
-                            try
-                            {
-                                currentJob++;
-                                
-                                if (currentJob > 1)
-                                {
-                                    // Add extra line between jobs
-                                    Console.WriteLine();
-                                }
-                                
-                                Console.WriteLine($"{_translationService.GetTranslation("execute_job_progress")} {currentJob}/{jobCount}: {jobs[index].Name}");
-                                await _backupService.ExecuteBackupJobAsync(jobs[index]);
-                                
-                                // Record the backup time
-                                _lastBackupTimes[jobs[index].Name] = DateTime.Now;
-                                SaveLastBackupTimes();
-                                
-                                successCount++;
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"{_translationService.GetTranslation("execute_job_error")}: {ex.Message}");
-                                failCount++;
-                            }
-                        }
-                    }
-                    
-                    // Display summary for selected jobs
-                    if (jobCount > 0)
-                    {
-                        Console.WriteLine();
-                        Console.WriteLine($"{_translationService.GetTranslation("execute_summary")}: {successCount} {_translationService.GetTranslation("execute_succeeded")}, {failCount} {_translationService.GetTranslation("execute_failed")}");
-                    }
-                }
-            }
-            finally
-            {
-                // Always release the lock
-                _backupLock.Release();
-            }
-            
-            Console.WriteLine();
-            Console.WriteLine(_translationService.GetTranslation("execute_success"));
-            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-            Console.ReadKey();
-        }
-
-        // Manages backup jobs (list, view details, delete)
-        private async Task ManageBackupJobsAsync()
-        {
-            var jobs = _jobManager.GetJobs();
-            
-            Console.Clear();
-            Console.WriteLine(_translationService.GetTranslation("list_title"));
-            Console.WriteLine("---------------------------");
-            
-            if (jobs.Count == 0)
-            {
-                Console.WriteLine(_translationService.GetTranslation("list_no_jobs"));
-                Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-                Console.ReadKey();
-                return;
-            }
-            
-            // Display job details
-            for (int i = 0; i < jobs.Count; i++)
-            {
-                var job = jobs[i];
-                Console.WriteLine($"{i + 1}. {job.Name}");
-                Console.WriteLine($"   {_translationService.GetTranslation("list_source")}{job.SourcePath}");
-                Console.WriteLine($"   {_translationService.GetTranslation("list_target")}{job.TargetPath}");
-                Console.WriteLine($"   {_translationService.GetTranslation("list_type")}{job.Type}");
-                
-                // Display last backup time if available
-                if (_lastBackupTimes.TryGetValue(job.Name, out DateTime lastBackup))
-                {
-                    Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{lastBackup:yyyy-MM-dd HH:mm:ss}");
-                }
-                else
-                {
-                    Console.WriteLine($"   {_translationService.GetTranslation("list_last_backup")}{_translationService.GetTranslation("list_never")}");
-                }
-                
-                Console.WriteLine();
-            }
-            
-            // Show delete option
-            Console.WriteLine("---------------------------");
-            Console.WriteLine(_translationService.GetTranslation("list_delete_option"));
-            Console.WriteLine(_translationService.GetTranslation("list_back_option"));
-            Console.WriteLine("---------------------------");
-            Console.Write(_translationService.GetTranslation("list_choice"));
-            
-            string input = Console.ReadLine();
-            
-            if (input.ToLower() == "d" || input.ToLower() == "delete")
-            {
-                await DeleteBackupJobAsync();
-            }
-        }
-
-        // Deletes a backup job selected by the user
-        private async Task DeleteBackupJobAsync()
-        {
-            var jobs = _jobManager.GetJobs();
-            
-            Console.WriteLine("---------------------------");
-            Console.Write(_translationService.GetTranslation("delete_select"));
-            
-            if (int.TryParse(Console.ReadLine(), out int jobNumber) && jobNumber >= 1 && jobNumber <= jobs.Count)
-            {
-                int index = jobNumber - 1;
-                string jobName = jobs[index].Name;
-                
-                Console.Write(_translationService.GetTranslation("delete_confirm").Replace("{0}", jobName));
-                string confirmation = Console.ReadLine();
-                
-                if (confirmation.ToLower() == "y" || confirmation.ToLower() == "yes" || 
-                    confirmation.ToLower() == "o" || confirmation.ToLower() == "oui")
-                {
-                    bool success = _jobManager.DeleteJob(index);
-                    
-                    if (success)
-                    {
-                        // Remove from last backup times if exists
-                        if (_lastBackupTimes.ContainsKey(jobName))
-                        {
-                            _lastBackupTimes.Remove(jobName);
-                            SaveLastBackupTimes();
-                        }
-                        
-                        Console.WriteLine(_translationService.GetTranslation("delete_success"));
-                    }
-                    else
-                    {
-                        Console.WriteLine(_translationService.GetTranslation("delete_error"));
-                    }
-                }
-                else
-                {
-                    Console.WriteLine(_translationService.GetTranslation("delete_cancelled"));
-                }
-            }
-            else
-            {
-                Console.WriteLine(_translationService.GetTranslation("delete_invalid"));
-            }
-            
-            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-            Console.ReadKey();
-            
-            await Task.CompletedTask;
-        }
-
-        // Ajouter cette méthode à la classe EasySaveController
-        private void SaveLogFormat()
+        // Load last backup times from file
+        private void LoadLastBackupTimes()
         {
             try
             {
-                string logFormatFilePath = Path.Combine(_appDataPath, "logformat.json");
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                var formatData = new { Format = _logFormat };
-                string json = JsonSerializer.Serialize(formatData, options);
-
-                // Use atomic file write to prevent corruption
-                string tempFile = Path.GetTempFileName();
-                File.WriteAllText(tempFile, json);
-                File.Move(tempFile, logFormatFilePath, true);
-            }
-            catch (Exception)
-            {
-                // Handle errors gracefully (log if possible)
-            }
-        }
-
-        // Ajouter cette méthode à la classe EasySaveController
-        private void LoadLogFormat()
-        {
-            string logFormatFilePath = Path.Combine(_appDataPath, "logformat.json");
-
-            if (File.Exists(logFormatFilePath))
-            {
-                try
+                string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "lastbackuptimes.json");
+                if (File.Exists(filePath))
                 {
-                    string json = File.ReadAllText(logFormatFilePath);
-                    var formatData = JsonSerializer.Deserialize<JsonElement>(json);
-
-                    if (formatData.TryGetProperty("Format", out JsonElement formatElement))
+                    string json = File.ReadAllText(filePath);
+                    var times = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, DateTime>>(json);
+                    if (times != null)
                     {
-                        string format = formatElement.GetString();
-                        if (format == "json" || format == "xml")
+                        foreach (var entry in times)
                         {
-                            _logFormat = format;
+                            _lastBackupTimes[entry.Key] = entry.Value;
                         }
                     }
                 }
-                catch (Exception)
-                {
-                    // Handle errors gracefully
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading last backup times: {ex.Message}");
             }
         }
 
-        // Changes the application's current language
-        private void ChangeLanguage()
-        {
-            _translationService.ToggleLanguage();
-            
-            Console.WriteLine(_translationService.GetTranslation("language_changed"));
-            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-            Console.ReadKey();
-        }
-
-   
-        /// Changes the log format between JSON and XML
-     
-        private void ChangeLogFormat()
-        {
-            Console.Clear();
-            Console.WriteLine(_translationService.GetTranslation("format_title"));
-            Console.WriteLine("---------------------------");
-            Console.WriteLine(_translationService.GetTranslation("format_current") + _logFormat.ToUpper());
-            Console.WriteLine("---------------------------");
-            Console.WriteLine("1. JSON");
-            Console.WriteLine("2. XML");
-            Console.WriteLine("---------------------------");
-            Console.Write(_translationService.GetTranslation("format_choice"));
-
-            string choice = Console.ReadLine();
-
-            if (choice == "1")
-            {
-                _logFormat = "json";
-            }
-            else if (choice == "2")
-            {
-                _logFormat = "xml";
-            }
-
-            // Recreate the logger with the new format
-            string logDirectory = Path.Combine(_appDataPath, "logs");
-            _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
-            _backupService = new BackupService(_logger, _stateManager);
-
-            // Save the log format preference
-            SaveLogFormat();
-
-            Console.WriteLine(_translationService.GetTranslation("format_changed") + _logFormat.ToUpper());
-            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
-            Console.ReadKey();
-        }
-
-        /// Parses user input to determine which backup jobs to execute
-        private List<int> ParseJobIndexes(string input)
-        {
-            var indexes = new List<int>();
-            
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                return indexes;
-            }
-            
-            string[] parts = input.Split(';');
-            
-            foreach (string part in parts)
-            {
-                // Handle range format (e.g., "1-3")
-                if (part.Contains('-'))
-                {
-                    string[] range = part.Split('-');
-                    if (range.Length == 2 && int.TryParse(range[0], out int start) && int.TryParse(range[1], out int end))
-                    {
-                        for (int i = start; i <= end; i++)
-                        {
-                            indexes.Add(i - 1); // Convert to 0-based index
-                        }
-                    }
-                }
-                // Handle single number
-                else if (int.TryParse(part, out int index))
-                {
-                    indexes.Add(index - 1); // Convert to 0-based index
-                }
-            }
-            
-            return indexes;
-        }
-
-        // Executes backup jobs specified by command line arguments
-        private async Task ExecuteCommandLineArgsAsync(string[] args)
-        {
-            var jobs = _jobManager.GetJobs();
-            
-            // Display available jobs in command line mode
-            Console.WriteLine("EasySave 1.0 - Command Line Mode");
-            Console.WriteLine("---------------------------");
-            
-            if (jobs.Count == 0)
-            {
-                Console.WriteLine("No backup jobs available. Please run the application without arguments to create jobs first.");
-                return;
-            }
-            
-            Console.WriteLine("Available backup jobs:");
-            for (int i = 0; i < jobs.Count; i++)
-            {
-                Console.WriteLine($"{i + 1}. {jobs[i].Name} ({jobs[i].Type})");
-            }
-            Console.WriteLine("---------------------------");
-            
-            // Acquire backup lock to prevent concurrent operations
-            await _backupLock.WaitAsync();
-            
-            try
-            {
-                // Check if user wants to execute all jobs
-                if (args.Contains("0") || args.Contains("all", StringComparer.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine("Executing all backup jobs sequentially:");
-                    Console.WriteLine();
-                    
-                    // Variables to track command line execution results
-                    int cmdSuccessCount = 0;
-                    int cmdFailCount = 0;
-                    
-                    for (int i = 0; i < jobs.Count; i++)
-                    {
-                        try
-                        {
-                            if (i > 0)
-                            {
-                                // Add extra line between jobs
-                                Console.WriteLine();
-                            }
-                            
-                            Console.WriteLine($"Executing job ({i + 1}/{jobs.Count}): {jobs[i].Name}...");
-                            await _backupService.ExecuteBackupJobAsync(jobs[i]);
-                            
-                            // Record the backup time
-                            _lastBackupTimes[jobs[i].Name] = DateTime.Now;
-                            SaveLastBackupTimes();
-                            
-                            Console.WriteLine($"Job '{jobs[i].Name}' completed successfully.");
-                            cmdSuccessCount++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error executing job '{jobs[i].Name}': {ex.Message}");
-                            cmdFailCount++;
-                        }
-                    }
-                    
-                    // Display summary
-                    Console.WriteLine();
-                    Console.WriteLine("---------------------------");
-                    Console.WriteLine($"Execution complete: {cmdSuccessCount} job(s) succeeded, {cmdFailCount} job(s) failed.");
-                    return;
-                }
-                
-                // Process all arguments to support both PowerShell and CMD syntax
-                var jobIndexes = new List<int>();
-                
-                foreach (string arg in args)
-                {
-                    // Check if the argument is a simple number
-                    if (int.TryParse(arg, out int jobNumber))
-                    {
-                        jobIndexes.Add(jobNumber - 1); // Convert to 0-based index
-                    }
-                    else
-                    {
-                        // It might be a range or semicolon-separated list
-                        jobIndexes.AddRange(ParseJobIndexes(arg));
-                    }
-                }
-                
-                // Remove duplicates and sort
-                jobIndexes = jobIndexes.Distinct().OrderBy(i => i).ToList();
-                
-                if (jobIndexes.Count == 0)
-                {
-                    Console.WriteLine("No valid job numbers specified");
-                    Console.WriteLine("Usage examples:");
-                    Console.WriteLine("  In CMD:");
-                    Console.WriteLine("    EasySave.exe all   (Execute all jobs)");
-                    Console.WriteLine("    EasySave.exe 1     (Execute job #1)");
-                    Console.WriteLine("    EasySave.exe 1;3   (Execute jobs #1 and #3)");
-                    Console.WriteLine();
-                    Console.WriteLine("  In PowerShell:");
-                    Console.WriteLine("    .\\EasySave.exe all  (Execute all jobs)");
-                    Console.WriteLine("    .\\EasySave.exe 1    (Execute job #1)");
-                    Console.WriteLine("    .\\EasySave.exe 1 3  (Execute jobs #1 and #3)");
-                    Console.WriteLine("    .\\EasySave.exe \"1;3\" (Execute jobs #1 and #3)");
-                    Console.WriteLine();
-                    Console.WriteLine("For more information, run: EasySave.exe --help");
-                    return;
-                }
-                
-                // Show which jobs will be executed
-                Console.WriteLine("Executing the following jobs:");
-                foreach (int index in jobIndexes)
-                {
-                    if (index >= 0 && index < jobs.Count)
-                    {
-                        Console.WriteLine($"- {jobs[index].Name}");
-                    }
-                }
-                Console.WriteLine("---------------------------");
-                Console.WriteLine();
-                
-                // Execute selected jobs
-                int cmdJobSuccessCount = 0;
-                int cmdJobFailCount = 0;
-                int currentJob = 0;
-                
-                foreach (int index in jobIndexes)
-                {
-                    if (index >= 0 && index < jobs.Count)
-                    {
-                        try
-                        {
-                            currentJob++;
-                            
-                            if (currentJob > 1)
-                            {
-                                // Add extra line between jobs
-                                Console.WriteLine();
-                            }
-                            
-                            Console.WriteLine($"Executing job: {jobs[index].Name}...");
-                            await _backupService.ExecuteBackupJobAsync(jobs[index]);
-                            
-                            // Record the backup time
-                            _lastBackupTimes[jobs[index].Name] = DateTime.Now;
-                            SaveLastBackupTimes();
-                            
-                            Console.WriteLine($"Job '{jobs[index].Name}' completed successfully.");
-                            cmdJobSuccessCount++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error executing job '{jobs[index].Name}': {ex.Message}");
-                            cmdJobFailCount++;
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Job #{index + 1} does not exist. Skipping.");
-                    }
-                }
-                
-                // Display summary
-                Console.WriteLine();
-                Console.WriteLine("---------------------------");
-                Console.WriteLine($"Execution complete: {cmdJobSuccessCount} job(s) succeeded, {cmdJobFailCount} job(s) failed.");
-            }
-            finally
-            {
-                // Always release the lock
-                _backupLock.Release();
-            }
-        }
-        
-        // Saves the last backup times to a JSON file
+        // Save last backup times to file
         private void SaveLastBackupTimes()
         {
             try
             {
-                string lastBackupFilePath = Path.Combine(_appDataPath, "lastbackups.json");
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string json = JsonSerializer.Serialize(_lastBackupTimes, options);
-                
-                // Use atomic file write to prevent corruption
-                string tempFile = Path.GetTempFileName();
-                File.WriteAllText(tempFile, json);
-                File.Move(tempFile, lastBackupFilePath, true);
+                string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "lastbackuptimes.json");
+                string json = System.Text.Json.JsonSerializer.Serialize(_lastBackupTimes);
+                File.WriteAllText(filePath, json);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Handle errors gracefully (log if possible)
+                Console.WriteLine($"Error saving last backup times: {ex.Message}");
             }
         }
 
-        // Loads the last backup times from a JSON file
-        private void LoadLastBackupTimes()
+        // Load log format preference from configuration file
+        private string LoadLogFormat()
         {
-            string lastBackupFilePath = Path.Combine(_appDataPath, "lastbackups.json");
-
-            if (File.Exists(lastBackupFilePath))
+            try
             {
-                try
+                string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                if (File.Exists(configPath))
                 {
-                    string json = File.ReadAllText(lastBackupFilePath);
-                    var loadedTimes = JsonSerializer.Deserialize<Dictionary<string, DateTime>>(json);
-
-                    if (loadedTimes != null)
+                    string format = File.ReadAllText(configPath).Trim();
+                    if (format == "XML" || format == "JSON")
                     {
-                        foreach (var item in loadedTimes)
-                        {
-                            _lastBackupTimes[item.Key] = item.Value;
-                        }
+                        return format;
                     }
                 }
-                catch (Exception)
-                {
-                    // Handle errors gracefully
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading log format: {ex.Message}");
+            }
+            
+            // Default to JSON if no preference is found or an error occurs
+            return "JSON";
+        }
+
+        // Save log format preference to configuration file
+        private void SaveLogFormat(string format)
+        {
+            try
+            {
+                string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                File.WriteAllText(configPath, format);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving log format: {ex.Message}");
             }
         }
     }

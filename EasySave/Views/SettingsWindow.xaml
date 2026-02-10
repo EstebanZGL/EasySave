@@ -1,0 +1,71 @@
+<Window x:Class="EasySave.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EasySave.Views"
+        mc:Ignorable="d"
+        Title="EasySave Settings" Height="350" Width="500"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Business Software -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Business Software:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding BusinessSoftwareName}" Margin="0,0,10,10"/>
+        <Button Grid.Row="0" Grid.Column="2" Content="Browse..." Click="BrowseBusinessSoftwareButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+
+        <!-- CryptoSoft Path -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="CryptoSoft Path:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CryptoSoftPath}" Margin="0,0,10,10"/>
+        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Click="BrowseCryptoSoftButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+
+        <!-- Encryption Extensions -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Encrypt Extensions:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" 
+                 Text="{Binding EncryptionExtensionsString}" 
+                 ToolTip="Enter file extensions to encrypt, separated by semicolons (e.g. .txt;.doc;.pdf)"
+                 Margin="0,0,0,10"/>
+
+        <!-- Max Parallel Jobs -->
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Parallel Jobs:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <Slider Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                Minimum="1" Maximum="10" 
+                Value="{Binding MaxParallelJobs}"
+                IsSnapToTickEnabled="True"
+                TickFrequency="1"
+                Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                   Text="{Binding MaxParallelJobs}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,-15"/>
+
+        <!-- Help Text -->
+        <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
+                   TextWrapping="Wrap" Margin="0,10,0,0">
+            <Run FontWeight="Bold">Notes:</Run>
+            <LineBreak/>
+            - Business Software: EasySave will pause backups when this application is running
+            <LineBreak/>
+            - Encrypt Extensions: File types that will be encrypted using CryptoSoft
+            <LineBreak/>
+            - Changes are saved automatically
+        </TextBlock>
+
+        <!-- Close Button -->
+        <Button Grid.Row="5" Grid.Column="2" Content="Close" Click="CloseButton_Click" Width="80" Margin="0,10,0,0"/>
+    </Grid>
+</Window>

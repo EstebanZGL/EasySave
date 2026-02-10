@@ -10,15 +10,14 @@ namespace EasySave.Services
     // Manages backup jobs
     public class BackupJobManager
     {
-        private const int MaxJobs = 5; // Maximum number of backup jobs allowed
         private readonly List<BackupJob> _backupJobs;
         private readonly string _configFilePath;
         private readonly object _lockObject = new object(); // For thread safety
 
         // Constructor
-        public BackupJobManager(string configFilePath)
+        public BackupJobManager()
         {
-            _configFilePath = configFilePath;
+            _configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "jobs.json");
             _backupJobs = new List<BackupJob>();
             
             // Create directory if it doesn't exist
@@ -41,60 +40,64 @@ namespace EasySave.Services
             }
         }
 
-        // Get a backup job by index
-        public BackupJob GetJob(int index)
+        // Get a backup job by name
+        public BackupJob GetJob(string name)
         {
             lock (_lockObject)
             {
-                if (index >= 0 && index < _backupJobs.Count)
-                {
-                    return _backupJobs[index];
-                }
-                return null;
+                return _backupJobs.Find(job => job.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             }
         }
 
         // Create a new backup job
-        // Returns: True if job was created, false otherwise
-        public bool CreateJob(string name, string sourcePath, string targetPath, BackupType type)
+        // Returns: Task completing when job is created
+        public async Task CreateJob(BackupJob job)
         {
+            if (job == null || !job.Validate())
+            {
+                throw new ArgumentException("Invalid backup job", nameof(job));
+            }
+            
             lock (_lockObject)
             {
-                // Check if maximum number of jobs has been reached
-                if (_backupJobs.Count >= MaxJobs)
+                // Check if a job with the same name already exists
+                if (_backupJobs.Exists(j => j.Name.Equals(job.Name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return false;
-                }
-                
-                // Create and validate the job
-                var job = new BackupJob(name, sourcePath, targetPath, type);
-                if (!job.Validate())
-                {
-                    return false;
+                    throw new InvalidOperationException($"A backup job with the name '{job.Name}' already exists.");
                 }
                 
                 // Add the job and save
                 _backupJobs.Add(job);
                 SaveJobs();
-                
-                return true;
             }
+
+            // No need to return anything, but keeping the Task return type for async compatibility
+            await Task.CompletedTask;
         }
 
-        // Delete a backup job
-        // Returns: True if job was deleted, false otherwise
-        public bool DeleteJob(int index)
+        // Delete a backup job by name
+        // Returns: Task completing when job is deleted
+        public async Task DeleteJob(string name)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException("Job name cannot be null or empty", nameof(name));
+            }
+            
             lock (_lockObject)
             {
-                if (index >= 0 && index < _backupJobs.Count)
+                int index = _backupJobs.FindIndex(job => job.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (index < 0)
                 {
-                    _backupJobs.RemoveAt(index);
-                    SaveJobs();
-                    return true;
+                    throw new InvalidOperationException($"Backup job '{name}' not found.");
                 }
-                return false;
+                
+                _backupJobs.RemoveAt(index);
+                SaveJobs();
             }
+
+            // No need to return anything, but keeping the Task return type for async compatibility
+            await Task.CompletedTask;
         }
 
         // Load backup jobs from the configuration file
@@ -110,19 +113,13 @@ namespace EasySave.Services
                     {
                         _backupJobs.Clear();
                         _backupJobs.AddRange(jobs);
-                        
-                        // Ensure we don't exceed the maximum number of jobs
-                        if (_backupJobs.Count > MaxJobs)
-                        {
-                            _backupJobs.RemoveRange(MaxJobs, _backupJobs.Count - MaxJobs);
-                            SaveJobs(); // Save the truncated list
-                        }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // If loading fails, start with an empty list
                     _backupJobs.Clear();
+                    System.Diagnostics.Debug.WriteLine($"Error loading backup jobs: {ex.Message}");
                 }
             }
         }
@@ -140,9 +137,11 @@ namespace EasySave.Services
                 File.WriteAllText(tempFile, json);
                 File.Move(tempFile, _configFilePath, true);
             }
-            catch
+            catch (Exception ex)
             {
-                // Handle serialization or file access errors
+                // Log error
+                System.Diagnostics.Debug.WriteLine($"Error saving backup jobs: {ex.Message}");
+                throw; // Re-throw to let caller handle it
             }
         }
     }

@@ -1,29 +1,127 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace EasySave.Models
 {
     // Represents a backup job configuration
-    public class BackupJob
+    public class BackupJob : INotifyPropertyChanged
     {
+        private string _name;
+        private string _sourcePath;
+        private string _targetPath;
+        private BackupType _type;
+        private DateTime? _lastBackupTime;
+
         // Name of the backup job
-        public string Name { get; set; }
+        public string JobName
+        {
+            get => _name;
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(Name)); // Notify Name property changed too
+                }
+            }
+        }
+
+        // Property that redirects to JobName for backward compatibility
+        [JsonIgnore] // To avoid serializing the same data twice
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(JobName)); // Notify JobName property changed too
+                }
+            }
+        }
 
         // Source directory path
-        public string SourcePath { get; set; }
+        public string SourcePath
+        {
+            get => _sourcePath;
+            set
+            {
+                if (_sourcePath != value)
+                {
+                    _sourcePath = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         // Target directory path
-        public string TargetPath { get; set; }
+        public string TargetPath
+        {
+            get => _targetPath;
+            set
+            {
+                if (_targetPath != value)
+                {
+                    _targetPath = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         // Type of backup (Complete or Differential)
-        public BackupType Type { get; set; }
+        public BackupType Type
+        {
+            get => _type;
+            set
+            {
+                if (_type != value)
+                {
+                    _type = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Last backup time (nullable)
+        public DateTime? LastBackupTime
+        {
+            get => _lastBackupTime;
+            set
+            {
+                if (_lastBackupTime != value)
+                {
+                    _lastBackupTime = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(LastBackupTimeDisplay));
+                }
+            }
+        }
+
+        // Formatted display of last backup time
+        public string LastBackupTimeDisplay
+        {
+            get
+            {
+                if (_lastBackupTime.HasValue)
+                {
+                    return _lastBackupTime.Value.ToString("yyyy-MM-dd HH:mm:ss");
+                }
+                return "Never";
+            }
+        }
 
         // Constructor with all parameters
         public BackupJob(string name, string sourcePath, string targetPath, BackupType type)
         {
-            Name = name;
-            SourcePath = sourcePath;
-            TargetPath = targetPath;
-            Type = type;
+            _name = name;
+            _sourcePath = sourcePath;
+            _targetPath = targetPath;
+            _type = type;
         }
 
         // Default constructor for serialization
@@ -38,7 +136,7 @@ namespace EasySave.Models
                 return false;
 
             // Check if source path exists
-            if (string.IsNullOrWhiteSpace(SourcePath) || !System.IO.Directory.Exists(SourcePath))
+            if (string.IsNullOrWhiteSpace(SourcePath))
                 return false;
 
             // Check if target path is specified
@@ -46,6 +144,14 @@ namespace EasySave.Models
                 return false;
 
             return true;
+        }
+
+        // INotifyPropertyChanged implementation
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 
@@ -70,6 +176,9 @@ namespace EasySave.Models
         
         // Backup job has completed successfully
         Completed,
+        
+        // Backup job has been cancelled
+        Cancelled,
         
         // Backup job has failed
         Error
