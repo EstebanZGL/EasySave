@@ -2,38 +2,22 @@ using System;
 
 namespace EasySave.Models
 {
-    /// <summary>
-    /// Represents a backup job configuration
-    /// </summary>
+    // Represents a backup job configuration
     public class BackupJob
     {
-        /// <summary>
-        /// Name of the backup job
-        /// </summary>
+        // Name of the backup job
         public string Name { get; set; }
 
-        /// <summary>
-        /// Source directory path
-        /// </summary>
+        // Source directory path
         public string SourcePath { get; set; }
 
-        /// <summary>
-        /// Target directory path
-        /// </summary>
+        // Target directory path
         public string TargetPath { get; set; }
 
-        /// <summary>
-        /// Type of backup (Complete or Differential)
-        /// </summary>
+        // Type of backup (Complete or Differential)
         public BackupType Type { get; set; }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="name">Name of the backup job</param>
-        /// <param name="sourcePath">Source directory path</param>
-        /// <param name="targetPath">Target directory path</param>
-        /// <param name="type">Type of backup</param>
+        // Constructor with all parameters
         public BackupJob(string name, string sourcePath, string targetPath, BackupType type)
         {
             Name = name;
@@ -42,15 +26,11 @@ namespace EasySave.Models
             Type = type;
         }
 
-        /// <summary>
-        /// Default constructor for serialization
-        /// </summary>
+        // Default constructor for serialization
         public BackupJob() { }
 
-        /// <summary>
-        /// Validates the backup job parameters
-        /// </summary>
-        /// <returns>True if valid, false otherwise</returns>
+        // Validates the backup job parameters
+        // Returns: True if valid, false otherwise
         public bool Validate()
         {
             // Check if name is not empty
@@ -69,45 +49,29 @@ namespace EasySave.Models
         }
     }
 
-    /// <summary>
-    /// Type of backup
-    /// </summary>
+    // Type of backup
     public enum BackupType
     {
-        /// <summary>
-        /// Complete backup (copies all files)
-        /// </summary>
+        // Complete backup (copies all files)
         Complete,
         
-        /// <summary>
-        /// Differential backup (copies only new or modified files)
-        /// </summary>
+        // Differential backup (copies only new or modified files)
         Differential
     }
 
-    /// <summary>
-    /// State of a backup job
-    /// </summary>
+    // State of a backup job
     public enum BackupState
     {
-        /// <summary>
-        /// Backup job is inactive
-        /// </summary>
+        // Backup job is inactive
         Inactive,
         
-        /// <summary>
-        /// Backup job is active
-        /// </summary>
+        // Backup job is active
         Active,
         
-        /// <summary>
-        /// Backup job has completed successfully
-        /// </summary>
+        // Backup job has completed successfully
         Completed,
         
-        /// <summary>
-        /// Backup job has failed
-        /// </summary>
+        // Backup job has failed
         Error
     }
 }

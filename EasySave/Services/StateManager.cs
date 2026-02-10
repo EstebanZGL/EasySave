@@ -2,41 +2,36 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization; // Ajout de cette directive pour JsonIgnore
 using System.Threading.Tasks;
 using EasySave.Models;
-
+ 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Manages the real-time state tracking of backup operations.
-    /// </summary>
+    // Manages the real-time state tracking of backup operations
     public class StateManager
     {
         private readonly string _stateFilePath;
         private readonly Dictionary<string, BackupJobState> _states;
-
-        /// <summary>
-        /// Initializes a new instance of the StateManager.
-        /// </summary>
-        /// <param name="stateFilePath">Path to the state file</param>
+        private readonly SemaphoreSlim _stateLock = new SemaphoreSlim(1, 1); // Thread safety for state updates
+ 
+        // Initializes a new instance of the StateManager
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath ?? throw new ArgumentNullException(nameof(stateFilePath));
             _states = new Dictionary<string, BackupJobState>();
-            
+           
             // Create directory if needed
             string directory = Path.GetDirectoryName(_stateFilePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
-            
+           
             LoadState();
         }
-
-        /// <summary>
-        /// Loads backup job states from the state file.
-        /// </summary>
+ 
+        // Loads backup job states from the state file
         private void LoadState()
         {
             if (File.Exists(_stateFilePath))
@@ -45,7 +40,7 @@ namespace EasySave.Services
                 {
                     string json = File.ReadAllText(_stateFilePath);
                     var states = JsonSerializer.Deserialize<List<BackupJobState>>(json);
-                    
+                   
                     if (states != null)
                     {
                         foreach (var state in states)
@@ -60,18 +55,16 @@ namespace EasySave.Services
                 }
             }
         }
-
-        /// <summary>
-        /// Updates the state of a backup job and persists changes.
-        /// </summary>
-        /// <param name="name">Name of the backup job</param>
-        /// <param name="state">Current state</param>
-        /// <param name="totalFiles">Total files count</param>
-        /// <param name="totalSize">Total size in bytes</param>
-        /// <param name="filesRemaining">Files remaining</param>
-        /// <param name="sizeRemaining">Size remaining in bytes</param>
-        /// <param name="currentSourceFile">Current source file</param>
-        /// <param name="currentTargetFile">Current target file</param>
+ 
+        // Updates the state of a backup job and persists changes
+        // name: Name of the backup job
+        // state: Current state
+        // totalFiles: Total files count
+        // totalSize: Total size in bytes
+        // filesRemaining: Files remaining
+        // sizeRemaining: Size remaining in bytes
+        // currentSourceFile: Current source file (optional)
+        // currentTargetFile: Current target file (optional)
         public async Task UpdateStateAsync(
             string name,
             BackupState state,
@@ -82,36 +75,55 @@ namespace EasySave.Services
             string currentSourceFile = null,
             string currentTargetFile = null)
         {
-            if (!_states.TryGetValue(name, out var jobState))
+            await _stateLock.WaitAsync();
+           
+            try
             {
-                jobState = new BackupJobState { Name = name };
-                _states[name] = jobState;
+                if (!_states.TryGetValue(name, out var jobState))
+                {
+                    jobState = new BackupJobState { Name = name };
+                    _states[name] = jobState;
+                }
+ 
+                // Update state properties
+                jobState.LastUpdateTime = DateTime.Now;
+                jobState.StateEnum = state;
+                jobState.TotalFilesToCopy = totalFiles;
+                jobState.TotalFilesSize = totalSize;
+                jobState.NbFilesLeftToDo = filesRemaining;
+                jobState.SourceFilePath = currentSourceFile ?? string.Empty;
+                jobState.TargetFilePath = currentTargetFile ?? string.Empty;
+                jobState.SizeRemaining = sizeRemaining;
+               
+                // Calculate progress safely to avoid division by zero
+                jobState.Progression = totalFiles > 0 ? (totalFiles - filesRemaining) * 100 / totalFiles : 0;
+ 
+                await SaveStateAsync();
             }
-
-            // Update state properties
-            jobState.LastUpdateTime = DateTime.Now;
-            jobState.State = state;
-            jobState.TotalFilesCount = totalFiles;
-            jobState.TotalFilesSize = totalSize;
-            jobState.FilesRemaining = filesRemaining;
-            jobState.SizeRemaining = sizeRemaining;
-            jobState.CurrentSourceFile = currentSourceFile;
-            jobState.CurrentTargetFile = currentTargetFile;
-            jobState.Progress = totalFiles > 0 ? (totalFiles - filesRemaining) * 100 / totalFiles : 0;
-
-            await SaveStateAsync();
+            finally
+            {
+                _stateLock.Release();
+            }
         }
-
-        /// <summary>
-        /// Saves the current state to the state file.
-        /// </summary>
+ 
+        // Saves the current state to the state file
         private async Task SaveStateAsync()
         {
             try
             {
-                var options = new JsonSerializerOptions { WriteIndented = true };
+                // Format the state data according to the specified format
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = null // Preserve property names as they are
+                };
+               
                 string json = JsonSerializer.Serialize(_states.Values, options);
-                await File.WriteAllTextAsync(_stateFilePath, json);
+               
+                // Use atomic file write to prevent corruption
+                string tempFile = Path.GetTempFileName();
+                await File.WriteAllTextAsync(tempFile, json);
+                File.Move(tempFile, _stateFilePath, true);
             }
             catch (Exception)
             {
@@ -119,60 +131,68 @@ namespace EasySave.Services
             }
         }
     }
-
-    /// <summary>
-    /// Represents the state of a backup job.
-    /// </summary>
+ 
+    // Represents the state of a backup job
     public class BackupJobState
     {
-        /// <summary>
-        /// Name of the backup job
-        /// </summary>
+        // Name of the backup job
         public string Name { get; set; }
-        
-        /// <summary>
-        /// Last update timestamp
-        /// </summary>
+       
+        // Last update timestamp (preserved for internal use but not serialized to JSON)
+        [JsonIgnore]
         public DateTime LastUpdateTime { get; set; }
-        
-        /// <summary>
-        /// Current state of the backup job
-        /// </summary>
-        public BackupState State { get; set; }
-        
-        /// <summary>
-        /// Total number of files
-        /// </summary>
-        public int TotalFilesCount { get; set; }
-        
-        /// <summary>
-        /// Total size in bytes
-        /// </summary>
+       
+        // Current source file being processed
+        public string SourceFilePath { get; set; } = string.Empty;
+       
+        // Current target file being processed
+        public string TargetFilePath { get; set; } = string.Empty;
+       
+        // Current state of the backup job (formatted as END or ACTIVE)
+        public string State
+        {
+            get
+            {
+                return _state == BackupState.Completed ? "END" :
+                       _state == BackupState.Active ? "ACTIVE" :
+                       _state.ToString().ToUpper();
+            }
+            set
+            {
+                if (value == "END")
+                    _state = BackupState.Completed;
+                else if (value == "ACTIVE")
+                    _state = BackupState.Active;
+                else if (Enum.TryParse<BackupState>(value, true, out var result))
+                    _state = result;
+            }
+        }
+       
+        [JsonIgnore]
+        private BackupState _state;
+       
+        [JsonIgnore]
+        public BackupState StateEnum
+        {
+            get { return _state; }
+            set { _state = value; }
+        }
+       
+        // Total number of files
+        public int TotalFilesToCopy { get; set; }
+       
+        // Total size in bytes
         public long TotalFilesSize { get; set; }
-        
-        /// <summary>
-        /// Progress percentage (0-100)
-        /// </summary>
-        public int Progress { get; set; }
-        
-        /// <summary>
-        /// Number of files remaining
-        /// </summary>
-        public int FilesRemaining { get; set; }
-        
-        /// <summary>
-        /// Size remaining in bytes
-        /// </summary>
+       
+        // Number of files remaining
+        public int NbFilesLeftToDo { get; set; }
+       
+        // Progress percentage (0-100)
+        public int Progression { get; set; }
+       
+        // Size remaining in bytes (preserved for internal use but not serialized to JSON)
+        [JsonIgnore]
         public long SizeRemaining { get; set; }
-        
-        /// <summary>
-        /// Current source file being processed
-        /// </summary>
-        public string CurrentSourceFile { get; set; }
-        
-        /// <summary>
-        /// Current target file being processed
-        /// </summary>
-        public string CurrentTargetFile { get; set; }
     }
 }
+ 
