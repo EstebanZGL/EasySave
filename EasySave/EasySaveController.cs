@@ -33,6 +33,10 @@ namespace EasySave
             string logDirectory = Path.Combine(_appDataPath, "logs");
             Directory.CreateDirectory(logDirectory);
 
+            // Load the saved log format preference
+            LoadLogFormat();
+
+
             // Initialize services
             _translationService = new TranslationService();
             _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
@@ -452,6 +456,55 @@ namespace EasySave
             await Task.CompletedTask;
         }
 
+        // Ajouter cette méthode à la classe EasySaveController
+        private void SaveLogFormat()
+        {
+            try
+            {
+                string logFormatFilePath = Path.Combine(_appDataPath, "logformat.json");
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var formatData = new { Format = _logFormat };
+                string json = JsonSerializer.Serialize(formatData, options);
+
+                // Use atomic file write to prevent corruption
+                string tempFile = Path.GetTempFileName();
+                File.WriteAllText(tempFile, json);
+                File.Move(tempFile, logFormatFilePath, true);
+            }
+            catch (Exception)
+            {
+                // Handle errors gracefully (log if possible)
+            }
+        }
+
+        // Ajouter cette méthode à la classe EasySaveController
+        private void LoadLogFormat()
+        {
+            string logFormatFilePath = Path.Combine(_appDataPath, "logformat.json");
+
+            if (File.Exists(logFormatFilePath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(logFormatFilePath);
+                    var formatData = JsonSerializer.Deserialize<JsonElement>(json);
+
+                    if (formatData.TryGetProperty("Format", out JsonElement formatElement))
+                    {
+                        string format = formatElement.GetString();
+                        if (format == "json" || format == "xml")
+                        {
+                            _logFormat = format;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Handle errors gracefully
+                }
+            }
+        }
+
         // Changes the application's current language
         private void ChangeLanguage()
         {
@@ -492,6 +545,9 @@ namespace EasySave
             string logDirectory = Path.Combine(_appDataPath, "logs");
             _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
             _backupService = new BackupService(_logger, _stateManager);
+
+            // Save the log format preference
+            SaveLogFormat();
 
             Console.WriteLine(_translationService.GetTranslation("format_changed") + _logFormat.ToUpper());
             Console.WriteLine(_translationService.GetTranslation("press_any_key"));
