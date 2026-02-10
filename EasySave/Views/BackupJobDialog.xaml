@@ -24,7 +24,7 @@
 
         <!-- Job Name -->
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name}" Margin="0,0,0,10"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding JobName}" Margin="0,0,0,10"/>
 
         <!-- Source Path -->
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Source Path:" VerticalAlignment="Center" Margin="0,0,10,10"/>

@@ -1,18 +1,26 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace EasySave.Services
 {
     // Service for handling translations
-    public class TranslationService
+    public class TranslationService : INotifyPropertyChanged
     {
         private readonly Dictionary<string, string> _translations;
         private string _currentLanguage;
+        private readonly string _languageFilePath;
+        
+        // Event pour notifier les changements de propriété
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         // Constructor with optional default language parameter
         public TranslationService(string defaultLanguage = "en")
         {
-            _currentLanguage = defaultLanguage.ToLower() == "fr" ? "fr" : "en";
+            _languageFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "language.txt");
+            _currentLanguage = LoadLanguagePreference() ?? (defaultLanguage.ToLower() == "fr" ? "fr" : "en");
             _translations = InitializeTranslations();
         }
 
@@ -23,12 +31,64 @@ namespace EasySave.Services
         public void ChangeLanguage(string language)
         {
             _currentLanguage = language.ToLower() == "fr" ? "fr" : "en";
+            SaveLanguagePreference();
+            // Notifier que toutes les traductions ont potentiellement changé
+            OnPropertyChanged(nameof(CurrentLanguage));
+            NotifyTranslationsChanged();
         }
 
         // Toggle between available languages
         public void ToggleLanguage()
         {
             _currentLanguage = _currentLanguage == "en" ? "fr" : "en";
+            SaveLanguagePreference();
+            // Notifier que toutes les traductions ont potentiellement changé
+            OnPropertyChanged(nameof(CurrentLanguage));
+            NotifyTranslationsChanged();
+        }
+        
+        // Sauvegarder la préférence de langue
+        private void SaveLanguagePreference()
+        {
+            try
+            {
+                File.WriteAllText(_languageFilePath, _currentLanguage);
+            }
+            catch (Exception ex)
+            {
+                // Log l'erreur mais continue l'exécution
+                System.Diagnostics.Debug.WriteLine($"Error saving language preference: {ex.Message}");
+            }
+        }
+        
+        // Charger la préférence de langue
+        private string LoadLanguagePreference()
+        {
+            try
+            {
+                if (File.Exists(_languageFilePath))
+                {
+                    string language = File.ReadAllText(_languageFilePath).Trim().ToLower();
+                    if (language == "fr" || language == "en")
+                    {
+                        return language;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log l'erreur mais continue l'exécution
+                System.Diagnostics.Debug.WriteLine($"Error loading language preference: {ex.Message}");
+            }
+            
+            return null;
+        }
+        
+        // Notifier que toutes les traductions ont changé
+        private void NotifyTranslationsChanged()
+        {
+            // Déclencher un événement spécial pour indiquer que toutes les traductions ont changé
+            OnPropertyChanged("AllTranslations");
         }
 
         // Get translation for a key
@@ -46,128 +106,81 @@ namespace EasySave.Services
             var translations = new Dictionary<string, string>(100);
 
             // English translations
-            translations["en_app_title"] = "EasySave 1.0 - Backup Software";
+            translations["en_app_title"] = "EasySave 2.0 - Backup Software";
             translations["en_menu_title"] = "Main Menu";
-            translations["en_menu_create"] = "1. Create a new backup job";
-            translations["en_menu_execute"] = "2. Execute backup job(s)";
-            translations["en_menu_list"] = "3. List backup jobs";
-            translations["en_menu_language"] = "4. Change language (English/Français)";
-            translations["en_menu_format"] = "5. Change log format";
-            translations["en_menu_exit"] = "6. Exit";
-            translations["en_menu_choice"] = "Enter your choice: ";
-
-            // Ajoutez ces lignes pour le format des logs
-            translations["en_format_title"] = "Log Format Selection";
-            translations["en_format_current"] = "Current format: ";
-            translations["en_format_choice"] = "Select log format (1-2): ";
-            translations["en_format_changed"] = "Log format changed to: ";
+            translations["en_menu_create"] = "Create New Backup Job";
+            translations["en_menu_execute"] = "Execute Backup";
+            translations["en_menu_edit"] = "Edit";
+            translations["en_menu_delete"] = "Delete";
+            translations["en_menu_settings"] = "Settings";
+            translations["en_backup_jobs"] = "Backup Jobs";
+            translations["en_backup_job_details"] = "Backup Job Details";
+            translations["en_name"] = "Name:";
+            translations["en_source_path"] = "Source Path:";
+            translations["en_target_path"] = "Target Path:";
+            translations["en_type"] = "Type:";
+            translations["en_job_status"] = "Job Status";
+            translations["en_not_running"] = "Not running";
+            translations["en_log_format"] = "Log Format:";
+            translations["en_status_ready"] = "Ready";
             
-            translations["en_create_title"] = "Create a new backup job";
-            translations["en_create_name"] = "Enter a name for the backup job: ";
-            translations["en_create_source"] = "Enter the source directory path: ";
-            translations["en_create_target"] = "Enter the target directory path: ";
-            translations["en_create_type"] = "Enter the backup type (1 for Complete, 2 for Differential): ";
-            translations["en_create_success"] = "Backup job created successfully.";
-            translations["en_create_error"] = "Error creating backup job. Please check your inputs.";
-            translations["en_create_max_reached"] = "Maximum number of backup jobs (5) reached.";
+            // Ajout des traductions pour BackupJobDialog
+            translations["en_create_backup_job"] = "Create Backup Job";
+            translations["en_edit_backup_job"] = "Edit Backup Job";
+            translations["en_browse"] = "Browse";
+            translations["en_complete"] = "Complete";
+            translations["en_differential"] = "Differential";
+            translations["en_save"] = "Save";
+            translations["en_cancel"] = "Cancel";
             
-            translations["en_execute_title"] = "Execute backup job(s)";
-            translations["en_execute_select"] = "Enter the number(s) of the backup job(s) to execute (e.g., '1', '1-3', or '1;3'): ";
-            translations["en_execute_all_option"] = "Enter '0' or 'all' to execute all backup jobs sequentially";
-            translations["en_execute_all_jobs"] = "Executing all backup jobs sequentially...";
-            translations["en_execute_job_progress"] = "Executing job";
-            translations["en_execute_job_error"] = "Error";
-            translations["en_execute_summary"] = "Summary";
-            translations["en_execute_succeeded"] = "succeeded";
-            translations["en_execute_failed"] = "failed";
-            translations["en_execute_success"] = "Backup job(s) executed successfully.";
-            translations["en_execute_no_jobs"] = "No backup jobs available.";
+            // Ajout des traductions pour les messages de validation
+            translations["en_name_required"] = "Name is required.";
+            translations["en_source_required"] = "Source path is required.";
+            translations["en_source_not_exist"] = "Source directory does not exist.";
+            translations["en_target_required"] = "Target path is required.";
+            translations["en_target_error"] = "Error creating target directory: {0}";
             
-            translations["en_list_title"] = "List of backup jobs";
-            translations["en_list_no_jobs"] = "No backup jobs available.";
-            translations["en_list_source"] = "Source: ";
-            translations["en_list_target"] = "Target: ";
-            translations["en_list_type"] = "Type: ";
-            translations["en_list_last_backup"] = "Last backup: ";
-            translations["en_list_never"] = "Never";
-            translations["en_list_delete_option"] = "Type 'D' or 'delete' to delete a backup job";
-            translations["en_list_back_option"] = "Press any other key to return to the main menu";
-            translations["en_list_choice"] = "Enter your choice: ";
-            
-            translations["en_delete_select"] = "Enter the number of the backup job to delete: ";
-            translations["en_delete_confirm"] = "Are you sure you want to delete the backup job '{0}'? (Y/N): ";
-            translations["en_delete_success"] = "Backup job deleted successfully.";
-            translations["en_delete_error"] = "Error deleting backup job.";
-            translations["en_delete_cancelled"] = "Deletion cancelled.";
-            translations["en_delete_invalid"] = "Invalid job number.";
-            
-            
-            translations["en_language_changed"] = "Language changed to English";
-            
-            translations["en_press_any_key"] = "Press any key to continue...";
-
-            
-
             // French translations
-            translations["fr_app_title"] = "EasySave 1.0 - Logiciel de Sauvegarde";
+            translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
             translations["fr_menu_title"] = "Menu Principal";
-            translations["fr_menu_create"] = "1. Créer un nouveau travail de sauvegarde";
-            translations["fr_menu_execute"] = "2. Exécuter un/des travail(aux) de sauvegarde";
-            translations["fr_menu_list"] = "3. Lister les travaux de sauvegarde";
-            translations["fr_menu_language"] = "4. Changer de langue (English/Français)";
-            translations["fr_menu_format"] = "5. Changer le format des logs";
-            translations["fr_menu_exit"] = "6. Quitter";
-            translations["fr_menu_choice"] = "Entrez votre choix : ";
-
-            translations["fr_format_title"] = "Sélection du Format de Log";
-            translations["fr_format_current"] = "Format actuel : ";
-            translations["fr_format_choice"] = "Sélectionnez le format de log (1-2) : ";
-            translations["fr_format_changed"] = "Format de log changé en : ";
+            translations["fr_menu_create"] = "Créer un Nouveau Travail";
+            translations["fr_menu_execute"] = "Exécuter la Sauvegarde";
+            translations["fr_menu_edit"] = "Modifier";
+            translations["fr_menu_delete"] = "Supprimer";
+            translations["fr_menu_settings"] = "Paramètres";
+            translations["fr_backup_jobs"] = "Travaux de Sauvegarde";
+            translations["fr_backup_job_details"] = "Détails du Travail";
+            translations["fr_name"] = "Nom:";
+            translations["fr_source_path"] = "Chemin Source:";
+            translations["fr_target_path"] = "Chemin Cible:";
+            translations["fr_type"] = "Type:";
+            translations["fr_job_status"] = "État du Travail";
+            translations["fr_not_running"] = "Non en cours";
+            translations["fr_log_format"] = "Format de Log:";
+            translations["fr_status_ready"] = "Prêt";
             
-            translations["fr_create_title"] = "Créer un nouveau travail de sauvegarde";
-            translations["fr_create_name"] = "Entrez un nom pour le travail de sauvegarde : ";
-            translations["fr_create_source"] = "Entrez le chemin du répertoire source : ";
-            translations["fr_create_target"] = "Entrez le chemin du répertoire cible : ";
-            translations["fr_create_type"] = "Entrez le type de sauvegarde (1 pour Complète, 2 pour Différentielle) : ";
-            translations["fr_create_success"] = "Travail de sauvegarde créé avec succès.";
-            translations["fr_create_error"] = "Erreur lors de la création du travail de sauvegarde. Veuillez vérifier vos entrées.";
-            translations["fr_create_max_reached"] = "Nombre maximum de travaux de sauvegarde (5) atteint.";
+            // Ajout des traductions pour BackupJobDialog
+            translations["fr_create_backup_job"] = "Créer un Travail de Sauvegarde";
+            translations["fr_edit_backup_job"] = "Modifier un Travail de Sauvegarde";
+            translations["fr_browse"] = "Parcourir";
+            translations["fr_complete"] = "Complète";
+            translations["fr_differential"] = "Différentielle";
+            translations["fr_save"] = "Enregistrer";
+            translations["fr_cancel"] = "Annuler";
             
-            translations["fr_execute_title"] = "Exécuter un/des travail(aux) de sauvegarde";
-            translations["fr_execute_select"] = "Entrez le(s) numéro(s) du/des travail(aux) de sauvegarde à exécuter (ex : '1', '1-3', ou '1;3') : ";
-            translations["fr_execute_all_option"] = "Entrez '0' ou 'all' pour exécuter tous les travaux de sauvegarde séquentiellement";
-            translations["fr_execute_all_jobs"] = "Exécution de tous les travaux de sauvegarde séquentiellement...";
-            translations["fr_execute_job_progress"] = "Exécution du travail";
-            translations["fr_execute_job_error"] = "Erreur";
-            translations["fr_execute_summary"] = "Résumé";
-            translations["fr_execute_succeeded"] = "réussi(s)";
-            translations["fr_execute_failed"] = "échoué(s)";
-            translations["fr_execute_success"] = "Travail(aux) de sauvegarde exécuté(s) avec succès.";
-            translations["fr_execute_no_jobs"] = "Aucun travail de sauvegarde disponible.";
-            
-            translations["fr_list_title"] = "Liste des travaux de sauvegarde";
-            translations["fr_list_no_jobs"] = "Aucun travail de sauvegarde disponible.";
-            translations["fr_list_source"] = "Source : ";
-            translations["fr_list_target"] = "Cible : ";
-            translations["fr_list_type"] = "Type : ";
-            translations["fr_list_last_backup"] = "Dernière sauvegarde : ";
-            translations["fr_list_never"] = "Jamais";
-            translations["fr_list_delete_option"] = "Tapez 'D' ou 'delete' pour supprimer un travail de sauvegarde";
-            translations["fr_list_back_option"] = "Appuyez sur une autre touche pour revenir au menu principal";
-            translations["fr_list_choice"] = "Entrez votre choix : ";
-            
-            translations["fr_delete_select"] = "Entrez le numéro du travail de sauvegarde à supprimer : ";
-            translations["fr_delete_confirm"] = "Êtes-vous sûr de vouloir supprimer le travail de sauvegarde '{0}' ? (O/N) : ";
-            translations["fr_delete_success"] = "Travail de sauvegarde supprimé avec succès.";
-            translations["fr_delete_error"] = "Erreur lors de la suppression du travail de sauvegarde.";
-            translations["fr_delete_cancelled"] = "Suppression annulée.";
-            translations["fr_delete_invalid"] = "Numéro de travail invalide.";
-            
-            translations["fr_language_changed"] = "Langue changée en Français";
-            
-            translations["fr_press_any_key"] = "Appuyez sur une touche pour continuer...";
+            // Ajout des traductions pour les messages de validation
+            translations["fr_name_required"] = "Le nom est requis.";
+            translations["fr_source_required"] = "Le chemin source est requis.";
+            translations["fr_source_not_exist"] = "Le répertoire source n'existe pas.";
+            translations["fr_target_required"] = "Le chemin cible est requis.";
+            translations["fr_target_error"] = "Erreur lors de la création du répertoire cible: {0}";
 
             return translations;
+        }
+        
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

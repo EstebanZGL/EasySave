@@ -25,6 +25,7 @@ namespace EasySave.ViewModels
         private readonly SettingsViewModel _settingsViewModel;
         private string _selectedLanguage;
         private string _selectedLogFormat;
+        private readonly string _logFormatFilePath;
         private ObservableCollection<BackupJob> _backupJobs;
         private BackupJob _selectedBackupJob;
         private string _statusMessage;
@@ -40,9 +41,35 @@ namespace EasySave.ViewModels
             _translationService = translationService;
             _stateManager = stateManager;
             _settingsViewModel = new SettingsViewModel();
+            _logFormatFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+            
+            // S'abonner aux changements de langue
+            _translationService.PropertyChanged += (s, e) => 
+            {
+                if (e.PropertyName == "AllTranslations" || e.PropertyName == nameof(TranslationService.CurrentLanguage))
+                {
+                    SelectedLanguage = _translationService.CurrentLanguage;
+                    // Mettre à jour tous les textes traduits
+                    OnPropertyChanged(nameof(AppTitle));
+                    OnPropertyChanged(nameof(BackupJobsHeader));
+                    OnPropertyChanged(nameof(BackupJobDetailsHeader));
+                    OnPropertyChanged(nameof(CreateButtonText));
+                    OnPropertyChanged(nameof(ExecuteButtonText));
+                    OnPropertyChanged(nameof(EditButtonText));
+                    OnPropertyChanged(nameof(DeleteButtonText));
+                    OnPropertyChanged(nameof(SettingsButtonText));
+                    OnPropertyChanged(nameof(LogFormatLabel));
+                    OnPropertyChanged(nameof(NameLabel));
+                    OnPropertyChanged(nameof(SourcePathLabel));
+                    OnPropertyChanged(nameof(TargetPathLabel));
+                    OnPropertyChanged(nameof(TypeLabel));
+                    OnPropertyChanged(nameof(JobStatusLabel));
+                    OnPropertyChanged(nameof(NotRunningText));
+                }
+            };
             
             _selectedLanguage = _translationService.CurrentLanguage;
-            _selectedLogFormat = "JSON"; // Default log format
+            _selectedLogFormat = LoadLogFormat() ?? "JSON"; // Default log format
             
             LoadBackupJobs();
             
@@ -58,6 +85,23 @@ namespace EasySave.ViewModels
             // Start business software monitoring
             StartBusinessSoftwareMonitoring();
         }
+        
+        // Propriétés pour les textes traduits
+        public string AppTitle => _translationService.GetTranslation("app_title");
+        public string BackupJobsHeader => _translationService.GetTranslation("backup_jobs");
+        public string BackupJobDetailsHeader => _translationService.GetTranslation("backup_job_details");
+        public string CreateButtonText => _translationService.GetTranslation("menu_create");
+        public string ExecuteButtonText => _translationService.GetTranslation("menu_execute");
+        public string EditButtonText => _translationService.GetTranslation("menu_edit");
+        public string DeleteButtonText => _translationService.GetTranslation("menu_delete");
+        public string SettingsButtonText => _translationService.GetTranslation("menu_settings");
+        public string LogFormatLabel => _translationService.GetTranslation("log_format");
+        public string NameLabel => _translationService.GetTranslation("name");
+        public string SourcePathLabel => _translationService.GetTranslation("source_path");
+        public string TargetPathLabel => _translationService.GetTranslation("target_path");
+        public string TypeLabel => _translationService.GetTranslation("type");
+        public string JobStatusLabel => _translationService.GetTranslation("job_status");
+        public string NotRunningText => _translationService.GetTranslation("not_running");
 
         public ObservableCollection<BackupJob> BackupJobs
         {
@@ -129,7 +173,7 @@ namespace EasySave.ViewModels
                     }
                     else
                     {
-                        StatusMessage = "Ready";
+                        StatusMessage = _translationService.GetTranslation("status_ready");
                     }
                 }
             }
@@ -240,7 +284,8 @@ namespace EasySave.ViewModels
         private void ChangeLanguage()
         {
             _translationService.ToggleLanguage();
-            SelectedLanguage = _translationService.CurrentLanguage;
+            // La mise à jour de SelectedLanguage et des autres propriétés traduites 
+            // se fait via l'événement PropertyChanged du TranslationService
         }
 
         private void ChangeLogFormat()
@@ -253,8 +298,7 @@ namespace EasySave.ViewModels
         {
             try
             {
-                string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
-                File.WriteAllText(configPath, SelectedLogFormat);
+                File.WriteAllText(_logFormatFilePath, _selectedLogFormat);
             }
             catch (Exception ex)
             {
@@ -262,17 +306,16 @@ namespace EasySave.ViewModels
             }
         }
         
-        private void LoadLogFormat()
+        private string LoadLogFormat()
         {
             try
             {
-                string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
-                if (File.Exists(configPath))
+                if (File.Exists(_logFormatFilePath))
                 {
-                    string format = File.ReadAllText(configPath).Trim();
+                    string format = File.ReadAllText(_logFormatFilePath).Trim();
                     if (format == "XML" || format == "JSON")
                     {
-                        SelectedLogFormat = format;
+                        return format;
                     }
                 }
             }
@@ -280,6 +323,8 @@ namespace EasySave.ViewModels
             {
                 Debug.WriteLine($"Error loading log format: {ex.Message}");
             }
+            
+            return null;
         }
         
         private void OpenSettings()

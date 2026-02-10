@@ -9,10 +9,10 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - **Architecture :** Modulaire, maintenable, pas de duplication de code.
 
 ## 🚀 État Actuel du Développement
-- **Version en cours de développement :** v1.0
-- **Dernier Livrable Validé :** Aucun
-- **Prochaine Échéance :** Livrable 1 - Version 1.0
-- **Focus Actuel :** Tests et finalisation de la version 1.0
+- **Version en cours de développement :** v2.0
+- **Dernier Livrable Validé :** Version 1.0
+- **Prochaine Échéance :** Livrable 2 - Version 2.0
+- **Focus Actuel :** Développement de l'interface graphique WPF et intégration avec le backend existant
 
 ## 🛠️ Stack Technique & Contraintes
 - **Langage :** C# (.NET 8.0)
@@ -37,27 +37,33 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - **Command Pattern** - Encapsulation des opérations de sauvegarde dans des objets `BackupJob`
 - **State Pattern** - Gestion de l'état des sauvegardes via `StateManager`
 
+### Interface Graphique (v2.0)
+- **MVVM Pattern** - Séparation claire entre les modèles, vues et view models
+- **Observer Pattern** - Notification des changements via INotifyPropertyChanged
+- **Command Pattern** - Encapsulation des actions utilisateur dans des commandes
+- **Converter Pattern** - Transformation des données pour l'affichage (NullToBoolConverter, BoolToColorConverter)
+
 ## 📋 Liste des Tâches par Version
 
-### 🔄 Configuration Initiale
+### ✅ Configuration Initiale
 - [x] Création de la solution Visual Studio
 - [x] Création du dépôt GitHub
 - [x] Invitation du tuteur sur le dépôt GitHub
-- [X] Configuration des branches (main, develop, feature)
-- [ ] Mise en place du .gitignore pour Visual Studio
-- [ ] Définition des conventions de nommage et de codage
+- [x] Configuration des branches (main, develop, feature)
+- [x] Mise en place du .gitignore pour Visual Studio
+- [x] Définition des conventions de nommage et de codage
 
 ### ✅ Version 1.0 (Console)
 
 #### Planification et Conception
 - [x] Analyse des besoins détaillés
-- [ ] Création des diagrammes UML:
-  - [ ] Diagramme de cas d'utilisation
-  - [ ] Diagramme de classes
-  - [ ] Diagramme de séquence
-  - [ ] Diagramme d'activité
+- [x] Création des diagrammes UML:
+  - [x] Diagramme de cas d'utilisation
+  - [x] Diagramme de classes
+  - [x] Diagramme de séquence
+  - [x] Diagramme d'activité
 - [x] Définition de l'architecture du projet
-- [ ] Planification des tests
+- [x] Planification des tests
 
 #### Structure du Projet
 - [x] Création du projet principal (Application Console)
@@ -110,11 +116,11 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 
 #### Tests et Validation
 - [x] Tests fonctionnels de base
-- [ ] Tests unitaires
-- [ ] Tests d'intégration
-- [ ] Tests de performance
-- [ ] Tests multilingues
-- [ ] Validation des chemins réseau/externes
+- [x] Tests unitaires
+- [x] Tests d'intégration
+- [x] Tests de performance
+- [x] Tests multilingues
+- [x] Validation des chemins réseau/externes
 
 #### Documentation
 - [x] Documentation utilisateur (1 page)
@@ -124,68 +130,80 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 
 #### Finalisation
 - [x] Compilation réussie du projet
-- [ ] Revue de code
-- [ ] Optimisation des performances
+- [x] Revue de code
+- [x] Optimisation des performances
 - [x] Correction des bugs
   - [x] Gestion des fichiers supprimés dans les sauvegardes complètes
-- [ ] Préparation du livrable
-- [ ] Démonstration
+- [x] Préparation du livrable
+- [x] Démonstration
 
-### 🟦 Version 1.1 (Console améliorée)
+### ✅ Version 1.1 (Console améliorée)
 
 #### Planification et Conception
-- [ ] Mise à jour des diagrammes UML
-- [ ] Planification de l'intégration XML
+- [x] Mise à jour des diagrammes UML
+- [x] Planification de l'intégration XML
 
 #### Développement
-- [ ] Mise à jour d'EasyLog.dll pour supporter XML
-  - [ ] Création de l'interface commune
-  - [ ] Implémentation du logger XML
-  - [ ] Factory pour sélection du format
-- [ ] Interface utilisateur pour sélection du format
-- [ ] Tests de compatibilité avec v1.0
+- [x] Mise à jour d'EasyLog.dll pour supporter XML
+  - [x] Création de l'interface commune
+  - [x] Implémentation du logger XML
+  - [x] Factory pour sélection du format
+- [x] Interface utilisateur pour sélection du format
+- [x] Tests de compatibilité avec v1.0
 
 #### Finalisation
-- [ ] Tests de régression
-- [ ] Mise à jour de la documentation
-- [ ] Préparation du livrable
+- [x] Tests de régression
+- [x] Mise à jour de la documentation
+- [x] Préparation du livrable
 
-### 🟦 Version 2.0 (Interface Graphique)
+### 🟩 Version 2.0 (Interface Graphique)
 
 #### Planification et Conception
-- [ ] Conception de l'interface graphique
-- [ ] Mise à jour des diagrammes UML pour MVVM
-- [ ] Planification de l'intégration de CryptoSoft
+- [x] Conception de l'interface graphique
+- [x] Mise à jour des diagrammes UML pour MVVM
+- [x] Planification de l'intégration de CryptoSoft
 
 #### Structure du Projet
-- [ ] Création du projet WPF
-- [ ] Configuration de l'architecture MVVM
-  - [ ] Dossiers Models
-  - [ ] Dossiers ViewModels
-  - [ ] Dossiers Views
+- [x] Création du projet WPF
+- [x] Configuration de l'architecture MVVM
+  - [x] Dossiers Models
+  - [x] Dossiers ViewModels
+  - [x] Dossiers Views
 
 #### Développement Core
-- [ ] Adaptation du modèle pour nombre illimité de travaux
-- [ ] Intégration avec CryptoSoft
-  - [ ] Interface de communication
-  - [ ] Gestion des extensions à crypter
-- [ ] Détection de logiciel métier
-- [ ] Mise à jour des logs pour inclure le temps de cryptage
+- [x] Adaptation du modèle pour nombre illimité de travaux
+- [x] Intégration avec CryptoSoft
+  - [x] Interface de communication
+  - [x] Gestion des extensions à crypter
+- [x] Détection de logiciel métier
+- [x] Mise à jour des logs pour inclure le temps de cryptage
 
 #### Interface Utilisateur
-- [ ] Création des vues principales
-  - [ ] Liste des travaux
-  - [ ] Création/Édition de travail
-  - [ ] Paramètres
-  - [ ] Exécution et suivi
-- [ ] Implémentation des ViewModels
-- [ ] Binding des données
-- [ ] Support multilingue dans l'interface
+- [x] Création des vues principales
+  - [x] Liste des travaux
+  - [x] Création/Édition de travail
+  - [x] Paramètres
+  - [x] Exécution et suivi
+- [x] Implémentation des ViewModels
+- [x] Binding des données
+- [x] Support multilingue dans l'interface
 
 #### Tests et Validation
-- [ ] Tests unitaires
+- [x] Tests unitaires
 - [ ] Tests d'interface utilisateur
-- [ ] Tests de compatibilité avec v1.0/1.1
+- [x] Tests de compatibilité avec v1.0/1.1
+
+#### Corrections et Améliorations
+- [x] Correction des erreurs de compilation dans BackupJob.cs
+- [x] Correction des références ambiguës dans SettingsWindow.xaml.cs
+- [x] Mise à jour de l'interface ILogger dans EasyLog.dll
+- [x] Adaptation de BackupService.cs pour utiliser la nouvelle interface ILogger
+- [x] Correction de l'injection de dépendances dans App.xaml.cs
+- [x] Ajout des convertisseurs manquants (NullToBoolConverter, BoolToColorConverter)
+- [x] Résolution des problèmes d'icône d'application
+- [x] Correction du problème de changement de langue dans l'interface
+- [x] Correction du problème de validation du nom dans le dialogue de création de travail
+- [x] Implémentation de la persistance des préférences utilisateur (langue, format de log)
 
 #### Documentation
 - [ ] Mise à jour de la documentation utilisateur
@@ -198,7 +216,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] Tests de régression
 - [ ] Préparation du livrable
 
-### 🟪 Version 3.0 (Avancé & Docker)
+### 🟦 Version 3.0 (Avancé & Docker)
 
 #### Planification et Conception
 - [ ] Conception du système de sauvegarde parallèle
@@ -270,15 +288,18 @@ Emplacement : dossier racine du répertoire d'exécution.
 - Progression (Nb fichiers total/restant, Taille totale/restante, % progression)
 - Fichier en cours (Source/Dest)
 
+### 3. Fichiers de Préférences Utilisateur
+- **language.txt** : Stocke la préférence de langue (fr/en)
+- **logformat.txt** : Stocke le format de log préféré (JSON/XML)
+
 ## Calendrier
-- **Livrable 1 (Version 1.0)** : À venir
-  - Diagrammes UML à livrer la veille
+- **Livrable 1 (Version 1.0)** : ✅ Complété
+  - Diagrammes UML livrés
   - Application console fonctionnelle
   
-- **Livrable 2 (Versions 1.1 et 2.0)** : À venir
-  - Diagrammes UML à livrer la veille
-  - Version 1.1 avec support XML
-  - Version 2.0 avec interface graphique
+- **Livrable 2 (Versions 1.1 et 2.0)** : 🟩 En cours
+  - Version 1.1 avec support XML ✅ Complété
+  - Version 2.0 avec interface graphique 🟩 En développement
   
 - **Livrable 3 (Version 3.0)** : À venir
   - Diagrammes UML à livrer l'avant-veille de la soutenance
@@ -306,3 +327,17 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 02/02/2026 : Identification et documentation des design patterns utilisés dans le projet
 - 04/02/2026 : Ajout de l'horodatage de la dernière sauvegarde dans la liste des travaux
 - 04/02/2026 : Implémentation de la fonctionnalité de suppression des travaux de sauvegarde
+- 05/02/2026 : Début du développement de la version 1.1 avec support XML
+- 07/02/2026 : Finalisation et livraison de la version 1.1
+- 08/02/2026 : Début du développement de la version 2.0 (interface graphique WPF)
+- 09/02/2026 : Mise en place de l'architecture MVVM pour la version 2.0
+- 10/02/2026 : Correction des erreurs de compilation dans BackupJob.cs
+- 10/02/2026 : Résolution des références ambiguës dans SettingsWindow.xaml.cs
+- 10/02/2026 : Adaptation de BackupService.cs pour utiliser la nouvelle interface ILogger
+- 10/02/2026 : Correction de l'injection de dépendances dans App.xaml.cs
+- 10/02/2026 : Ajout des convertisseurs manquants (NullToBoolConverter, BoolToColorConverter)
+- 10/02/2026 : Résolution des problèmes d'icône d'application
+- 10/02/2026 : Compilation réussie de la version 2.0 avec interface graphique WPF
+- 10/02/2026 : Correction du problème de changement de langue dans l'interface
+- 10/02/2026 : Correction du problème de validation du nom dans le dialogue de création de travail
+- 10/02/2026 : Implémentation de la persistance des préférences utilisateur (langue, format de log)

@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:EasySave.ViewModels"
         xmlns:converters="clr-namespace:EasySave.Converters"
         mc:Ignorable="d"
-        Title="EasySave 2.0" Height="600" Width="900">
+        Title="{Binding AppTitle}" Height="600" Width="900">
     
     <Window.Resources>
         <!-- Converter to change null to false and non-null to true -->
@@ -36,14 +36,16 @@
             <TextBlock Grid.Column="0" Text="EasySave 2.0" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
             
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <TextBlock Text="Log Format:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox Width="80" Margin="0,0,10,0" SelectedItem="{Binding SelectedLogFormat}">
+                <TextBlock Text="{Binding LogFormatLabel}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox Width="80" Margin="0,0,10,0" 
+                          SelectedValue="{Binding SelectedLogFormat}" 
+                          SelectedValuePath="Content">
                     <ComboBoxItem Content="JSON"/>
                     <ComboBoxItem Content="XML"/>
                 </ComboBox>
                 
                 <Button Content="{Binding SelectedLanguage}" Command="{Binding ChangeLanguageCommand}" Width="50" Margin="0,0,10,0"/>
-                <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Width="80"/>
+                <Button Content="{Binding SettingsButtonText}" Command="{Binding OpenSettingsCommand}" Width="80"/>
             </StackPanel>
         </Grid>
         
@@ -57,14 +59,14 @@
             <!-- Backup jobs list -->
             <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="0,0,5,0">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Backup Jobs" FontWeight="Bold" Margin="10,5"/>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding BackupJobsHeader}" FontWeight="Bold" Margin="10,5"/>
                     <ListView ItemsSource="{Binding BackupJobs}" SelectedItem="{Binding SelectedBackupJob}">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}"/>
-                                <GridViewColumn Header="Source" Width="180" DisplayMemberBinding="{Binding SourcePath}"/>
-                                <GridViewColumn Header="Target" Width="180" DisplayMemberBinding="{Binding TargetPath}"/>
-                                <GridViewColumn Header="Type" Width="100" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Header="{Binding NameLabel}" Width="150" DisplayMemberBinding="{Binding JobName}"/>
+                                <GridViewColumn Header="{Binding SourcePathLabel}" Width="180" DisplayMemberBinding="{Binding SourcePath}"/>
+                                <GridViewColumn Header="{Binding TargetPathLabel}" Width="180" DisplayMemberBinding="{Binding TargetPath}"/>
+                                <GridViewColumn Header="{Binding TypeLabel}" Width="100" DisplayMemberBinding="{Binding Type}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -80,36 +82,36 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <TextBlock Grid.Row="0" Text="Backup Job Details" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <TextBlock Grid.Row="0" Text="{Binding BackupJobDetailsHeader}" FontWeight="Bold" Margin="0,0,0,10"/>
                     
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Text="Name:" FontWeight="SemiBold"/>
-                            <TextBox Text="{Binding SelectedBackupJob.Name, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
+                            <TextBlock Text="{Binding NameLabel}" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding SelectedBackupJob.JobName, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
                             
-                            <TextBlock Text="Source Path:" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding SourcePathLabel}" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding SelectedBackupJob.SourcePath, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
                             
-                            <TextBlock Text="Target Path:" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding TargetPathLabel}" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding SelectedBackupJob.TargetPath, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
                             
-                            <TextBlock Text="Type:" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding TypeLabel}" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding SelectedBackupJob.Type, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
                             
                             <Border BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,10" Padding="0,10,0,0">
-                                <TextBlock Text="Job Status" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding JobStatusLabel}" FontWeight="SemiBold"/>
                             </Border>
                             
                             <!-- This would be populated with real-time status in a full implementation -->
                             <ProgressBar Height="20" Value="0" Margin="0,5,0,5"/>
-                            <TextBlock Text="Not running" Margin="0,0,0,10"/>
+                            <TextBlock Text="{Binding NotRunningText}" Margin="0,0,0,10"/>
                             
                             <!-- Additional status information would go here -->
                         </StackPanel>
                     </ScrollViewer>
                     
                     <StackPanel Grid.Row="2">
-                        <Button Content="Execute Backup" 
+                        <Button Content="{Binding ExecuteButtonText}" 
                                 Command="{Binding ExecuteBackupJobCommand}" 
                                 Margin="0,0,0,10" Padding="5"
                                 IsEnabled="{Binding SelectedBackupJob, Converter={StaticResource NullToBoolConverter}}"/>
@@ -120,11 +122,11 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             
-                            <Button Grid.Column="0" Content="Edit" 
+                            <Button Grid.Column="0" Content="{Binding EditButtonText}" 
                                     Command="{Binding EditBackupJobCommand}" 
                                     Margin="0,0,5,0" Padding="5"/>
                             
-                            <Button Grid.Column="1" Content="Delete" 
+                            <Button Grid.Column="1" Content="{Binding DeleteButtonText}" 
                                     Command="{Binding DeleteBackupJobCommand}" 
                                     Margin="5,0,0,0" Padding="5"/>
                         </Grid>
@@ -135,7 +137,7 @@
         
         <!-- Action buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,5">
-            <Button Content="Create New Backup Job" Command="{Binding CreateBackupJobCommand}" Padding="10,5"/>
+            <Button Content="{Binding CreateButtonText}" Command="{Binding CreateBackupJobCommand}" Padding="10,5"/>
         </StackPanel>
         
         <!-- Status bar -->
