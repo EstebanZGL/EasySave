@@ -14,32 +14,32 @@ namespace EasySave
     public class EasySaveController
     {
         private readonly BackupJobManager _jobManager;
-        private readonly BackupService _backupService;
+        private BackupService _backupService;
         private readonly TranslationService _translationService;
-        private readonly ILogger _logger;
+        private ILogger _logger;
         private readonly StateManager _stateManager;
         private readonly string _appDataPath;
         private readonly Dictionary<string, DateTime> _lastBackupTimes;
+        private string _logFormat = "json"; // Format par défaut
         private readonly SemaphoreSlim _backupLock = new SemaphoreSlim(1, 1); // Thread safety for backup operations
 
         // Constructor that initializes all required services
         public EasySaveController()
         {
-            // Initialize application data path - use application directory instead of AppData
+            // Initialize application data path - use application directory
             _appDataPath = AppDomain.CurrentDomain.BaseDirectory;
 
             // Create logs directory directly in the base directory
             string logDirectory = Path.Combine(_appDataPath, "logs");
             Directory.CreateDirectory(logDirectory);
 
-            
             // Initialize services
             _translationService = new TranslationService();
-            _logger = new JsonLogger(logDirectory);
+            _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
             _stateManager = new StateManager(Path.Combine(_appDataPath, "state.json"));
             _jobManager = new BackupJobManager(Path.Combine(_appDataPath, "config.json"));
             _backupService = new BackupService(_logger, _stateManager);
-            
+
             // Initialize last backup times tracking
             _lastBackupTimes = new Dictionary<string, DateTime>();
             LoadLastBackupTimes();
@@ -125,6 +125,7 @@ namespace EasySave
                 Console.WriteLine(_translationService.GetTranslation("menu_execute"));
                 Console.WriteLine(_translationService.GetTranslation("menu_list"));
                 Console.WriteLine(_translationService.GetTranslation("menu_language"));
+                Console.WriteLine(_translationService.GetTranslation("menu_format"));
                 Console.WriteLine(_translationService.GetTranslation("menu_exit"));
                 Console.WriteLine("---------------------------");
                 Console.Write(_translationService.GetTranslation("menu_choice"));
@@ -147,6 +148,9 @@ namespace EasySave
                         ChangeLanguage();
                         break;
                     case "5":
+                        ChangeLogFormat();  // Nouvelle option
+                        break;
+                    case "6":  // Changé de 5 à 6
                         exit = true;
                         break;
                 }
@@ -458,9 +462,43 @@ namespace EasySave
             Console.ReadKey();
         }
 
-        // Parses user input to determine which backup jobs to execute
-        // input: Input string (e.g., '1', '1-3', or '1;3')
-        // Returns: List of job indexes
+   
+        /// Changes the log format between JSON and XML
+     
+        private void ChangeLogFormat()
+        {
+            Console.Clear();
+            Console.WriteLine(_translationService.GetTranslation("format_title"));
+            Console.WriteLine("---------------------------");
+            Console.WriteLine(_translationService.GetTranslation("format_current") + _logFormat.ToUpper());
+            Console.WriteLine("---------------------------");
+            Console.WriteLine("1. JSON");
+            Console.WriteLine("2. XML");
+            Console.WriteLine("---------------------------");
+            Console.Write(_translationService.GetTranslation("format_choice"));
+
+            string choice = Console.ReadLine();
+
+            if (choice == "1")
+            {
+                _logFormat = "json";
+            }
+            else if (choice == "2")
+            {
+                _logFormat = "xml";
+            }
+
+            // Recreate the logger with the new format
+            string logDirectory = Path.Combine(_appDataPath, "logs");
+            _logger = LoggerFactory.CreateLogger(_logFormat, logDirectory);
+            _backupService = new BackupService(_logger, _stateManager);
+
+            Console.WriteLine(_translationService.GetTranslation("format_changed") + _logFormat.ToUpper());
+            Console.WriteLine(_translationService.GetTranslation("press_any_key"));
+            Console.ReadKey();
+        }
+
+        /// Parses user input to determine which backup jobs to execute
         private List<int> ParseJobIndexes(string input)
         {
             var indexes = new List<int>();

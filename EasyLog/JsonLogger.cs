@@ -140,6 +140,29 @@ namespace EasyLog
         }
         
         // Future: Add CreateXmlLogger when needed for v1.1
+        /// <summary>
+        /// Creates an XML logger
+        /// </summary>
+        /// <param name="logDirectory">Optional custom log directory</param>
+        /// <returns>Logger instance</returns>
+        public static ILogger CreateXmlLogger(string logDirectory = null)
+        {
+            return logDirectory != null ? new XmlLogger(logDirectory) : new XmlLogger();
+        }
+
+        /// <summary>
+        /// Creates a logger based on the specified format
+        /// </summary>
+        /// <param name="format">Log format (json or xml)</param>
+        /// <param name="logDirectory">Optional custom log directory</param>
+        /// <returns>Logger instance</returns>
+        public static ILogger CreateLogger(string format, string logDirectory = null)
+        {
+            return format.ToLower() == "xml" 
+                ? CreateXmlLogger(logDirectory) 
+                : CreateJsonLogger(logDirectory);
+        }
+
     }
 
     // Decorator that adds performance metrics to logging
