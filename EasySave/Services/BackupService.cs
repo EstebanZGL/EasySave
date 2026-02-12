@@ -14,9 +14,10 @@ namespace EasySave.Services
     // Service for executing backup operations
     public class BackupService
     {
-        private readonly ILogger _logger;
+        private readonly IEncryptionLogger _logger;
         private readonly StateManager _stateManager;
         private readonly SettingsViewModel _settings;
+        private readonly CryptoService _cryptoService;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isPaused;
         private readonly object _pauseLock = new object();
@@ -24,9 +25,21 @@ namespace EasySave.Services
         // Constructor that initializes the logger and state manager
         public BackupService(ILogger logger, StateManager stateManager)
         {
+            // Cast the logger to IEncryptionLogger if possible, otherwise create a new one
+            _logger = logger as IEncryptionLogger ?? LoggerFactory.CreateEncryptionLogger();
+            _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
+            _settings = new SettingsViewModel();
+            _cryptoService = new CryptoService(_settings);
+            _cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        // Constructor that accepts an IEncryptionLogger directly
+        public BackupService(IEncryptionLogger logger, StateManager stateManager)
+        {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
             _settings = new SettingsViewModel();
+            _cryptoService = new CryptoService(_settings);
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
@@ -177,26 +190,51 @@ namespace EasySave.Services
                             // Measure transfer time
                             var stopwatch = Stopwatch.StartNew();
                             
-                            // Copy file
-                            File.Copy(sourceFile, targetFile, true);
+                            // Determine if the file needs encryption
+                            bool needsEncryption = _cryptoService.ShouldEncrypt(sourceFile);
+                            long encryptionTime = 0;
+                            
+                            if (needsEncryption)
+                            {
+                                // For files that need encryption, we'll use CryptoService
+                                encryptionTime = await _cryptoService.EncryptFileAsync(sourceFile, targetFile);
+                            }
+                            else
+                            {
+                                // For files that don't need encryption, just copy directly
+                                File.Copy(sourceFile, targetFile, true);
+                            }
 
                             stopwatch.Stop();
-                            long transferTime = stopwatch.ElapsedMilliseconds;
+                            long transferTime = stopwatch.ElapsedMilliseconds - (needsEncryption ? encryptionTime : 0);
 
-                            // Log transfer
-                            await _logger.LogBackupOperationAsync(
-                                job.JobName,
-                                sourceFile,
-                                targetFile,
-                                fileSize,
-                                transferTime);
+                            // Log transfer with encryption time if needed
+                            if (needsEncryption)
+                            {
+                                await _logger.LogEncryptedTransferAsync(
+                                    job.JobName,
+                                    sourceFile,
+                                    targetFile,
+                                    fileSize,
+                                    transferTime,
+                                    encryptionTime);
+                            }
+                            else
+                            {
+                                await _logger.LogTransferAsync(
+                                    job.JobName,
+                                    sourceFile,
+                                    targetFile,
+                                    fileSize,
+                                    transferTime);
+                            }
 
-                            Debug.WriteLine($"Copied: {relativePath}");
+                            Debug.WriteLine($"Copied: {relativePath} {(needsEncryption ? "(encrypted)" : "")}");
                         }
                         catch (Exception ex)
                         {
                             // Log error
-                            await _logger.LogBackupOperationAsync(
+                            await _logger.LogTransferAsync(
                                 job.JobName,
                                 sourceFile,
                                 targetFile,
@@ -275,7 +313,7 @@ namespace EasySave.Services
                         File.Delete(targetFile);
                         
                         // Log the deletion
-                        await _logger.LogBackupOperationAsync(
+                        await _logger.LogTransferAsync(
                             $"{backupName} (Deletion)",
                             "N/A",
                             targetFile,

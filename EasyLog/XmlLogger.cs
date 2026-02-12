@@ -8,9 +8,9 @@ using System.Xml.Serialization;
 namespace EasyLog
 {
     /// <summary>
-    /// XML implementation of the logger interface
+    /// XML implementation of the logger interface with encryption support
     /// </summary>
-    public class XmlLogger : ILogger
+    public class XmlLogger : IEncryptionLogger
     {
         private readonly string _logDirectory;
 
@@ -72,7 +72,7 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Logs a file transfer action
+        /// Logs a file transfer action (original method from ILogger)
         /// </summary>
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
@@ -83,7 +83,27 @@ namespace EasyLog
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
                 FileSize = fileSize,
-                TransferTime = transferTime
+                TransferTime = transferTime,
+                EncryptionTime = 0 // Default to 0 for non-encrypted transfers
+            };
+
+            await WriteLogEntryAsync(logEntry);
+        }
+
+        /// <summary>
+        /// Logs a file transfer action with encryption time (new method from IEncryptionLogger)
+        /// </summary>
+        public async Task LogEncryptedTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime)
+        {
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = backupName,
+                SourcePath = sourcePath,
+                TargetPath = targetPath,
+                FileSize = fileSize,
+                TransferTime = transferTime,
+                EncryptionTime = encryptionTime
             };
 
             await WriteLogEntryAsync(logEntry);

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace EasyLog
 {
-    // JSON implementation of the logger interface
-    public class JsonLogger : ILogger
+    // JSON implementation of the logger interface with encryption support
+    public class JsonLogger : IEncryptionLogger
     {
         private readonly string _logDirectory;
         private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { WriteIndented = true };
@@ -51,14 +51,14 @@ namespace EasyLog
             return logDirectory;
         }
 
-        // Implémentation de LogBackupOperationAsync (nouvelle méthode requise par l'interface)
+        // Implémentation de LogBackupOperationAsync
         public Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             // Réutilise la méthode LogTransferAsync existante
             return LogTransferAsync(jobName, sourcePath, targetPath, fileSize, transferTime);
         }
 
-        // Implémentation de LogApplicationEventAsync (nouvelle méthode requise par l'interface)
+        // Implémentation de LogApplicationEventAsync
         public async Task LogApplicationEventAsync(string eventName, string details)
         {
             var logEntry = new
@@ -86,7 +86,7 @@ namespace EasyLog
             }
         }
 
-        // Logs a file transfer action
+        // Logs a file transfer action (original method from ILogger)
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             var logEntry = new LogEntry
@@ -96,7 +96,25 @@ namespace EasyLog
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
                 FileSize = fileSize,
-                TransferTime = transferTime
+                TransferTime = transferTime,
+                EncryptionTime = 0 // Default to 0 for non-encrypted transfers
+            };
+
+            await WriteLogEntryAsync(logEntry);
+        }
+
+        // Logs a file transfer action with encryption time (new method from IEncryptionLogger)
+        public async Task LogEncryptedTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime)
+        {
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = backupName,
+                SourcePath = sourcePath,
+                TargetPath = targetPath,
+                FileSize = fileSize,
+                TransferTime = transferTime,
+                EncryptionTime = encryptionTime
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -144,28 +162,6 @@ namespace EasyLog
         }
     }
 
-    // Log entry for a file transfer operation
-    public class LogEntry
-    {
-        // Timestamp of the log entry
-        public DateTime Timestamp { get; set; }
-        
-        // Name of the backup job
-        public string BackupName { get; set; } = string.Empty;
-        
-        // Source file path
-        public string SourcePath { get; set; } = string.Empty;
-        
-        // Target file path
-        public string TargetPath { get; set; } = string.Empty;
-        
-        // Size of the file in bytes
-        public long FileSize { get; set; }
-        
-        // Transfer time in milliseconds (negative if error)
-        public long TransferTime { get; set; }
-    }
-
     // Factory for creating logger instances
     public static class LoggerFactory
     {
@@ -175,38 +171,48 @@ namespace EasyLog
             return logDirectory != null ? new JsonLogger(logDirectory) : new JsonLogger();
         }
         
-        // Future: Add CreateXmlLogger when needed for v1.1
-        /// <summary>
-        /// Creates an XML logger
-        /// </summary>
-        /// <param name="logDirectory">Optional custom log directory</param>
-        /// <returns>Logger instance</returns>
+        // Creates a JSON logger with encryption support
+        public static IEncryptionLogger CreateEncryptionJsonLogger(string? logDirectory = null)
+        {
+            return logDirectory != null ? new JsonLogger(logDirectory) : new JsonLogger();
+        }
+        
+        // Creates an XML logger
         public static ILogger CreateXmlLogger(string? logDirectory = null)
         {
             return logDirectory != null ? new XmlLogger(logDirectory) : new XmlLogger();
         }
 
-        /// <summary>
-        /// Creates a logger based on the specified format
-        /// </summary>
-        /// <param name="format">Log format (json or xml)</param>
-        /// <param name="logDirectory">Optional custom log directory</param>
-        /// <returns>Logger instance</returns>
+        // Creates an XML logger with encryption support
+        public static IEncryptionLogger CreateEncryptionXmlLogger(string? logDirectory = null)
+        {
+            return logDirectory != null ? new XmlLogger(logDirectory) : new XmlLogger();
+        }
+
+        // Creates a logger based on the specified format
         public static ILogger CreateLogger(string format = "json", string? logDirectory = null)
         {
             return format.ToLower() == "xml" 
                 ? CreateXmlLogger(logDirectory) 
                 : CreateJsonLogger(logDirectory);
         }
+        
+        // Creates a logger with encryption support based on the specified format
+        public static IEncryptionLogger CreateEncryptionLogger(string format = "json", string? logDirectory = null)
+        {
+            return format.ToLower() == "xml" 
+                ? CreateEncryptionXmlLogger(logDirectory) 
+                : CreateEncryptionJsonLogger(logDirectory);
+        }
     }
 
     // Decorator that adds performance metrics to logging
-    public class PerformanceLogger : ILogger
+    public class PerformanceLogger : IEncryptionLogger
     {
-        private readonly ILogger _logger;
+        private readonly IEncryptionLogger _logger;
 
         // Constructor
-        public PerformanceLogger(ILogger logger)
+        public PerformanceLogger(IEncryptionLogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -234,7 +240,7 @@ namespace EasyLog
         }
 
         // Adds performance metrics before logging
-        public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        public Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
             // Calculate transfer rate in MB/s if transfer was successful
             string performanceInfo = string.Empty;
@@ -245,7 +251,28 @@ namespace EasyLog
             }
 
             // Add performance info to backup name
-            await _logger.LogTransferAsync($"{backupName}{performanceInfo}", sourcePath, targetPath, fileSize, transferTime);
+            return _logger.LogTransferAsync($"{backupName}{performanceInfo}", sourcePath, targetPath, fileSize, transferTime);
+        }
+
+        // Adds performance metrics before logging encrypted transfers
+        public Task LogEncryptedTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime)
+        {
+            // Calculate transfer rate in MB/s if transfer was successful
+            string performanceInfo = string.Empty;
+            if (transferTime > 0 && fileSize > 0)
+            {
+                double transferRateMBps = (fileSize / 1024.0 / 1024.0) / (transferTime / 1000.0);
+                performanceInfo = $" [{transferRateMBps:F2} MB/s]";
+            }
+
+            // Add encryption info if applicable
+            if (encryptionTime > 0)
+            {
+                performanceInfo += $" [Encrypted: {encryptionTime}ms]";
+            }
+
+            // Add performance info to backup name
+            return _logger.LogEncryptedTransferAsync($"{backupName}{performanceInfo}", sourcePath, targetPath, fileSize, transferTime, encryptionTime);
         }
     }
 }
