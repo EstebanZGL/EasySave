@@ -59,14 +59,33 @@
             <!-- Backup jobs list -->
             <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="1" Margin="0,0,5,0">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding BackupJobsHeader}" FontWeight="Bold" Margin="10,5"/>
+                    <Grid DockPanel.Dock="Top" Margin="10,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsAllJobsSelected}" Content="{Binding SelectAllText}" 
+                                  Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BackupJobsHeader}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </Grid>
                     <ListView ItemsSource="{Binding BackupJobs}" SelectedItem="{Binding SelectedBackupJob}">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="{Binding NameLabel}" Width="150" DisplayMemberBinding="{Binding JobName}"/>
-                                <GridViewColumn Header="{Binding SourcePathLabel}" Width="180" DisplayMemberBinding="{Binding SourcePath}"/>
-                                <GridViewColumn Header="{Binding TargetPathLabel}" Width="180" DisplayMemberBinding="{Binding TargetPath}"/>
-                                <GridViewColumn Header="{Binding TypeLabel}" Width="100" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Width="30">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="150" DisplayMemberBinding="{Binding JobName}"/>
+                                <GridViewColumn Header="{Binding DataContext.SourcePathLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="180" DisplayMemberBinding="{Binding SourcePath}"/>
+                                <GridViewColumn Header="{Binding DataContext.TargetPathLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="180" DisplayMemberBinding="{Binding TargetPath}"/>
+                                <GridViewColumn Header="{Binding DataContext.TypeLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="100" DisplayMemberBinding="{Binding Type}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -137,7 +156,9 @@
         
         <!-- Action buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,5">
-            <Button Content="{Binding CreateButtonText}" Command="{Binding CreateBackupJobCommand}" Padding="10,5"/>
+            <Button Content="{Binding CreateButtonText}" Command="{Binding CreateBackupJobCommand}" Padding="10,5" Margin="0,0,10,0"/>
+            <Button Content="{Binding ExecuteSelectedJobsText}" Command="{Binding ExecuteSelectedJobsCommand}" Padding="10,5"
+                    IsEnabled="{Binding HasSelectedJobs}"/>
         </StackPanel>
         
         <!-- Status bar -->

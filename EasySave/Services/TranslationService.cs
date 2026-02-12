@@ -140,6 +140,10 @@ namespace EasySave.Services
             translations["en_target_required"] = "Target path is required.";
             translations["en_target_error"] = "Error creating target directory: {0}";
             
+            // Ajout des traductions pour la sélection multiple
+            translations["en_select_all"] = "Select All";
+            translations["en_execute_selected"] = "Execute Selected Jobs";
+            
             // French translations
             translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
             translations["fr_menu_title"] = "Menu Principal";
@@ -174,6 +178,10 @@ namespace EasySave.Services
             translations["fr_source_not_exist"] = "Le répertoire source n'existe pas.";
             translations["fr_target_required"] = "Le chemin cible est requis.";
             translations["fr_target_error"] = "Erreur lors de la création du répertoire cible: {0}";
+            
+            // Ajout des traductions pour la sélection multiple
+            translations["fr_select_all"] = "Tout Sélectionner";
+            translations["fr_execute_selected"] = "Exécuter les Sélectionnés";
 
             return translations;
         }

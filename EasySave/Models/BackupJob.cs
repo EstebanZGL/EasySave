@@ -13,6 +13,7 @@ namespace EasySave.Models
         private string _targetPath;
         private BackupType _type;
         private DateTime? _lastBackupTime;
+        private bool _isSelected;
 
         // Name of the backup job
         public string JobName
@@ -115,6 +116,21 @@ namespace EasySave.Models
             }
         }
 
+        // Selection state for UI (not serialized to JSON)
+        [JsonIgnore]
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // Constructor with all parameters
         public BackupJob(string name, string sourcePath, string targetPath, BackupType type)
         {
@@ -122,10 +138,14 @@ namespace EasySave.Models
             _sourcePath = sourcePath;
             _targetPath = targetPath;
             _type = type;
+            _isSelected = false;
         }
 
         // Default constructor for serialization
-        public BackupJob() { }
+        public BackupJob() 
+        {
+            _isSelected = false;
+        }
 
         // Validates the backup job parameters
         // Returns: True if valid, false otherwise

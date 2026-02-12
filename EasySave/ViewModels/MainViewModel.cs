@@ -30,6 +30,7 @@ namespace EasySave.ViewModels
         private BackupJob _selectedBackupJob;
         private string _statusMessage;
         private bool _isBusinessSoftwareRunning;
+        private bool _isAllJobsSelected;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -65,6 +66,8 @@ namespace EasySave.ViewModels
                     OnPropertyChanged(nameof(TypeLabel));
                     OnPropertyChanged(nameof(JobStatusLabel));
                     OnPropertyChanged(nameof(NotRunningText));
+                    OnPropertyChanged(nameof(SelectAllText));
+                    OnPropertyChanged(nameof(ExecuteSelectedJobsText));
                 }
             };
             
@@ -81,6 +84,7 @@ namespace EasySave.ViewModels
             ChangeLanguageCommand = new RelayCommand(_ => ChangeLanguage());
             ChangeLogFormatCommand = new RelayCommand(_ => ChangeLogFormat());
             OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
+            ExecuteSelectedJobsCommand = new RelayCommand(async _ => await ExecuteSelectedJobs(), _ => HasSelectedJobs && !IsBusinessSoftwareRunning);
             
             // Start business software monitoring
             StartBusinessSoftwareMonitoring();
@@ -102,6 +106,8 @@ namespace EasySave.ViewModels
         public string TypeLabel => _translationService.GetTranslation("type");
         public string JobStatusLabel => _translationService.GetTranslation("job_status");
         public string NotRunningText => _translationService.GetTranslation("not_running");
+        public string SelectAllText => _translationService.GetTranslation("select_all") ?? "Select All";
+        public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected") ?? "Execute Selected";
 
         public ObservableCollection<BackupJob> BackupJobs
         {
@@ -124,6 +130,33 @@ namespace EasySave.ViewModels
                 CommandManager.InvalidateRequerySuggested();
             }
         }
+
+        public bool IsAllJobsSelected
+        {
+            get => _isAllJobsSelected;
+            set
+            {
+                if (_isAllJobsSelected != value)
+                {
+                    _isAllJobsSelected = value;
+                    OnPropertyChanged();
+                    
+                    // Update all jobs' selection state
+                    if (BackupJobs != null)
+                    {
+                        foreach (var job in BackupJobs)
+                        {
+                            job.IsSelected = value;
+                        }
+                    }
+                    
+                    OnPropertyChanged(nameof(HasSelectedJobs));
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+        
+        public bool HasSelectedJobs => BackupJobs != null && BackupJobs.Any(job => job.IsSelected);
 
         public string SelectedLanguage
         {
@@ -186,11 +219,37 @@ namespace EasySave.ViewModels
         public ICommand ChangeLanguageCommand { get; }
         public ICommand ChangeLogFormatCommand { get; }
         public ICommand OpenSettingsCommand { get; }
+        public ICommand ExecuteSelectedJobsCommand { get; }
 
         private void LoadBackupJobs()
         {
             var jobs = _jobManager.GetJobs();
             BackupJobs = new ObservableCollection<BackupJob>(jobs);
+            
+            // Subscribe to IsSelected property changes for each job
+            foreach (var job in BackupJobs)
+            {
+                job.PropertyChanged += (sender, e) => 
+                {
+                    if (e.PropertyName == nameof(BackupJob.IsSelected))
+                    {
+                        OnPropertyChanged(nameof(HasSelectedJobs));
+                        CommandManager.InvalidateRequerySuggested();
+                        
+                        // Update IsAllJobsSelected if needed
+                        if (!job.IsSelected && IsAllJobsSelected)
+                        {
+                            _isAllJobsSelected = false;
+                            OnPropertyChanged(nameof(IsAllJobsSelected));
+                        }
+                        else if (BackupJobs.All(j => j.IsSelected) && !IsAllJobsSelected)
+                        {
+                            _isAllJobsSelected = true;
+                            OnPropertyChanged(nameof(IsAllJobsSelected));
+                        }
+                    }
+                };
+            }
         }
         
         private void OpenCreateBackupJobDialog()
@@ -278,6 +337,50 @@ namespace EasySave.ViewModels
                     StatusMessage = $"Error executing backup job: {ex.Message}";
                     WPF.MessageBox.Show($"Error executing backup job: {ex.Message}", "Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Error);
                 }
+            }
+        }
+        
+        private async Task ExecuteSelectedJobs()
+        {
+            if (_settingsViewModel.IsBusinessSoftwareRunning())
+            {
+                StatusMessage = $"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.";
+                WPF.MessageBox.Show($"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.", 
+                    "Business Software Running", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Warning);
+                return;
+            }
+            
+            var selectedJobs = BackupJobs.Where(job => job.IsSelected).ToList();
+            if (selectedJobs.Count == 0) return;
+            
+            int successCount = 0;
+            int failCount = 0;
+            
+            StatusMessage = $"Executing {selectedJobs.Count} selected backup jobs...";
+            
+            foreach (var job in selectedJobs)
+            {
+                try
+                {
+                    await _backupService.ExecuteBackupJobAsync(job);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    Debug.WriteLine($"Error executing backup job '{job.JobName}': {ex.Message}");
+                }
+            }
+            
+            if (failCount == 0)
+            {
+                StatusMessage = $"All {successCount} backup jobs completed successfully.";
+            }
+            else
+            {
+                StatusMessage = $"{successCount} jobs completed successfully, {failCount} jobs failed.";
+                WPF.MessageBox.Show($"{failCount} backup jobs failed to execute. Check the logs for details.", 
+                    "Backup Execution Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Warning);
             }
         }
 
