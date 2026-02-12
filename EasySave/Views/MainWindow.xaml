@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:EasySave.ViewModels"
         xmlns:converters="clr-namespace:EasySave.Converters"
         mc:Ignorable="d"
-        Title="{Binding AppTitle}" Height="600" Width="900">
+        Title="{Binding AppTitle}" Height="600" Width="1000">
     
     <Window.Resources>
         <!-- Converter to change null to false and non-null to true -->
@@ -79,13 +79,15 @@
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
                                 <GridViewColumn Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                Width="150" DisplayMemberBinding="{Binding JobName}"/>
+                                                Width="120" DisplayMemberBinding="{Binding JobName}"/>
                                 <GridViewColumn Header="{Binding DataContext.SourcePathLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                Width="180" DisplayMemberBinding="{Binding SourcePath}"/>
+                                                Width="150" DisplayMemberBinding="{Binding SourcePath}"/>
                                 <GridViewColumn Header="{Binding DataContext.TargetPathLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                Width="180" DisplayMemberBinding="{Binding TargetPath}"/>
+                                                Width="150" DisplayMemberBinding="{Binding TargetPath}"/>
                                 <GridViewColumn Header="{Binding DataContext.TypeLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                Width="100" DisplayMemberBinding="{Binding Type}"/>
+                                                Width="80" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Header="{Binding DataContext.LastBackupLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="150" DisplayMemberBinding="{Binding LastBackupTimeDisplay}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -116,6 +118,9 @@
                             
                             <TextBlock Text="{Binding TypeLabel}" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding SelectedBackupJob.Type, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="{Binding LastBackupLabel}" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding SelectedBackupJob.LastBackupTimeDisplay, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
                             
                             <Border BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,10" Padding="0,10,0,0">
                                 <TextBlock Text="{Binding JobStatusLabel}" FontWeight="SemiBold"/>

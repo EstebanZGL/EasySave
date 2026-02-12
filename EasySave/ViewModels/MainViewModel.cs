@@ -68,6 +68,7 @@ namespace EasySave.ViewModels
                     OnPropertyChanged(nameof(NotRunningText));
                     OnPropertyChanged(nameof(SelectAllText));
                     OnPropertyChanged(nameof(ExecuteSelectedJobsText));
+                    OnPropertyChanged(nameof(LastBackupLabel));
                 }
             };
             
@@ -108,6 +109,7 @@ namespace EasySave.ViewModels
         public string NotRunningText => _translationService.GetTranslation("not_running");
         public string SelectAllText => _translationService.GetTranslation("select_all") ?? "Select All";
         public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected") ?? "Execute Selected";
+        public string LastBackupLabel => _translationService.GetTranslation("last_backup");
 
         public ObservableCollection<BackupJob> BackupJobs
         {
@@ -330,6 +332,13 @@ namespace EasySave.ViewModels
                 {
                     StatusMessage = $"Executing backup job '{SelectedBackupJob.JobName}'...";
                     await _backupService.ExecuteBackupJobAsync(SelectedBackupJob);
+                    
+                    // Mettre à jour la date de dernière sauvegarde
+                    SelectedBackupJob.LastBackupTime = DateTime.Now;
+                    
+                    // Persister la mise à jour dans le fichier JSON
+                    await _jobManager.UpdateJob(SelectedBackupJob);
+                    
                     StatusMessage = $"Backup job '{SelectedBackupJob.JobName}' completed successfully.";
                 }
                 catch (Exception ex)
@@ -363,6 +372,13 @@ namespace EasySave.ViewModels
                 try
                 {
                     await _backupService.ExecuteBackupJobAsync(job);
+                    
+                    // Mettre à jour la date de dernière sauvegarde
+                    job.LastBackupTime = DateTime.Now;
+                    
+                    // Persister la mise à jour dans le fichier JSON
+                    await _jobManager.UpdateJob(job);
+                    
                     successCount++;
                 }
                 catch (Exception ex)

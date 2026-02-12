@@ -123,6 +123,7 @@ namespace EasySave.Services
             translations["en_not_running"] = "Not running";
             translations["en_log_format"] = "Log Format:";
             translations["en_status_ready"] = "Ready";
+            translations["en_last_backup"] = "Last Backup:";
             
             // Ajout des traductions pour BackupJobDialog
             translations["en_create_backup_job"] = "Create Backup Job";
@@ -162,6 +163,7 @@ namespace EasySave.Services
             translations["fr_not_running"] = "Non en cours";
             translations["fr_log_format"] = "Format de Log:";
             translations["fr_status_ready"] = "Prêt";
+            translations["fr_last_backup"] = "Dernière Sauvegarde:";
             
             // Ajout des traductions pour BackupJobDialog
             translations["fr_create_backup_job"] = "Créer un Travail de Sauvegarde";
