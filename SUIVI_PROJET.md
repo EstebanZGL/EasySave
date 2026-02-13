@@ -204,6 +204,8 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Correction du problème de changement de langue dans l'interface
 - [x] Correction du problème de validation du nom dans le dialogue de création de travail
 - [x] Implémentation de la persistance des préférences utilisateur (langue, format de log)
+- [x] Correction du problème de changement de format de log
+- [x] Restructuration du stockage des logs (dossiers Logs/Json et Logs/Xml)
 
 #### Documentation
 - [ ] Mise à jour de la documentation utilisateur
@@ -271,7 +273,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 ## 📂 Spécifications des Données (Mémoire technique)
 
 ### 1. Fichier Log Journalier (`YYYY-MM-DD.json/xml`)
-Emplacement : dossier "logs" dans le répertoire d'exécution.
+Emplacement : dossier "Logs/Json" ou "Logs/Xml" dans le répertoire d'exécution.
 **Champs obligatoires :**
 - Timestamp
 - Nom de la sauvegarde
@@ -341,3 +343,6 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 10/02/2026 : Correction du problème de changement de langue dans l'interface
 - 10/02/2026 : Correction du problème de validation du nom dans le dialogue de création de travail
 - 10/02/2026 : Implémentation de la persistance des préférences utilisateur (langue, format de log)
+- 13/02/2026 : Correction du problème de changement de format de log (nécessite redémarrage)
+- 13/02/2026 : Restructuration du stockage des logs (dossiers Logs/Json et Logs/Xml)
+- 13/02/2026 : Amélioration des traductions dans le menu des paramètres

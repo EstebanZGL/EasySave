@@ -14,6 +14,7 @@ namespace EasySave.ViewModels
         private List<string> _encryptionExtensions;
         private string _cryptoSoftPath;
         private int _maxParallelJobs;
+        private string _logFormat;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -24,8 +25,10 @@ namespace EasySave.ViewModels
             _encryptionExtensions = new List<string> { ".txt", ".doc", ".pdf" };
             _cryptoSoftPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CryptoSoft.exe");
             _maxParallelJobs = 5;
+            _logFormat = "JSON"; // Default log format
             
             LoadSettings();
+            LoadLogFormat(); // Load log format from separate file
         }
 
         public string BusinessSoftwareName
@@ -80,6 +83,20 @@ namespace EasySave.ViewModels
                     _maxParallelJobs = value;
                     OnPropertyChanged();
                     SaveSettings();
+                }
+            }
+        }
+
+        public string LogFormat
+        {
+            get => _logFormat;
+            set
+            {
+                if (_logFormat != value)
+                {
+                    _logFormat = value;
+                    OnPropertyChanged();
+                    SaveLogFormat();
                 }
             }
         }
@@ -167,6 +184,41 @@ namespace EasySave.ViewModels
             {
                 // Log error
                 Console.WriteLine($"Error saving settings: {ex.Message}");
+            }
+        }
+
+        private void LoadLogFormat()
+        {
+            try
+            {
+                string logFormatPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                if (File.Exists(logFormatPath))
+                {
+                    string format = File.ReadAllText(logFormatPath).Trim();
+                    if (format == "XML" || format == "JSON")
+                    {
+                        _logFormat = format;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue with default format
+                Console.WriteLine($"Error loading log format: {ex.Message}");
+            }
+        }
+
+        private void SaveLogFormat()
+        {
+            try
+            {
+                string logFormatPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                File.WriteAllText(logFormatPath, _logFormat);
+            }
+            catch (Exception ex)
+            {
+                // Log error
+                Console.WriteLine($"Error saving log format: {ex.Message}");
             }
         }
 

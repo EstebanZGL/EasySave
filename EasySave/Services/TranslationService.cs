@@ -12,9 +12,22 @@ namespace EasySave.Services
         private readonly Dictionary<string, string> _translations;
         private string _currentLanguage;
         private readonly string _languageFilePath;
-        
-        // Event pour notifier les changements de propriété
-        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public string CurrentLanguage
+        {
+            get => _currentLanguage;
+            private set
+            {
+                if (_currentLanguage != value)
+                {
+                    _currentLanguage = value;
+                    OnPropertyChanged();
+                    SaveLanguagePreference();
+                }
+            }
+        }
 
         // Constructor with optional default language parameter
         public TranslationService(string defaultLanguage = "en")
@@ -24,64 +37,25 @@ namespace EasySave.Services
             _translations = InitializeTranslations();
         }
 
-        // Get the current language
-        public string CurrentLanguage => _currentLanguage;
-
-        // Change the current language
-        public void ChangeLanguage(string language)
-        {
-            _currentLanguage = language.ToLower() == "fr" ? "fr" : "en";
-            SaveLanguagePreference();
-            // Notifier que toutes les traductions ont potentiellement changé
-            OnPropertyChanged(nameof(CurrentLanguage));
-            NotifyTranslationsChanged();
-        }
-
-        // Toggle between available languages
+        // Toggle between English and French
         public void ToggleLanguage()
         {
-            _currentLanguage = _currentLanguage == "en" ? "fr" : "en";
-            SaveLanguagePreference();
+            CurrentLanguage = _currentLanguage == "en" ? "fr" : "en";
             // Notifier que toutes les traductions ont potentiellement changé
             OnPropertyChanged(nameof(CurrentLanguage));
             NotifyTranslationsChanged();
         }
-        
-        // Sauvegarder la préférence de langue
-        private void SaveLanguagePreference()
+
+        // Set language explicitly
+        public void SetLanguage(string language)
         {
-            try
-            {
-                File.WriteAllText(_languageFilePath, _currentLanguage);
-            }
-            catch (Exception ex)
-            {
-                // Log l'erreur mais continue l'exécution
-                System.Diagnostics.Debug.WriteLine($"Error saving language preference: {ex.Message}");
-            }
-        }
-        
-        // Charger la préférence de langue
-        private string LoadLanguagePreference()
-        {
-            try
-            {
-                if (File.Exists(_languageFilePath))
-                {
-                    string language = File.ReadAllText(_languageFilePath).Trim().ToLower();
-                    if (language == "fr" || language == "en")
-                    {
-                        return language;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log l'erreur mais continue l'exécution
-                System.Diagnostics.Debug.WriteLine($"Error loading language preference: {ex.Message}");
-            }
-            
-            return null;
+            if (language != "en" && language != "fr")
+                throw new ArgumentException("Language must be 'en' or 'fr'", nameof(language));
+
+            CurrentLanguage = language;
+            // Notifier que toutes les traductions ont potentiellement changé
+            OnPropertyChanged(nameof(CurrentLanguage));
+            NotifyTranslationsChanged();
         }
         
         // Notifier que toutes les traductions ont changé
@@ -94,6 +68,9 @@ namespace EasySave.Services
         // Get translation for a key
         public string GetTranslation(string key)
         {
+            if (string.IsNullOrEmpty(key))
+                return string.Empty;
+
             string fullKey = $"{_currentLanguage}_{key}";
             // Use TryGetValue for better performance than ContainsKey + indexer
             return _translations.TryGetValue(fullKey, out string translation) ? translation : $"[{key}]";
@@ -144,6 +121,20 @@ namespace EasySave.Services
             translations["en_select_all"] = "Select All";
             translations["en_execute_selected"] = "Execute Selected Jobs";
             
+            // Ajout des traductions pour les paramètres
+            translations["en_business_software"] = "Business Software:";
+            translations["en_cryptosoft_path"] = "CryptoSoft Path:";
+            translations["en_encrypt_extensions"] = "Encrypt Extensions:";
+            translations["en_max_parallel_jobs"] = "Max Parallel Jobs:";
+            translations["en_log_format_setting"] = "Log Format:";
+            translations["en_restart_required"] = "* Requires application restart";
+            translations["en_settings_notes"] = "Notes:";
+            translations["en_settings_business_note"] = "- Business Software: EasySave will pause backups when this application is running";
+            translations["en_settings_encrypt_note"] = "- Encrypt Extensions: File types that will be encrypted using CryptoSoft";
+            translations["en_settings_log_note"] = "- Log Format: Changes to log format require application restart to take effect";
+            translations["en_settings_changes_note"] = "- Changes are saved automatically";
+            translations["en_close"] = "Close";
+
             // French translations
             translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
             translations["fr_menu_title"] = "Menu Principal";
@@ -182,11 +173,62 @@ namespace EasySave.Services
             // Ajout des traductions pour la sélection multiple
             translations["fr_select_all"] = "Tout Sélectionner";
             translations["fr_execute_selected"] = "Exécuter les Sélectionnés";
+            
+            // Ajout des traductions pour les paramètres
+            translations["fr_business_software"] = "Logiciel Métier:";
+            translations["fr_cryptosoft_path"] = "Chemin CryptoSoft:";
+            translations["fr_encrypt_extensions"] = "Extensions à Chiffrer:";
+            translations["fr_max_parallel_jobs"] = "Travaux Parallèles Max:";
+            translations["fr_log_format_setting"] = "Format des Logs:";
+            translations["fr_restart_required"] = "* Nécessite un redémarrage de l'application";
+            translations["fr_settings_notes"] = "Notes:";
+            translations["fr_settings_business_note"] = "- Logiciel Métier: EasySave mettra en pause les sauvegardes quand cette application est en cours d'exécution";
+            translations["fr_settings_encrypt_note"] = "- Extensions à Chiffrer: Types de fichiers qui seront chiffrés avec CryptoSoft";
+            translations["fr_settings_log_note"] = "- Format des Logs: Les changements de format nécessitent un redémarrage pour prendre effet";
+            translations["fr_settings_changes_note"] = "- Les changements sont sauvegardés automatiquement";
+            translations["fr_close"] = "Fermer";
 
             return translations;
         }
         
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        // Save language preference to file
+        private void SaveLanguagePreference()
+        {
+            try
+            {
+                File.WriteAllText(_languageFilePath, _currentLanguage);
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue
+                Console.WriteLine($"Error saving language preference: {ex.Message}");
+            }
+        }
+        
+        // Load language preference from file
+        private string LoadLanguagePreference()
+        {
+            try
+            {
+                if (File.Exists(_languageFilePath))
+                {
+                    string language = File.ReadAllText(_languageFilePath).Trim().ToLower();
+                    if (language == "en" || language == "fr")
+                    {
+                        return language;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue with default
+                Console.WriteLine($"Error loading language preference: {ex.Message}");
+            }
+            
+            return null;
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

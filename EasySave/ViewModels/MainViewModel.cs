@@ -24,8 +24,6 @@ namespace EasySave.ViewModels
         private readonly StateManager _stateManager;
         private readonly SettingsViewModel _settingsViewModel;
         private string _selectedLanguage;
-        private string _selectedLogFormat;
-        private readonly string _logFormatFilePath;
         private ObservableCollection<BackupJob> _backupJobs;
         private BackupJob _selectedBackupJob;
         private string _statusMessage;
@@ -42,7 +40,6 @@ namespace EasySave.ViewModels
             _translationService = translationService;
             _stateManager = stateManager;
             _settingsViewModel = new SettingsViewModel();
-            _logFormatFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
             
             // S'abonner aux changements de langue
             _translationService.PropertyChanged += (s, e) => 
@@ -59,7 +56,6 @@ namespace EasySave.ViewModels
                     OnPropertyChanged(nameof(EditButtonText));
                     OnPropertyChanged(nameof(DeleteButtonText));
                     OnPropertyChanged(nameof(SettingsButtonText));
-                    OnPropertyChanged(nameof(LogFormatLabel));
                     OnPropertyChanged(nameof(NameLabel));
                     OnPropertyChanged(nameof(SourcePathLabel));
                     OnPropertyChanged(nameof(TargetPathLabel));
@@ -72,7 +68,6 @@ namespace EasySave.ViewModels
             };
             
             _selectedLanguage = _translationService.CurrentLanguage;
-            _selectedLogFormat = LoadLogFormat() ?? "JSON"; // Default log format
             
             LoadBackupJobs();
             
@@ -82,7 +77,6 @@ namespace EasySave.ViewModels
             DeleteBackupJobCommand = new RelayCommand(async _ => await DeleteBackupJob(), _ => SelectedBackupJob != null);
             ExecuteBackupJobCommand = new RelayCommand(async _ => await ExecuteBackupJob(), _ => SelectedBackupJob != null && !IsBusinessSoftwareRunning);
             ChangeLanguageCommand = new RelayCommand(_ => ChangeLanguage());
-            ChangeLogFormatCommand = new RelayCommand(_ => ChangeLogFormat());
             OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
             ExecuteSelectedJobsCommand = new RelayCommand(async _ => await ExecuteSelectedJobs(), _ => HasSelectedJobs && !IsBusinessSoftwareRunning);
             
@@ -99,7 +93,6 @@ namespace EasySave.ViewModels
         public string EditButtonText => _translationService.GetTranslation("menu_edit");
         public string DeleteButtonText => _translationService.GetTranslation("menu_delete");
         public string SettingsButtonText => _translationService.GetTranslation("menu_settings");
-        public string LogFormatLabel => _translationService.GetTranslation("log_format");
         public string NameLabel => _translationService.GetTranslation("name");
         public string SourcePathLabel => _translationService.GetTranslation("source_path");
         public string TargetPathLabel => _translationService.GetTranslation("target_path");
@@ -167,17 +160,6 @@ namespace EasySave.ViewModels
                 OnPropertyChanged();
             }
         }
-
-        public string SelectedLogFormat
-        {
-            get => _selectedLogFormat;
-            set
-            {
-                _selectedLogFormat = value;
-                OnPropertyChanged();
-                SaveLogFormat();
-            }
-        }
         
         public string StatusMessage
         {
@@ -217,7 +199,6 @@ namespace EasySave.ViewModels
         public ICommand DeleteBackupJobCommand { get; }
         public ICommand ExecuteBackupJobCommand { get; }
         public ICommand ChangeLanguageCommand { get; }
-        public ICommand ChangeLogFormatCommand { get; }
         public ICommand OpenSettingsCommand { get; }
         public ICommand ExecuteSelectedJobsCommand { get; }
 
@@ -389,45 +370,6 @@ namespace EasySave.ViewModels
             _translationService.ToggleLanguage();
             // La mise à jour de SelectedLanguage et des autres propriétés traduites 
             // se fait via l'événement PropertyChanged du TranslationService
-        }
-
-        private void ChangeLogFormat()
-        {
-            // Toggle between JSON and XML
-            SelectedLogFormat = SelectedLogFormat == "JSON" ? "XML" : "JSON";
-        }
-        
-        private void SaveLogFormat()
-        {
-            try
-            {
-                File.WriteAllText(_logFormatFilePath, _selectedLogFormat);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error saving log format: {ex.Message}");
-            }
-        }
-        
-        private string LoadLogFormat()
-        {
-            try
-            {
-                if (File.Exists(_logFormatFilePath))
-                {
-                    string format = File.ReadAllText(_logFormatFilePath).Trim();
-                    if (format == "XML" || format == "JSON")
-                    {
-                        return format;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error loading log format: {ex.Message}");
-            }
-            
-            return null;
         }
         
         private void OpenSettings()

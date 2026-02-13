@@ -16,6 +16,9 @@ namespace EasySave
     {
         private readonly ServiceProvider _serviceProvider;
 
+        // Expose le ServiceProvider pour permettre l'accès aux services depuis le XAML
+        public ServiceProvider ServiceProvider => _serviceProvider;
+
         public App()
         {
             var services = new ServiceCollection();
@@ -38,6 +41,8 @@ namespace EasySave
             
             // Configure and register logger
             string logFormat = LoadLogFormat();
+            // Créer les répertoires de logs s'ils n'existent pas
+            CreateLogDirectories();
             ILogger logger = LoggerFactory.CreateLogger(logFormat);
             services.AddSingleton(logger);
             
@@ -117,6 +122,38 @@ namespace EasySave
             Console.WriteLine();
             Console.WriteLine("NOTE: Job numbers refer to the position in the job list (starting from 1).");
             Console.WriteLine("      If no arguments are provided, the graphical interface will be launched.");
+        }
+
+        // Créer la structure de répertoires pour les logs
+        private void CreateLogDirectories()
+        {
+            try
+            {
+                // Créer le répertoire principal des logs
+                string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+                if (!Directory.Exists(logsDir))
+                {
+                    Directory.CreateDirectory(logsDir);
+                }
+
+                // Créer le sous-répertoire pour les logs JSON
+                string jsonDir = Path.Combine(logsDir, "Json");
+                if (!Directory.Exists(jsonDir))
+                {
+                    Directory.CreateDirectory(jsonDir);
+                }
+
+                // Créer le sous-répertoire pour les logs XML
+                string xmlDir = Path.Combine(logsDir, "Xml");
+                if (!Directory.Exists(xmlDir))
+                {
+                    Directory.CreateDirectory(xmlDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating log directories: {ex.Message}");
+            }
         }
 
         // Load log format preference from configuration file

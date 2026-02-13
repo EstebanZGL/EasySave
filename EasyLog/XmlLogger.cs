@@ -42,15 +42,24 @@ namespace EasyLog
         private static string GetDefaultLogDirectory()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string logDirectory = Path.Combine(baseDirectory, "logs");
+            string logsDirectory = Path.Combine(baseDirectory, "Logs");
             
-            // Créer le dossier logs s'il n'existe pas
-            if (!Directory.Exists(logDirectory))
+            // Create Logs directory if it doesn't exist
+            if (!Directory.Exists(logsDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
+                Directory.CreateDirectory(logsDirectory);
             }
             
-            return logDirectory;
+            // Create Xml subdirectory
+            string xmlLogsDirectory = Path.Combine(logsDirectory, "Xml");
+            
+            // Create Xml directory if it doesn't exist
+            if (!Directory.Exists(xmlLogsDirectory))
+            {
+                Directory.CreateDirectory(xmlLogsDirectory);
+            }
+            
+            return xmlLogsDirectory;
         }
 
         /// <summary>

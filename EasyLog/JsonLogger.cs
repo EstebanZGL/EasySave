@@ -32,23 +32,24 @@ namespace EasyLog
         private static string GetDefaultLogDirectory()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string easySaveDirectory = Path.Combine(baseDirectory, "EasySave");
+            string logsDirectory = Path.Combine(baseDirectory, "Logs");
             
-            // Create EasySave directory if it doesn't exist
-            if (!Directory.Exists(easySaveDirectory))
+            // Create Logs directory if it doesn't exist
+            if (!Directory.Exists(logsDirectory))
             {
-                Directory.CreateDirectory(easySaveDirectory);
+                Directory.CreateDirectory(logsDirectory);
             }
             
-            string logDirectory = Path.Combine(easySaveDirectory, "logs");
+            // Create Json subdirectory
+            string jsonLogsDirectory = Path.Combine(logsDirectory, "Json");
             
-            // Create logs directory if it doesn't exist
-            if (!Directory.Exists(logDirectory))
+            // Create Json directory if it doesn't exist
+            if (!Directory.Exists(jsonLogsDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
+                Directory.CreateDirectory(jsonLogsDirectory);
             }
             
-            return logDirectory;
+            return jsonLogsDirectory;
         }
 
         // Implémentation de LogBackupOperationAsync
