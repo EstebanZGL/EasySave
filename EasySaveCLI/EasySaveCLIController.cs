@@ -236,7 +236,7 @@ namespace EasySaveCLI
         // Display help for command line usage
         private void DisplayCommandLineHelp()
         {
-            Console.WriteLine("EasySave 3.0 CLI - Command Line Usage");
+            Console.WriteLine("EasySave CLI - Command Line Usage");
             Console.WriteLine("====================================");
             Console.WriteLine();
             Console.WriteLine("USAGE:");
@@ -272,7 +272,7 @@ namespace EasySaveCLI
             while (!exit)
             {
                 Console.Clear();
-                Console.WriteLine("EasySave 3.0 CLI - Main Menu");
+                Console.WriteLine("EasySave CLI - Main Menu");
                 Console.WriteLine("===========================");
                 Console.WriteLine();
                 Console.WriteLine("1. List backup jobs");

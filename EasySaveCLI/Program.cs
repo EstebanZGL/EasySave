@@ -5,6 +5,7 @@ using EasySave.Services;
 using EasySave.ViewModels;
 using EasyLog;
 using Microsoft.Extensions.DependencyInjection;
+using System.IO;
 
 namespace EasySaveCLI
 {
@@ -14,7 +15,7 @@ namespace EasySaveCLI
 
         static async Task Main(string[] args)
         {
-            Console.WriteLine("EasySave CLI v3.0");
+            Console.WriteLine("EasySave CLI");
             Console.WriteLine("----------------");
             
             // Configure dependency injection
@@ -49,20 +50,27 @@ namespace EasySaveCLI
             // Register services
             services.AddSingleton<TranslationService>();
             services.AddSingleton<BackupJobManager>();
-            services.AddSingleton<StateManager>();
+            
+            // Register StateManager with the state file path
+            services.AddSingleton<StateManager>(provider => {
+                // Define the state file path
+                string stateFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "state.json");
+                return new StateManager(stateFilePath);
+            });
+            
             services.AddSingleton<SettingsViewModel>();
             
             // Configure logger based on settings
             services.AddSingleton<IEncryptionLogger>(provider => {
                 // Get settings to determine log format
-                var settingsPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
                 string logFormat = "JSON"; // Default
                 
-                if (System.IO.File.Exists(settingsPath))
+                if (File.Exists(settingsPath))
                 {
                     try
                     {
-                        logFormat = System.IO.File.ReadAllText(settingsPath).Trim();
+                        logFormat = File.ReadAllText(settingsPath).Trim();
                     }
                     catch
                     {
