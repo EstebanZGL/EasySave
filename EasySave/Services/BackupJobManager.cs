@@ -75,6 +75,32 @@ namespace EasySave.Services
             await Task.CompletedTask;
         }
 
+        // Update an existing backup job
+        // Returns: Task completing when job is updated
+        public async Task UpdateJob(BackupJob job)
+        {
+            if (job == null || !job.Validate())
+            {
+                throw new ArgumentException("Invalid backup job", nameof(job));
+            }
+            
+            lock (_lockObject)
+            {
+                int index = _backupJobs.FindIndex(j => j.Name.Equals(job.Name, StringComparison.OrdinalIgnoreCase));
+                if (index < 0)
+                {
+                    throw new InvalidOperationException($"Backup job '{job.Name}' not found.");
+                }
+                
+                // Update the job and save
+                _backupJobs[index] = job;
+                SaveJobs();
+            }
+
+            // No need to return anything, but keeping the Task return type for async compatibility
+            await Task.CompletedTask;
+        }
+
         // Delete a backup job by name
         // Returns: Task completing when job is deleted
         public async Task DeleteJob(string name)
