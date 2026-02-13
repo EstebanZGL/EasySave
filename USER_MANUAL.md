@@ -2,21 +2,28 @@
 
 ## Introduction
 
-EasySave v2.0 is a robust backup software developed by ProSoft, allowing you to create and execute an unlimited number of backup jobs with a user-friendly graphical interface. This version introduces file encryption capabilities and business software detection.
+EasySave v2.0 is a robust backup software developed by ProSoft, allowing you to create and execute an unlimited number of backup jobs with both a user-friendly graphical interface and a command-line interface. This version introduces file encryption capabilities and business software detection.
 
 ## Installation
 
 1. Unzip the EasySave ZIP file into the folder of your choice
 2. No additional installation is required
-3. Ensure that CryptoSoft.exe is in the same directory as EasySave.exe if you plan to use encryption features
+3. All executables (EasySave.exe, EasySaveCLI.exe, CryptoSoft.exe) are located in the `output` folder
+4. Ensure that CryptoSoft.exe is available if you plan to use encryption features
 
 ## Getting Started
 
-Launch the application by double-clicking on `EasySave.exe`. The main window will appear, displaying:
-
+### Graphical Interface
+Launch the application by double-clicking on `output\EasySave.exe`. The main window will display:
 - A list of existing backup jobs
 - Buttons for creating, executing, and managing backup jobs
 - Status information for each job
+
+### Command Line Interface
+For automation or scripting, use `output\EasySaveCLI.exe` with the following options:
+- `EasySaveCLI.exe 1,2,3`: Execute jobs 1, 2 and 3
+- `EasySaveCLI.exe --all`: Execute all jobs
+- `EasySaveCLI.exe --help`: Display available commands
 
 ## Creating a Backup Job
 
@@ -115,16 +122,6 @@ EasySave generates two types of log files:
    - Contains real-time information about backup jobs
    - Updated continuously during backup operations
 
-## Backup Types
-
-### Complete Backup
-
-Copies all files from the source to the destination, regardless of their modification date. Also removes files from the destination that no longer exist in the source.
-
-### Differential Backup
-
-Copies only files that have been created or modified since the last backup. Does not remove files from the destination.
-
 ## Troubleshooting
 
 ### Business Software Detection Issues
@@ -133,20 +130,12 @@ If business software detection is not working correctly:
 
 1. Make sure you've entered the correct executable name in Settings
 2. Try using the full path to the executable
-3. For modern Windows apps, you may need to use the actual process name (e.g., "CalculatorApp.exe" instead of "calc.exe")
+3. For modern Windows apps, you may need to use the actual process name
 
 ### Encryption Issues
 
 If files are not being encrypted:
 
-1. Verify that CryptoSoft.exe is accessible
+1. Verify that CryptoSoft.exe is accessible in the output folder
 2. Check that file extensions are correctly specified (with leading dot)
 3. Ensure the destination folder is writable
-
-### General Issues
-
-If the application is not responding or crashes:
-
-1. Check the log files for error messages
-2. Verify that all paths are valid and accessible
-3. Ensure you have sufficient permissions for the source and destination folders

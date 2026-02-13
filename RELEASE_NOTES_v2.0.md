@@ -2,15 +2,25 @@
 
 ## Overview
 
-EasySave v2.0 represents a major evolution from the console-based v1.x versions, introducing a complete graphical user interface and several powerful new features. This version focuses on improved user experience, file encryption capabilities, and business software detection.
+EasySave v2.0 represents a major evolution from the console-based v1.x versions, introducing a complete graphical user interface, a dedicated command-line interface, and several powerful new features. This version focuses on improved user experience, file encryption capabilities, and business software detection.
 
 ## New Features
 
-### Graphical User Interface
+### Dual Interface
 - **Complete WPF Interface**: Intuitive graphical interface replacing the console application
+- **Dedicated CLI Application**: New EasySaveCLI.exe for automation and scripting
+- **Common Output Directory**: All executables now located in a central 'output' folder
+
+### Graphical User Interface
 - **Real-time Progress Monitoring**: Visual feedback during backup operations
 - **Streamlined Job Management**: Create, edit, and delete jobs with just a few clicks
 - **Visual Settings Panel**: Configure all options through a dedicated interface
+
+### Command Line Interface
+- **Job Selection**: Execute specific jobs by number (e.g., EasySaveCLI.exe 1,2,3)
+- **Batch Execution**: Run all jobs with a single command (--all parameter)
+- **Interactive Mode**: Menu-driven interface when run without parameters
+- **Help System**: Built-in command documentation (--help parameter)
 
 ### File Encryption
 - **Selective Encryption**: Encrypt specific file types during backup
@@ -41,12 +51,14 @@ EasySave v2.0 represents a major evolution from the console-based v1.x versions,
 - **MVVM Architecture**: Complete refactoring to Model-View-ViewModel architecture
 - **Enhanced Design Patterns**: Implementation of Observer, Command, and Strategy patterns
 - **Improved Modularity**: Better separation of concerns for maintainability
+- **Centralized Build Output**: All executables now generated in a common output folder
 
 ### User Experience
 - **Intuitive Navigation**: Streamlined workflow for common operations
 - **Visual Feedback**: Clear status indicators for backup jobs
 - **Persistent Settings**: User preferences are saved between sessions
 - **Improved Multilingual Support**: Enhanced translations and language switching
+- **Flexible Usage Options**: Choose between GUI and CLI based on needs
 
 ### Performance & Stability
 - **Background Processing**: Backup operations run in background threads for responsive UI
@@ -71,6 +83,7 @@ EasySave v2.0 represents a major evolution from the console-based v1.x versions,
 - Added robust business software monitoring service
 - Implemented enhanced process detection techniques
 - Added proper resource cleanup with IDisposable implementation
+- Centralized build output configuration for all projects
 
 ## Known Limitations
 
@@ -90,14 +103,14 @@ EasySave v2.0 represents a major evolution from the console-based v1.x versions,
 ## Installation
 
 1. Extract all files to a directory of your choice
-2. Ensure CryptoSoft.exe is in the same directory as EasySave.exe
-3. Run EasySave.exe to start the application
+2. All executables (EasySave.exe, EasySaveCLI.exe, CryptoSoft.exe) are located in the output folder
+3. Run EasySave.exe for the graphical interface or EasySaveCLI.exe for command-line operation
 
 ## Upgrading from v1.x
 
 - Your existing backup jobs will be automatically imported
 - Log files from v1.x are compatible with v2.0
-- Command-line execution is still supported for backward compatibility
+- Command-line execution is now handled by the dedicated EasySaveCLI.exe application
 
 ## Looking Ahead
 

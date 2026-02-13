@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <AssemblyName>CryptoSoft</AssemblyName>
     <RootNamespace>CryptoSoft</RootNamespace>
+    <!-- Configurer la sortie pour utiliser le dossier output à la racine -->
+    <OutputPath>..\..\output</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
 </Project>

@@ -5,8 +5,9 @@
 EasySave v2.0 is a backup application developed in C# (.NET 8.0) following the MVVM architecture pattern. The project is divided into several main components:
 
 1. **EasySave**: Main WPF application with graphical user interface
-2. **EasyLog**: Class library for log management
-3. **CryptoSoft**: External encryption utility
+2. **EasySaveCLI**: Command-line interface for automation and scripting
+3. **EasyLog**: Class library for log management
+4. **CryptoSoft**: External encryption utility
 
 ## Project Structure
 
@@ -32,6 +33,10 @@ EasySave/
     ├── BoolToColorConverter.cs # UI value converters
     └── NullToBoolConverter.cs  # UI value converters
 
+EasySaveCLI/
+├── Program.cs                 # Entry point for CLI application
+└── EasySaveCLIController.cs   # Command processing logic
+
 EasyLog/
 ├── ILogger.cs                 # Base logger interface
 ├── IEncryptionLogger.cs       # Extended logger with encryption support
@@ -40,6 +45,11 @@ EasyLog/
 
 CryptoSoft/
 └── Program.cs                 # Encryption utility
+
+output/                        # Common output folder for all executables
+├── EasySave.exe               # GUI application
+├── EasySaveCLI.exe            # Command-line application
+└── CryptoSoft.exe             # Encryption utility
 ```
 
 ## Main Components
@@ -70,6 +80,17 @@ Key methods:
 - `OpenCreateBackupJobDialog()`: Opens the dialog for creating a new job
 - `OpenEditBackupJobDialog(BackupJob job)`: Opens the dialog for editing a job
 - `OpenSettings()`: Opens the settings window
+
+### EasySaveCLIController
+
+Manages the command-line interface functionality:
+
+Key methods:
+- `RunWithArgsAsync(string[] args)`: Processes command-line arguments
+- `ExecuteCommandLineArgsAsync(string[] args)`: Executes specified jobs
+- `ShowMainMenuAsync()`: Displays interactive menu in console mode
+- `ParseJobIndexes(string input)`: Parses job numbers from command line
+- `DisplayCommandLineHelp()`: Shows available commands and syntax
 
 ### SettingsViewModel
 
@@ -131,6 +152,16 @@ Key methods:
 - `GetTranslation(string key)`: Gets the translation for a specific key
 - `SetLanguage(string language)`: Changes the current language
 
+## Build Configuration
+
+All projects are configured to generate their executables in a common `output` folder at the project level:
+
+- **EasySave.csproj**: WPF GUI application
+- **EasySaveCLI.csproj**: Console application
+- **CryptoSoft.csproj**: Encryption utility
+
+This configuration simplifies distribution and testing by keeping all executables and their dependencies in a single location.
+
 ## Key Features in v2.0
 
 ### 1. Graphical User Interface
@@ -141,7 +172,15 @@ EasySave v2.0 introduces a complete graphical interface using WPF and the MVVM p
 - Settings configuration through a dedicated interface
 - Improved user experience with visual feedback
 
-### 2. Business Software Detection
+### 2. Command Line Interface
+
+The application provides a command-line interface for automation and scripting:
+- Execute specific jobs by number: `EasySaveCLI.exe 1,2,3`
+- Execute all jobs: `EasySaveCLI.exe --all`
+- Display help: `EasySaveCLI.exe --help`
+- Interactive menu mode when run without parameters
+
+### 3. Business Software Detection
 
 The application can detect if specific business software is running and manage backups accordingly:
 
@@ -156,7 +195,7 @@ The application can detect if specific business software is running and manage b
   - Automatically pauses backup when business software starts
   - Automatically resumes backup when business software stops
 
-### 3. File Encryption
+### 4. File Encryption
 
 Integration with CryptoSoft for selective file encryption:
 
@@ -164,7 +203,7 @@ Integration with CryptoSoft for selective file encryption:
 - **Performance tracking**: Measures and logs encryption time
 - **Fallback mechanism**: If encryption fails, files are still backed up (unencrypted)
 
-### 4. Enhanced Logging
+### 5. Enhanced Logging
 
 Improved logging system with:
 

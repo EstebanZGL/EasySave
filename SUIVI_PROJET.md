@@ -247,13 +247,19 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] CryptoSoft Mono-instance
   - [ ] Implémentation du système de mutex
   - [ ] File d'attente pour cryptage
+- [x] Réimplémentation du mode CLI
+  - [x] Création du projet EasySaveCLI
+  - [x] Support des fonctionnalités de la v2.0 (cryptage, logiciel métier)
+  - [x] Ajout des options de ligne de commande pour les nouvelles fonctionnalités
+  - [x] Implémentation du point d'entrée (Program.cs) avec injection de dépendances
+  - [x] Compilation réussie et génération de l'exécutable EasySaveCLI.exe
+  - [x] Configuration des projets pour générer tous les exécutables dans un dossier commun
 
 #### Interface Utilisateur
 - [ ] Contrôles Play/Pause/Stop pour chaque travail
 - [ ] Affichage en temps réel de la progression
 - [ ] Interface de configuration des priorités
 - [ ] Interface de configuration de la bande passante
-
 
 #### Documentation
 - [ ] Mise à jour de la documentation utilisateur
@@ -348,3 +354,11 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 13/02/2026 : Correction des problèmes d'accès aux processus système
 - 13/02/2026 : Finalisation et livraison de la version 2.0
 - 14/02/2026 : Début de la planification de la version 3.0
+- 14/02/2026 : Création du projet EasySaveCLI pour réimplémenter le mode ligne de commande
+- 14/02/2026 : Implémentation des fonctionnalités de la v2.0 dans le CLI (cryptage, logiciel métier)
+- 14/02/2026 : Ajout des options de ligne de commande pour les nouvelles fonctionnalités
+- 14/02/2026 : Création du point d'entrée Program.cs avec injection de dépendances pour EasySaveCLI
+- 14/02/2026 : Correction des erreurs de compilation dans le projet EasySaveCLI
+- 14/02/2026 : Adaptation de l'injection de dépendances pour utiliser le constructeur approprié de BackupService
+- 14/02/2026 : Compilation réussie et génération de l'exécutable EasySaveCLI.exe
+- 14/02/2026 : Configuration des projets EasySave, EasySaveCLI et CryptoSoft pour générer tous les exécutables dans un dossier output commun à la racine de la solution

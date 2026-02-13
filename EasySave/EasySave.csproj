@@ -9,6 +9,9 @@
     <Nullable>annotations</Nullable>
     <AssemblyName>EasySave</AssemblyName>
     <RootNamespace>EasySave</RootNamespace>
+    <!-- Configurer la sortie pour utiliser le dossier output au niveau du projet -->
+    <OutputPath>..\output</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <!-- <ApplicationIcon>Resources\easysave_icon.ico</ApplicationIcon> -->
   </PropertyGroup>
 
@@ -42,6 +45,7 @@
   </ItemGroup>
   -->
 
+  <!-- Modification de la cible pour copier CryptoSoft dans le dossier output -->
   <Target Name="CopyCryptoSoftBundle" AfterTargets="Build">
     <ItemGroup>
       <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.exe" />
