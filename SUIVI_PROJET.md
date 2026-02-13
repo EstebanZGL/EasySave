@@ -9,10 +9,10 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - **Architecture :** Modulaire, maintenable, pas de duplication de code.
 
 ## 🚀 État Actuel du Développement
-- **Version en cours de développement :** v2.0
-- **Dernier Livrable Validé :** Version 1.0
-- **Prochaine Échéance :** Livrable 2 - Version 2.0
-- **Focus Actuel :** Développement de l'interface graphique WPF et intégration avec le backend existant
+- **Version en cours de développement :** v3.0
+- **Dernier Livrable Validé :** Version 2.0
+- **Prochaine Échéance :** Livrable 3 - Version 3.0
+- **Focus Actuel :** Développement des fonctionnalités avancées (sauvegardes parallèles, priorités, Docker)
 
 ## 🛠️ Stack Technique & Contraintes
 - **Langage :** C# (.NET 8.0)
@@ -27,7 +27,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 ## 🏗️ Design Patterns Utilisés
 
 ### EasyLog.dll
-- **Strategy Pattern** - Interface `ILogger` avec implémentations spécifiques (`JsonLogger`)
+- **Strategy Pattern** - Interface `ILogger` avec implémentations spécifiques (`JsonLogger`, `XmlLogger`)
 - **Factory Pattern** - `LoggerFactory` pour la création des différents types de loggers
 - **Decorator Pattern** - `PerformanceLogger` pour enrichir les logs avec des métriques de performance
 
@@ -42,6 +42,10 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - **Observer Pattern** - Notification des changements via INotifyPropertyChanged
 - **Command Pattern** - Encapsulation des actions utilisateur dans des commandes
 - **Converter Pattern** - Transformation des données pour l'affichage (NullToBoolConverter, BoolToColorConverter)
+
+### Fonctionnalités Spéciales (v2.0)
+- **Observer Pattern** - `BusinessSoftwareMonitor` pour surveiller les logiciels métier
+- **Strategy Pattern** - `CryptoService` pour la stratégie de cryptage des fichiers
 
 ## 📋 Liste des Tâches par Version
 
@@ -156,7 +160,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Mise à jour de la documentation
 - [x] Préparation du livrable
 
-### 🟩 Version 2.0 (Interface Graphique)
+### ✅ Version 2.0 (Interface Graphique)
 
 #### Planification et Conception
 - [x] Conception de l'interface graphique
@@ -176,6 +180,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Interface de communication
   - [x] Gestion des extensions à crypter
 - [x] Détection de logiciel métier
+  - [x] Création du service BusinessSoftwareMonitor
+  - [x] Détection multi-méthode (processus, titres de fenêtres)
+  - [x] Pause/reprise automatique des sauvegardes
 - [x] Mise à jour des logs pour inclure le temps de cryptage
 
 #### Interface Utilisateur
@@ -190,7 +197,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 
 #### Tests et Validation
 - [x] Tests unitaires
-- [ ] Tests d'interface utilisateur
+- [x] Tests d'interface utilisateur
 - [x] Tests de compatibilité avec v1.0/1.1
 
 #### Corrections et Améliorations
@@ -206,17 +213,19 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [x] Implémentation de la persistance des préférences utilisateur (langue, format de log)
 - [x] Correction du problème de changement de format de log
 - [x] Restructuration du stockage des logs (dossiers Logs/Json et Logs/Xml)
+- [x] Amélioration de la détection du logiciel métier (multi-méthodes)
+- [x] Correction des problèmes d'accès aux processus (gestion des exceptions)
 
 #### Documentation
-- [ ] Mise à jour de la documentation utilisateur
-- [ ] Mise à jour de la documentation technique
-- [ ] Documentation des nouvelles fonctionnalités
+- [x] Mise à jour de la documentation utilisateur
+- [x] Mise à jour de la documentation technique
+- [x] Documentation des nouvelles fonctionnalités
 
 #### Finalisation
-- [ ] Revue de code
-- [ ] Optimisation des performances
-- [ ] Tests de régression
-- [ ] Préparation du livrable
+- [x] Revue de code
+- [x] Optimisation des performances
+- [x] Tests de régression
+- [x] Préparation du livrable
 
 ### 🟦 Version 3.0 (Avancé & Docker)
 
@@ -245,22 +254,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] Interface de configuration des priorités
 - [ ] Interface de configuration de la bande passante
 
-#### Docker
-- [ ] Création du service Docker
-- [ ] Système de centralisation des logs
-- [ ] Interface de configuration
-- [ ] Tests de communication
-
-#### Tests et Validation
-- [ ] Tests de performance parallèle
-- [ ] Tests de charge
-- [ ] Tests de priorité
-- [ ] Tests Docker
-- [ ] Tests de régression
 
 #### Documentation
 - [ ] Mise à jour de la documentation utilisateur
-- [ ] Documentation Docker
 - [ ] Documentation des nouvelles fonctionnalités
 
 #### Finalisation
@@ -293,17 +289,18 @@ Emplacement : dossier racine du répertoire d'exécution.
 ### 3. Fichiers de Préférences Utilisateur
 - **language.txt** : Stocke la préférence de langue (fr/en)
 - **logformat.txt** : Stocke le format de log préféré (JSON/XML)
+- **settings.json** : Stocke les paramètres utilisateur (logiciel métier, extensions à crypter, chemin de CryptoSoft)
 
 ## Calendrier
 - **Livrable 1 (Version 1.0)** : ✅ Complété
   - Diagrammes UML livrés
   - Application console fonctionnelle
   
-- **Livrable 2 (Versions 1.1 et 2.0)** : 🟩 En cours
+- **Livrable 2 (Versions 1.1 et 2.0)** : ✅ Complété
   - Version 1.1 avec support XML ✅ Complété
-  - Version 2.0 avec interface graphique 🟩 En développement
+  - Version 2.0 avec interface graphique ✅ Complété
   
-- **Livrable 3 (Version 3.0)** : À venir
+- **Livrable 3 (Version 3.0)** : 🟦 En cours
   - Diagrammes UML à livrer l'avant-veille de la soutenance
   - Version finale avec toutes les fonctionnalités
 
@@ -346,3 +343,8 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 13/02/2026 : Correction du problème de changement de format de log (nécessite redémarrage)
 - 13/02/2026 : Restructuration du stockage des logs (dossiers Logs/Json et Logs/Xml)
 - 13/02/2026 : Amélioration des traductions dans le menu des paramètres
+- 13/02/2026 : Implémentation du service BusinessSoftwareMonitor pour la détection des logiciels métier
+- 13/02/2026 : Amélioration de la détection du logiciel métier avec approche multi-méthodes
+- 13/02/2026 : Correction des problèmes d'accès aux processus système
+- 13/02/2026 : Finalisation et livraison de la version 2.0
+- 14/02/2026 : Début de la planification de la version 3.0

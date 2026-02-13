@@ -1,11 +1,12 @@
-# Technical Documentation EasySave v1.0
+# Technical Documentation EasySave v2.0
 
 ## General Architecture
 
-EasySave is a backup application developed in C# (.NET 8.0) following a modular architecture. The project is divided into two main components:
+EasySave v2.0 is a backup application developed in C# (.NET 8.0) following the MVVM architecture pattern. The project is divided into several main components:
 
-1. **EasySave**: Main console application
+1. **EasySave**: Main WPF application with graphical user interface
 2. **EasyLog**: Class library for log management
+3. **CryptoSoft**: External encryption utility
 
 ## Project Structure
 
@@ -13,17 +14,32 @@ EasySave is a backup application developed in C# (.NET 8.0) following a modular 
 EasySave/
 ├── Models/
 │   └── BackupJob.cs           # Data model for backup jobs
+├── ViewModels/
+│   ├── MainViewModel.cs       # Main view model for application logic
+│   ├── SettingsViewModel.cs   # Settings management
+│   └── RelayCommand.cs        # Command implementation
+├── Views/
+│   ├── MainWindow.xaml        # Main application window
+│   ├── BackupJobDialog.xaml   # Dialog for creating/editing jobs
+│   └── SettingsWindow.xaml    # Settings window
 ├── Services/
-│   ├── BackupJobManager.cs    # Job management (CRUD, persistence)
 │   ├── BackupService.cs       # Backup execution
+│   ├── BusinessSoftwareMonitor.cs # Business software detection
+│   ├── CryptoService.cs       # File encryption
 │   ├── StateManager.cs        # Real-time state management
 │   └── TranslationService.cs  # Multilingual support
-├── EasySaveController.cs      # Main application controller
-└── Program.cs                 # Application entry point
+└── Converters/
+    ├── BoolToColorConverter.cs # UI value converters
+    └── NullToBoolConverter.cs  # UI value converters
 
 EasyLog/
-├── ILogger.cs                 # Interface for loggers
-└── JsonLogger.cs              # JSON implementation of the logger
+├── ILogger.cs                 # Base logger interface
+├── IEncryptionLogger.cs       # Extended logger with encryption support
+├── JsonLogger.cs              # JSON implementation
+└── XmlLogger.cs               # XML implementation
+
+CryptoSoft/
+└── Program.cs                 # Encryption utility
 ```
 
 ## Main Components
@@ -41,21 +57,35 @@ The `Validate()` method ensures that:
 - Source path exists
 - Target path is specified
 
-### BackupJobManager Service
+### MainViewModel
 
-Manages the creation, storage, loading, and deletion of backup jobs. Jobs are persisted in a JSON file (`config.json`).
+Central view model that manages the application's main functionality:
 
 Key methods:
-- `LoadJobs()`: Loads jobs from the configuration file
-- `SaveJobs()`: Saves jobs to the configuration file
-- `GetJob(int index)`: Retrieves a specific job by index
-- `GetJobs()`: Retrieves all jobs
-- `CreateJob(string name, string sourcePath, string targetPath, BackupType type)`: Creates a new job
-- `DeleteJob(int index)`: Deletes a job by index
+- `LoadBackupJobs()`: Loads saved backup jobs
+- `ExecuteBackupJob(BackupJob job)`: Executes a specific backup job
+- `ExecuteSelectedJobs()`: Executes all selected jobs
+- `CreateBackupJob(BackupJob job)`: Creates a new backup job
+- `DeleteBackupJob(BackupJob job)`: Deletes an existing job
+- `OpenCreateBackupJobDialog()`: Opens the dialog for creating a new job
+- `OpenEditBackupJobDialog(BackupJob job)`: Opens the dialog for editing a job
+- `OpenSettings()`: Opens the settings window
 
-Limitations:
-- Maximum 5 backup jobs
-- Unique job names
+### SettingsViewModel
+
+Manages application settings and preferences:
+
+Key properties:
+- `BusinessSoftwareName`: Name of the business software to detect
+- `EncryptionExtensions`: List of file extensions to encrypt
+- `CryptoSoftPath`: Path to the CryptoSoft executable
+- `LogFormat`: Current log format (JSON/XML)
+
+Key methods:
+- `IsBusinessSoftwareRunning()`: Checks if the specified business software is running
+- `ShouldEncryptFile(string filePath)`: Determines if a file should be encrypted
+- `LoadSettings()`: Loads settings from settings.json
+- `SaveSettings()`: Saves settings to settings.json
 
 ### BackupService
 
@@ -63,88 +93,98 @@ Service responsible for executing backup operations:
 
 Key methods:
 - `ExecuteBackupJobAsync(BackupJob job)`: Executes a backup job asynchronously
-- `RemoveDeletedFilesAsync(string backupName, string sourcePath, string targetPath)`: Removes files in the target that don't exist in the source
-- `RemoveEmptyDirectories(string directory)`: Recursively removes empty directories
+- `PauseBackupJob()`: Pauses the current backup job
+- `ResumeBackupJob()`: Resumes a paused backup job
+- `StopBackupJob()`: Stops the current backup job
 
-Backup types:
-- **Complete backup**: Copies all files from the source folder to the target folder and removes files in the target that don't exist in the source
-- **Differential backup**: Copies only files that are new or have been modified since the last backup
+### BusinessSoftwareMonitor
+
+Monitors the execution of business software and controls backup operations accordingly:
+
+Key methods:
+- `StartMonitoring()`: Begins monitoring for business software
+- `StopMonitoring()`: Stops monitoring
+- `CheckBusinessSoftwareStatus()`: Checks if business software is running and takes appropriate action
+
+### CryptoService
+
+Manages file encryption using the external CryptoSoft utility:
+
+Key methods:
+- `ShouldEncrypt(string filePath)`: Determines if a file should be encrypted
+- `EncryptFileAsync(string sourceFile, string targetFile)`: Encrypts a file
 
 ### StateManager
 
-Manages the real-time state of backup jobs, stored in `state.json`. 
+Manages the real-time state of backup jobs, stored in `state.json`:
 
 Key methods:
+- `UpdateStateAsync(...)`: Updates the state of a specific job
 - `SaveStateAsync()`: Saves the current state to the state file
 - `LoadState()`: Loads the state from the state file
-- `UpdateStateAsync(...)`: Updates the state of a specific job
-
-For each active job, it maintains:
-- Job name
-- Current state (Active, Inactive, Completed, Error)
-- Progress metrics:
-  - Total files and remaining files
-  - Total size and remaining size
-  - Current file being processed
-  - Current target file
 
 ### TranslationService
 
-Manages multilingual support (FR/EN) for the application.
+Manages multilingual support (FR/EN) for the application:
 
 Key methods:
 - `GetTranslation(string key)`: Gets the translation for a specific key
-- `ChangeLanguage(string language)`: Changes the current language
-- `ToggleLanguage()`: Toggles between available languages
+- `SetLanguage(string language)`: Changes the current language
 
-### EasySaveController
+## Key Features in v2.0
 
-Main controller that coordinates all operations:
+### 1. Graphical User Interface
 
-- Initializes all services
-- Handles command-line arguments
-- Displays the interactive menu
-- Manages backup job execution
-- Tracks last backup times for each job
+EasySave v2.0 introduces a complete graphical interface using WPF and the MVVM pattern, allowing for:
+- Visual management of backup jobs
+- Real-time progress monitoring
+- Settings configuration through a dedicated interface
+- Improved user experience with visual feedback
 
-Key methods:
-- `RunWithArgsAsync(string[] args)`: Entry point for application execution
-- `ShowMainMenuAsync()`: Displays the main menu
-- `CreateBackupJobAsync()`: Creates a new backup job
-- `ExecuteBackupJobsAsync()`: Executes selected backup jobs
-- `ManageBackupJobsAsync()`: Displays and manages existing backup jobs
-- `DeleteBackupJobAsync()`: Deletes a selected backup job
-- `ExecuteCommandLineArgsAsync(string[] args)`: Processes command-line arguments
-- `ParseJobIndexes(string input)`: Parses job indexes from user input
+### 2. Business Software Detection
 
-### EasyLog Library
+The application can detect if specific business software is running and manage backups accordingly:
 
-Library responsible for logging backup operations.
+- **Multi-method detection**: Uses several techniques to reliably detect running software
+  - Process name matching
+  - Window title detection
+  - Special handling for modern applications (UWP)
+  - PowerShell-based detection as fallback
 
-Components:
-- `ILogger`: Interface defining logging operations
-- `JsonLogger`: Implementation that logs to JSON files
-- `LogEntry`: Data structure for log entries
+- **Automatic backup management**:
+  - Prevents backup start if business software is running
+  - Automatically pauses backup when business software starts
+  - Automatically resumes backup when business software stops
 
-Key methods:
-- `LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)`: Logs a file transfer operation
+### 3. File Encryption
+
+Integration with CryptoSoft for selective file encryption:
+
+- **Selective encryption**: Only encrypts files with specified extensions
+- **Performance tracking**: Measures and logs encryption time
+- **Fallback mechanism**: If encryption fails, files are still backed up (unencrypted)
+
+### 4. Enhanced Logging
+
+Improved logging system with:
+
+- **Format selection**: Choose between JSON and XML formats
+- **Encryption metrics**: Logs include encryption time for encrypted files
+- **Structured storage**: Logs are organized in dedicated folders by format
 
 ## Data Files
 
-### config.json
+### settings.json
 
-Stores the configuration of backup jobs:
+Stores application settings:
 
 ```json
-[
-  {
-    "Name": "Documents",
-    "SourcePath": "C:\\Users\\Username\\Documents",
-    "TargetPath": "D:\\Backup\\Documents",
-    "Type": 0  // 0 = Complete, 1 = Differential
-  },
-  ...
-]
+{
+  "BusinessSoftwareName": "calc.exe",
+  "EncryptionExtensions": [".txt", ".doc", ".pdf"],
+  "CryptoSoftPath": "C:\\Path\\To\\CryptoSoft.exe",
+  "MaxParallelJobs": 5
+}
 ```
 
 ### state.json
@@ -168,10 +208,11 @@ Stores the real-time state of backup jobs:
 ]
 ```
 
-### YYYY-MM-DD.json
+### Log Files (YYYY-MM-DD.json/xml)
 
-Daily log files stored in the `logs` directory:
+Daily log files stored in the `Logs/Json` or `Logs/Xml` directories:
 
+JSON format example:
 ```json
 [
   {
@@ -180,41 +221,32 @@ Daily log files stored in the `logs` directory:
     "SourcePath": "C:\\Users\\Username\\Documents\\file.txt",
     "TargetPath": "D:\\Backup\\Documents\\file.txt",
     "FileSize": 1024,
-    "TransferTime": 15
+    "TransferTime": 15,
+    "EncryptionTime": 5
   },
   ...
 ]
 ```
 
-### lastbackups.json
-
-Stores the timestamp of the last successful backup for each job:
-
-```json
-{
-  "Documents": "2026-02-02T12:34:56.789Z",
-  "Pictures": "2026-02-01T10:15:30.123Z"
-}
+XML format example:
+```xml
+<Logs>
+  <Log>
+    <Timestamp>2026-02-02T12:34:56.789Z</Timestamp>
+    <BackupName>Documents</BackupName>
+    <SourcePath>C:\Users\Username\Documents\file.txt</SourcePath>
+    <TargetPath>D:\Backup\Documents\file.txt</TargetPath>
+    <FileSize>1024</FileSize>
+    <TransferTime>15</TransferTime>
+    <EncryptionTime>5</EncryptionTime>
+  </Log>
+</Logs>
 ```
 
-## Concurrency Management
+### Preference Files
 
-Only one backup process runs at a time, preventing potential conflicts
-
-## Command Line Interface
-
-The application supports various command-line arguments:
-
-- `-h`, `--help`, `/?`: Display help information
-- `all`, `0`: Execute all backup jobs sequentially
-- `1`: Execute backup job #1
-- `1-3`: Execute backup jobs #1, #2, and #3
-- `1;3;5`: Execute backup jobs #1, #3, and #5
-
-PowerShell syntax variations:
-- `.\EasySave.exe 1 3 5`: Execute backup jobs #1, #3, and #5
-- `.\EasySave.exe "1-3"`: Execute backup jobs #1, #2, and #3
-- `.\EasySave.exe "1;3;5"`: Execute backup jobs #1, #3, and #5
+- **language.txt**: Stores the language preference (en/fr)
+- **logformat.txt**: Stores the log format preference (JSON/XML)
 
 ## Error Handling
 
@@ -223,51 +255,100 @@ PowerShell syntax variations:
 - Source file access errors are caught and logged
 - Target directory creation failures are reported to the user
 - File copy exceptions are logged with a negative transfer time
+- Encryption failures are logged with a negative encryption time
 
-### State Management
+### Business Software Detection
 
-- Jobs that encounter errors are marked with the `Error` state
-- The application attempts to gracefully handle JSON serialization errors
+- Multiple detection methods ensure reliable operation
+- Access denied errors are handled gracefully
+- Detection is performed periodically to catch software that starts during backup
 
-### Backup Job Validation
+### Settings Management
 
-- Source directories are verified before backup starts
-- Invalid job configurations are rejected with appropriate error messages
+- Default settings are used if settings file is missing or corrupted
+- Settings changes are saved immediately
+- Input validation prevents invalid settings
+
+## Design Patterns
+
+### MVVM Pattern
+
+- **Models**: Data structures like BackupJob
+- **Views**: XAML-based UI components
+- **ViewModels**: Classes that handle UI logic and data binding
+
+### Command Pattern
+
+- `RelayCommand` class implements `ICommand` interface
+- Commands encapsulate user actions (Execute, Delete, Pause, etc.)
+- Enables clean separation between UI and logic
+
+### Observer Pattern
+
+- `INotifyPropertyChanged` implementation for data binding
+- `BusinessSoftwareMonitor` uses events to notify about software status changes
+- State changes propagate through the application
+
+### Strategy Pattern
+
+- Different logging strategies (JSON/XML) through the `ILogger` interface
+- Encryption strategy in `CryptoService`
+
+### Factory Pattern
+
+- `LoggerFactory` creates appropriate logger instances based on configuration
+
+## Integration with CryptoSoft
+
+CryptoSoft is an external encryption utility that:
+
+1. Takes source and target file paths as command-line arguments
+2. Encrypts the source file and saves it to the target path
+3. Returns the encryption time in milliseconds
+
+Integration flow:
+1. `CryptoService.ShouldEncrypt()` determines if a file needs encryption
+2. If yes, `EncryptFileAsync()` launches CryptoSoft as a separate process
+3. Encryption time is captured and logged
+4. If CryptoSoft fails, a standard copy is performed as fallback
 
 ## Troubleshooting Guide
 
 ### Common Errors
 
-1. **File Access Error**
-   - Check permissions of source and target folders
-   - Check if files are locked by other applications
-   - Verify that the user has read/write access to the logs directory
+1. **Business Software Detection Issues**
+   - Ensure the correct process name is specified in settings
+   - For modern Windows apps, try using the executable name from Task Manager
+   - Run EasySave with administrator privileges for better process detection
 
-2. **JSON Serialization Error**
-   - Check the integrity of config.json, state.json, and lastbackups.json files
-   - In case of corruption, delete the files (they will be recreated)
+2. **Encryption Failures**
+   - Verify CryptoSoft path in settings
+   - Check if target directories are writable
+   - Ensure file extensions are correctly specified (with leading dot)
 
-3. **"Out of memory" Error**
-   - Occurs when backing up very large files
-   - Recommend the user to divide jobs into smaller units
+3. **UI Responsiveness**
+   - Large backup operations run on background threads
+   - Progress updates may be delayed for very fast operations
 
-### Error Logs
+### Debugging Techniques
 
-- Transfer errors are indicated in logs by a negative transfer time
-- A transfer time of `-1` indicates a file access error
+- Enable Debug output to see detailed operation logs
+- Check log files for error indicators (negative transfer/encryption times)
+- Use the settings dialog to verify configuration values
 
 ## Known Limitations
 
-1. No file encryption
-2. Maximum 5 backup jobs
-3. No parallel backups
-4. No resumption after interruption
-5. No file compression
-6. No network path validation
-7. No priority system for backup jobs
+1. No file compression
+2. No network path validation
+3. No priority system for backup jobs
+4. Business software detection may require administrator privileges
+5. No backup resumption after application restart
 
 ## Planned Evolutions
 
-1. **Version 1.1**: XML format support for logs
-2. **Version 2.0**: WPF graphical interface with MVVM architecture
-3. **Version 3.0**: Parallel backups, priority management, and Docker containerization
+1. **Version 3.0**: 
+   - Parallel backups
+   - Priority management for file types
+   - Bandwidth limitation
+   - Docker containerization
+   - CryptoSoft mono-instance with queue management

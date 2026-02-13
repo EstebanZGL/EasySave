@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -29,6 +30,9 @@ namespace EasySave.ViewModels
             
             LoadSettings();
             LoadLogFormat(); // Load log format from separate file
+            
+            // Debug: Print the current business software name
+            Debug.WriteLine($"Business software name set to: {_businessSoftwareName}");
         }
 
         public string BusinessSoftwareName
@@ -41,6 +45,9 @@ namespace EasySave.ViewModels
                     _businessSoftwareName = value;
                     OnPropertyChanged();
                     SaveSettings();
+                    
+                    // Debug: Print when business software name changes
+                    Debug.WriteLine($"Business software name changed to: {_businessSoftwareName}");
                 }
             }
         }
@@ -118,15 +125,145 @@ namespace EasySave.ViewModels
             }
         }
 
+        /// <summary>
+        /// Checks if the configured business software is currently running using multiple detection methods
+        /// </summary>
+        /// <returns>True if the business software is running, false otherwise</returns>
         public bool IsBusinessSoftwareRunning()
         {
             if (string.IsNullOrWhiteSpace(BusinessSoftwareName))
+            {
+                Debug.WriteLine("Business software name is empty, returning false");
                 return false;
+            }
 
-            var processes = System.Diagnostics.Process.GetProcessesByName(
-                Path.GetFileNameWithoutExtension(BusinessSoftwareName));
-            
-            return processes.Length > 0;
+            try
+            {
+                string processNameToFind = Path.GetFileNameWithoutExtension(BusinessSoftwareName).ToLowerInvariant();
+                Debug.WriteLine($"Looking for business software: {processNameToFind}");
+
+                // Method 1: Simple process name check (most reliable but limited)
+                try
+                {
+                    var processesByName = Process.GetProcessesByName(processNameToFind);
+                    if (processesByName.Length > 0)
+                    {
+                        Debug.WriteLine($"Found {processesByName.Length} processes with name '{processNameToFind}'");
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in method 1: {ex.Message}");
+                }
+
+                // Method 2: Check for Calculator specifically (special case handling)
+                if (processNameToFind.Equals("calc", StringComparison.OrdinalIgnoreCase) || 
+                    processNameToFind.Equals("calculator", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Modern Windows Calculator (Windows 10/11)
+                    var calculatorProcesses = Process.GetProcessesByName("CalculatorApp");
+                    if (calculatorProcesses.Length > 0)
+                    {
+                        Debug.WriteLine("Found modern Calculator (CalculatorApp)");
+                        return true;
+                    }
+
+                    // Check if Calculator is hosted in ApplicationFrameHost
+                    try
+                    {
+                        foreach (var process in Process.GetProcessesByName("ApplicationFrameHost"))
+                        {
+                            try
+                            {
+                                // This is a heuristic - if Calculator is open, its window title often contains "Calculator"
+                                if (process.MainWindowTitle.Contains("Calculator", StringComparison.OrdinalIgnoreCase) ||
+                                    process.MainWindowTitle.Contains("Calculatrice", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Debug.WriteLine("Found Calculator running in ApplicationFrameHost");
+                                    return true;
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore access errors
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error checking ApplicationFrameHost: {ex.Message}");
+                    }
+                }
+
+                // Method 3: Check all processes and their window titles
+                try
+                {
+                    foreach (var process in Process.GetProcesses())
+                    {
+                        try
+                        {
+                            // Check if the process name contains our target
+                            if (process.ProcessName.ToLowerInvariant().Contains(processNameToFind))
+                            {
+                                Debug.WriteLine($"Found process with matching name: {process.ProcessName}");
+                                return true;
+                            }
+
+                            // Check window title (can be useful for hosted apps like UWP apps)
+                            if (!string.IsNullOrEmpty(process.MainWindowTitle) && 
+                                process.MainWindowTitle.ToLowerInvariant().Contains(processNameToFind))
+                            {
+                                Debug.WriteLine($"Found process with matching window title: {process.MainWindowTitle}");
+                                return true;
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore access errors for individual processes
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error checking all processes: {ex.Message}");
+                }
+
+                // Method 4: Use PowerShell as a last resort
+                try
+                {
+                    using (Process process = new Process())
+                    {
+                        process.StartInfo.FileName = "powershell.exe";
+                        process.StartInfo.Arguments = $"-Command \"Get-Process | Where-Object {{ $_.ProcessName -like '*{processNameToFind}*' }} | Measure-Object | Select-Object -ExpandProperty Count\"";
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.CreateNoWindow = true;
+                        
+                        process.Start();
+                        string output = process.StandardOutput.ReadToEnd();
+                        process.WaitForExit();
+                        
+                        if (int.TryParse(output.Trim(), out int count) && count > 0)
+                        {
+                            Debug.WriteLine($"Found {count} matching processes via PowerShell");
+                            return true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in PowerShell method: {ex.Message}");
+                }
+
+                Debug.WriteLine("Business software is NOT running (checked all methods)");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in IsBusinessSoftwareRunning: {ex.Message}");
+                return false; // In case of error, assume it's not running
+            }
         }
 
         public bool ShouldEncryptFile(string filePath)
@@ -143,6 +280,8 @@ namespace EasySave.ViewModels
             try
             {
                 string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+                Debug.WriteLine($"Loading settings from: {settingsPath}");
+                
                 if (File.Exists(settingsPath))
                 {
                     string json = File.ReadAllText(settingsPath);
@@ -154,13 +293,23 @@ namespace EasySave.ViewModels
                         EncryptionExtensions = settings.EncryptionExtensions;
                         CryptoSoftPath = settings.CryptoSoftPath;
                         MaxParallelJobs = settings.MaxParallelJobs;
+                        
+                        Debug.WriteLine($"Loaded settings: BusinessSoftwareName={BusinessSoftwareName}");
                     }
+                    else
+                    {
+                        Debug.WriteLine("Settings were null after deserialization");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Settings file does not exist, using defaults");
                 }
             }
             catch (Exception ex)
             {
                 // Log error but continue with default settings
-                Console.WriteLine($"Error loading settings: {ex.Message}");
+                Debug.WriteLine($"Error loading settings: {ex.Message}");
             }
         }
 
@@ -179,11 +328,13 @@ namespace EasySave.ViewModels
                 
                 string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(settingsPath, json);
+                
+                Debug.WriteLine($"Settings saved: BusinessSoftwareName={BusinessSoftwareName}");
             }
             catch (Exception ex)
             {
                 // Log error
-                Console.WriteLine($"Error saving settings: {ex.Message}");
+                Debug.WriteLine($"Error saving settings: {ex.Message}");
             }
         }
 
@@ -204,7 +355,7 @@ namespace EasySave.ViewModels
             catch (Exception ex)
             {
                 // Log error but continue with default format
-                Console.WriteLine($"Error loading log format: {ex.Message}");
+                Debug.WriteLine($"Error loading log format: {ex.Message}");
             }
         }
 
@@ -218,7 +369,7 @@ namespace EasySave.ViewModels
             catch (Exception ex)
             {
                 // Log error
-                Console.WriteLine($"Error saving log format: {ex.Message}");
+                Debug.WriteLine($"Error saving log format: {ex.Message}");
             }
         }
 
