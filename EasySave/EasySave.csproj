@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <AssemblyName>EasySave</AssemblyName>
+    <RootNamespace>EasySave</RootNamespace>
+    <!-- <ApplicationIcon>Resources\easysave_icon.ico</ApplicationIcon> -->
+  </PropertyGroup>
+
+  <!-- 
+  <ItemGroup>
+    <None Remove="Resources\easysave_icon.ico" />
+  </ItemGroup>
+  -->
+
+  <!-- 
+  <ItemGroup>
+    <Content Include="Resources\easysave_icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasyLog\EasyLog.csproj" />
+    <ProjectReference Include="..\CryptoSoft\CryptoSoft.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- 
+  <ItemGroup>
+    <Resource Include="Resources\easysave_icon.ico" />
+  </ItemGroup>
+  -->
+
+  <Target Name="CopyCryptoSoftBundle" AfterTargets="Build">
+    <ItemGroup>
+      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.exe" />
+      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.dll" />
+      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.deps.json" />
+      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.runtimeconfig.json" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(CryptoSoftBundle)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.dll')" />
+  </Target>
+
+</Project>

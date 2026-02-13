@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyLog", "EasyLog\EasyLog.csproj", "{35CABCBD-1A6D-182F-7DF4-F14726F39B87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasySave", "EasySave\EasySave.csproj", "{C3CA801E-4677-7201-D6C9-50918E0B83C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoSoft", "CryptoSoft\CryptoSoft.csproj", "{A1F62A65-17D8-4A5E-9E51-55B2913B4AC1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{35CABCBD-1A6D-182F-7DF4-F14726F39B87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35CABCBD-1A6D-182F-7DF4-F14726F39B87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35CABCBD-1A6D-182F-7DF4-F14726F39B87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35CABCBD-1A6D-182F-7DF4-F14726F39B87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3CA801E-4677-7201-D6C9-50918E0B83C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3CA801E-4677-7201-D6C9-50918E0B83C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3CA801E-4677-7201-D6C9-50918E0B83C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3CA801E-4677-7201-D6C9-50918E0B83C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1F62A65-17D8-4A5E-9E51-55B2913B4AC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1F62A65-17D8-4A5E-9E51-55B2913B4AC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1F62A65-17D8-4A5E-9E51-55B2913B4AC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1F62A65-17D8-4A5E-9E51-55B2913B4AC1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {09F441FC-B92B-4740-B792-61B522404B6E}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch EasySave (WPF)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/EasySave/bin/Debug/net8.0-windows/EasySave.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/EasySave",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch EasySave (Command Line)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/EasySave/bin/Debug/net8.0-windows/EasySave.dll",
+            "args": ["1"],
+            "cwd": "${workspaceFolder}/EasySave",
+            "console": "externalTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}

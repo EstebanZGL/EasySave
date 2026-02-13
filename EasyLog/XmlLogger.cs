@@ -8,9 +8,9 @@ using System.Xml.Serialization;
 namespace EasyLog
 {
     /// <summary>
-    /// XML implementation of the logger interface
+    /// XML implementation of the logger interface with encryption support
     /// </summary>
-    public class XmlLogger : ILogger
+    public class XmlLogger : IEncryptionLogger
     {
         private readonly string _logDirectory;
 
@@ -42,19 +42,46 @@ namespace EasyLog
         private static string GetDefaultLogDirectory()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string logDirectory = Path.Combine(baseDirectory, "logs");
+            string logsDirectory = Path.Combine(baseDirectory, "Logs");
             
-            // Créer le dossier logs s'il n'existe pas
-            if (!Directory.Exists(logDirectory))
+            // Create Logs directory if it doesn't exist
+            if (!Directory.Exists(logsDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
+                Directory.CreateDirectory(logsDirectory);
             }
             
-            return logDirectory;
+            // Create Xml subdirectory
+            string xmlLogsDirectory = Path.Combine(logsDirectory, "Xml");
+            
+            // Create Xml directory if it doesn't exist
+            if (!Directory.Exists(xmlLogsDirectory))
+            {
+                Directory.CreateDirectory(xmlLogsDirectory);
+            }
+            
+            return xmlLogsDirectory;
         }
 
         /// <summary>
-        /// Logs a file transfer action
+        /// Implements the ILogger.LogBackupOperationAsync method
+        /// </summary>
+        public Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime)
+        {
+            // Réutiliser la méthode LogTransferAsync existante
+            return LogTransferAsync(jobName, sourcePath, targetPath, fileSize, transferTime);
+        }
+
+        /// <summary>
+        /// Implements the ILogger.LogApplicationEventAsync method
+        /// </summary>
+        public Task LogApplicationEventAsync(string eventName, string details)
+        {
+            // Réutiliser la méthode LogApplicationEventAsync existante avec un paramètre null pour le troisième argument
+            return LogApplicationEventAsync(eventName, details, null);
+        }
+
+        /// <summary>
+        /// Logs a file transfer action (original method from ILogger)
         /// </summary>
         public async Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime)
         {
@@ -65,7 +92,27 @@ namespace EasyLog
                 SourcePath = sourcePath,
                 TargetPath = targetPath,
                 FileSize = fileSize,
-                TransferTime = transferTime
+                TransferTime = transferTime,
+                EncryptionTime = 0 // Default to 0 for non-encrypted transfers
+            };
+
+            await WriteLogEntryAsync(logEntry);
+        }
+
+        /// <summary>
+        /// Logs a file transfer action with encryption time (new method from IEncryptionLogger)
+        /// </summary>
+        public async Task LogEncryptedTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime)
+        {
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = backupName,
+                SourcePath = sourcePath,
+                TargetPath = targetPath,
+                FileSize = fileSize,
+                TransferTime = transferTime,
+                EncryptionTime = encryptionTime
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -133,7 +180,7 @@ namespace EasyLog
         /// <summary>
         /// Logs an application event (startup, shutdown, error, etc.).
         /// </summary>
-        public async Task LogApplicationEventAsync(string eventType, string message, string details = null)
+        public async Task LogApplicationEventAsync(string eventType, string message, string? details = null)
         {
             // Implement this method as needed
             await Task.CompletedTask;
@@ -142,7 +189,7 @@ namespace EasyLog
         /// <summary>
         /// Logs a backup job management operation (creation, deletion, modification).
         /// </summary>
-        public async Task LogJobManagementAsync(string operationType, string jobName, string details = null)
+        public async Task LogJobManagementAsync(string operationType, string jobName, string? details = null)
         {
             // Implement this method as needed
             await Task.CompletedTask;

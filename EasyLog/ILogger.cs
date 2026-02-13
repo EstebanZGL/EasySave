@@ -14,5 +14,10 @@ namespace EasyLog
         // transferTime: Transfer time in milliseconds (negative if error)
         // Returns: Task representing the asynchronous operation
         Task LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime);
+        
+        Task LogApplicationEventAsync(string eventName, string details);
+        
+        // Logs a backup operation
+        Task LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime);
     }
 }
