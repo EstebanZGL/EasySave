@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -88,8 +89,14 @@ namespace EasySave.ViewModels
             get => string.Join(";", _encryptionExtensions);
             set
             {
-                var extensions = value.Split(new[] { ';', ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                EncryptionExtensions = new List<string>(extensions);
+                var extensions = value
+                    .Split(new[] { ';', ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(e => e.Trim().ToLowerInvariant())
+                    .Select(e => e.StartsWith(".") ? e : "." + e)
+                    .Distinct()
+                    .ToList();
+
+                EncryptionExtensions = extensions;
                 OnPropertyChanged();
             }
         }
@@ -111,7 +118,7 @@ namespace EasySave.ViewModels
                 return false;
 
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
-            return EncryptionExtensions.Contains(extension);
+            return EncryptionExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
         private void LoadSettings()

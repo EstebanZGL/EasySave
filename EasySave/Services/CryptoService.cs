@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -17,17 +16,15 @@ namespace EasySave.Services
         }
 
         /// <summary>
-        /// Determines if a file should be encrypted based on its extension
+        /// Determines if a file should be encrypted based on its extension.
         /// </summary>
-        /// <param name="filePath">Path to the file</param>
-        /// <returns>True if the file should be encrypted, false otherwise</returns>
         public bool ShouldEncrypt(string filePath)
         {
             return _settings.ShouldEncryptFile(filePath);
         }
 
         /// <summary>
-        /// Encrypts a file using CryptoSoft
+        /// Encrypts a file using CryptoSoft.
         /// </summary>
         /// <param name="sourceFile">Path to the source file</param>
         /// <param name="targetFile">Path where the encrypted file should be saved</param>
@@ -40,45 +37,45 @@ namespace EasySave.Services
             if (string.IsNullOrEmpty(_settings.CryptoSoftPath) || !File.Exists(_settings.CryptoSoftPath))
                 throw new FileNotFoundException("CryptoSoft executable not found", _settings.CryptoSoftPath);
 
-            // Ensure the target directory exists
-            string targetDir = Path.GetDirectoryName(targetFile);
+            string targetDir = Path.GetDirectoryName(targetFile) ?? string.Empty;
             if (!string.IsNullOrEmpty(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
             }
 
-            // First copy the file to the destination
-            File.Copy(sourceFile, targetFile, true);
-
-            // Then encrypt it in place
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
-                // Create process to run CryptoSoft
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = _settings.CryptoSoftPath,
-                        Arguments = $"\"{targetFile}\"", // Pass the target file path as an argument
+                        Arguments = $"\"{sourceFile}\" \"{targetFile}\"",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                         CreateNoWindow = true
                     }
                 };
 
-                // Start the process
                 process.Start();
-                
-                // Wait for the process to exit asynchronously
+
+                string stdOut = await process.StandardOutput.ReadToEndAsync();
+                string stdErr = await process.StandardError.ReadToEndAsync();
+
                 await process.WaitForExitAsync();
-                
-                // Check if the process exited successfully
+
                 if (process.ExitCode != 0)
                 {
-                    Debug.WriteLine($"CryptoSoft exited with code {process.ExitCode}");
+                    Debug.WriteLine($"CryptoSoft failed with code {process.ExitCode}. Error: {stdErr}");
                     return -1;
+                }
+
+                if (long.TryParse(stdOut.Trim(), out long encryptionTime) && encryptionTime >= 0)
+                {
+                    return encryptionTime;
                 }
 
                 stopwatch.Stop();

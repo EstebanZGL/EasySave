@@ -196,8 +196,21 @@ namespace EasySave.Services
                             
                             if (needsEncryption)
                             {
-                                // For files that need encryption, we'll use CryptoService
-                                encryptionTime = await _cryptoService.EncryptFileAsync(sourceFile, targetFile);
+                                // For files that need encryption, attempt encryption first.
+                                // If it fails, fall back to a plain copy so the file is not missing from backup.
+                                try
+                                {
+                                    encryptionTime = await _cryptoService.EncryptFileAsync(sourceFile, targetFile);
+                                    if (encryptionTime < 0)
+                                    {
+                                        File.Copy(sourceFile, targetFile, true);
+                                    }
+                                }
+                                catch
+                                {
+                                    File.Copy(sourceFile, targetFile, true);
+                                    encryptionTime = -1;
+                                }
                             }
                             else
                             {
@@ -206,7 +219,9 @@ namespace EasySave.Services
                             }
 
                             stopwatch.Stop();
-                            long transferTime = stopwatch.ElapsedMilliseconds - (needsEncryption ? encryptionTime : 0);
+                            long transferTime = (needsEncryption && encryptionTime > 0)
+                                ? stopwatch.ElapsedMilliseconds - encryptionTime
+                                : stopwatch.ElapsedMilliseconds;
 
                             // Log transfer with encryption time if needed
                             if (needsEncryption)
