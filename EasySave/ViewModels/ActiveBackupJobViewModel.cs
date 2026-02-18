@@ -1,11 +1,13 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace EasySave.ViewModels
 {
     /// <summary>
     /// View model for an active backup job
     /// </summary>
-    public class ActiveBackupJobViewModel : ViewModelBase
+    public class ActiveBackupJobViewModel : INotifyPropertyChanged
     {
         private string _jobName;
         private string _status;
@@ -19,7 +21,14 @@ namespace EasySave.ViewModels
         public string JobName
         {
             get => _jobName;
-            set => SetProperty(ref _jobName, value);
+            set
+            {
+                if (_jobName != value)
+                {
+                    _jobName = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>
@@ -28,7 +37,17 @@ namespace EasySave.ViewModels
         public string Status
         {
             get => _status;
-            set => SetProperty(ref _status, value);
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+                    OnPropertyChanged();
+                    
+                    // Update IsPaused based on status
+                    IsPaused = (_status == "Paused");
+                }
+            }
         }
 
         /// <summary>
@@ -37,7 +56,14 @@ namespace EasySave.ViewModels
         public int Progress
         {
             get => _progress;
-            set => SetProperty(ref _progress, value);
+            set
+            {
+                if (_progress != value)
+                {
+                    _progress = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>
@@ -46,7 +72,14 @@ namespace EasySave.ViewModels
         public string CurrentFile
         {
             get => _currentFile;
-            set => SetProperty(ref _currentFile, value);
+            set
+            {
+                if (_currentFile != value)
+                {
+                    _currentFile = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         /// <summary>
@@ -55,7 +88,28 @@ namespace EasySave.ViewModels
         public bool IsPaused
         {
             get => _isPaused;
-            set => SetProperty(ref _isPaused, value);
+            set
+            {
+                if (_isPaused != value)
+                {
+                    _isPaused = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Event raised when a property changes
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        /// Raises the PropertyChanged event
+        /// </summary>
+        /// <param name="propertyName">The name of the property that changed</param>
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

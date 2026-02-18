@@ -68,7 +68,7 @@ namespace EasySave.Models
         public BackupJobState()
         {
             JobName = string.Empty;
-            Status = "Not Started";
+            Status = "En cours"; // Changed from "Not Started" to "En cours"
             TotalFiles = 0;
             TotalFilesRemaining = 0;
             TotalSize = 0;

@@ -10,6 +10,7 @@ using EasySave.Models;
 using EasySave.Services;
 using EasySave.Commands;
 using EasySave.Views;
+using System.Diagnostics;
 
 namespace EasySave.ViewModels
 {
@@ -31,6 +32,7 @@ namespace EasySave.ViewModels
         private bool _isAllJobsSelected;
         private bool _isBusinessSoftwareRunning;
         private string _statusMessage;
+        private bool _hasSelectedJobs;
         
         // Commands
         public ICommand CreateBackupJobCommand { get; }
@@ -40,8 +42,7 @@ namespace EasySave.ViewModels
         public ICommand ExecuteSelectedJobsCommand { get; }
         public ICommand OpenSettingsCommand { get; }
         public ICommand ChangeLanguageCommand { get; }
-        public ICommand PauseJobCommand { get; }
-        public ICommand ResumeJobCommand { get; }
+        public ICommand PauseResumeJobCommand { get; }
         public ICommand StopJobCommand { get; }
 
         /// <summary>
@@ -74,8 +75,7 @@ namespace EasySave.ViewModels
             ExecuteSelectedJobsCommand = new RelayCommand(ExecuteSelectedJobs, param => HasSelectedJobs);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             ChangeLanguageCommand = new RelayCommand(param => ToggleLanguage());
-            PauseJobCommand = new RelayCommand(PauseJob);
-            ResumeJobCommand = new RelayCommand(ResumeJob);
+            PauseResumeJobCommand = new RelayCommand(PauseResumeJob);
             StopJobCommand = new RelayCommand(StopJob);
             
             // Subscribe to events
@@ -128,6 +128,7 @@ namespace EasySave.ViewModels
                     {
                         job.IsSelected = value;
                     }
+                    UpdateHasSelectedJobs();
                 }
             }
         }
@@ -153,7 +154,11 @@ namespace EasySave.ViewModels
         /// <summary>
         /// Gets whether any jobs are selected
         /// </summary>
-        public bool HasSelectedJobs => BackupJobs.Any(j => j.IsSelected);
+        public bool HasSelectedJobs
+        {
+            get => _hasSelectedJobs;
+            private set => SetProperty(ref _hasSelectedJobs, value);
+        }
 
         // Translation properties
         public string AppTitle => _translationService.GetTranslation("app_title");
@@ -188,11 +193,31 @@ namespace EasySave.ViewModels
             
             foreach (var job in _backupJobRepository.GetAllBackupJobs())
             {
-                BackupJobs.Add(new BackupJobViewModel(job));
+                var jobViewModel = new BackupJobViewModel(job);
+                jobViewModel.PropertyChanged += OnBackupJobViewModelPropertyChanged;
+                BackupJobs.Add(jobViewModel);
             }
             
-            // Notify that HasSelectedJobs might have changed
-            OnPropertyChanged(nameof(HasSelectedJobs));
+            UpdateHasSelectedJobs();
+        }
+        
+        /// <summary>
+        /// Updates the HasSelectedJobs property based on the current selection state
+        /// </summary>
+        private void UpdateHasSelectedJobs()
+        {
+            HasSelectedJobs = BackupJobs.Any(j => j.IsSelected);
+        }
+        
+        /// <summary>
+        /// Event handler for property changes in BackupJobViewModel instances
+        /// </summary>
+        private void OnBackupJobViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(BackupJobViewModel.IsSelected))
+            {
+                UpdateHasSelectedJobs();
+            }
         }
         
         /// <summary>
@@ -208,8 +233,10 @@ namespace EasySave.ViewModels
                 
                 if (_backupJobRepository.AddBackupJob(newJob))
                 {
-                    BackupJobs.Add(new BackupJobViewModel(newJob));
-                    OnPropertyChanged(nameof(HasSelectedJobs));
+                    var jobViewModel = new BackupJobViewModel(newJob);
+                    jobViewModel.PropertyChanged += OnBackupJobViewModelPropertyChanged;
+                    BackupJobs.Add(jobViewModel);
+                    UpdateHasSelectedJobs();
                 }
                 else
                 {
@@ -261,7 +288,7 @@ namespace EasySave.ViewModels
                 {
                     BackupJobs.Remove(SelectedBackupJob);
                     SelectedBackupJob = null;
-                    OnPropertyChanged(nameof(HasSelectedJobs));
+                    UpdateHasSelectedJobs();
                 }
                 else
                 {
@@ -337,52 +364,89 @@ namespace EasySave.ViewModels
         }
         
         /// <summary>
-        /// Handles the PauseJob command
+        /// Pauses or resumes a backup job based on its current state
         /// </summary>
-        /// <param name="parameter">The name of the job to pause</param>
-        private async void PauseJob(object parameter)
+        /// <param name="parameter">The name of the job to pause or resume</param>
+        private async void PauseResumeJob(object parameter)
         {
+            Debug.WriteLine($"PauseResumeJob called with parameter: {parameter}");
+            
             if (parameter is string jobName)
             {
-                await _backupService.PauseJobAsync(jobName);
-            }
-        }
-        
-        /// <summary>
-        /// Handles the ResumeJob command
-        /// </summary>
-        /// <param name="parameter">The name of the job to resume</param>
-        private async void ResumeJob(object parameter)
-        {
-            if (parameter is string jobName)
-            {
-                // Log that we're trying to resume the job
-                Console.WriteLine($"Attempting to resume job: {jobName}");
-                
-                // Call the service method to resume the job
-                bool result = await _backupService.ResumeJobAsync(jobName);
-                
-                // Log the result
-                Console.WriteLine($"Resume result for job {jobName}: {result}");
-                
-                // Force UI update (in case the event doesn't trigger properly)
-                var job = ActiveJobs.FirstOrDefault(j => j.JobName == jobName);
-                if (job != null)
+                try
                 {
-                    job.Status = "En cours";
+                    // Find the job in the active jobs list
+                    var activeJob = ActiveJobs.FirstOrDefault(j => j.JobName == jobName);
+                    if (activeJob == null)
+                    {
+                        Debug.WriteLine($"Job {jobName} not found in active jobs");
+                        return;
+                    }
+                    
+                    // Vérifier si le travail est actuellement en pause en comparant avec la constante JobStatus.Paused
+                    bool isPaused = activeJob.Status == JobStatus.Paused;
+                    Debug.WriteLine($"Job {jobName} is currently paused: {isPaused} (Status: {activeJob.Status})");
+                    
+                    bool result;
+                    if (isPaused)
+                    {
+                        // Job is paused, resume it
+                        Debug.WriteLine($"Resuming job {jobName}");
+                        result = await _backupService.ResumeJobAsync(jobName);
+                        Debug.WriteLine($"Resume result: {result}");
+                        
+                        // Mettre à jour manuellement le statut pour éviter les problèmes de synchronisation
+                        if (result)
+                        {
+                            activeJob.Status = JobStatus.Running;
+                            activeJob.IsPaused = false;
+                        }
+                    }
+                    else
+                    {
+                        // Job is running, pause it
+                        Debug.WriteLine($"Pausing job {jobName}");
+                        result = await _backupService.PauseJobAsync(jobName);
+                        Debug.WriteLine($"Pause result: {result}");
+                        
+                        // Mettre à jour manuellement le statut pour éviter les problèmes de synchronisation
+                        if (result)
+                        {
+                            activeJob.Status = JobStatus.Paused;
+                            activeJob.IsPaused = true;
+                        }
+                    }
+                    
+                    // Force UI update
+                    OnPropertyChanged(nameof(ActiveJobs));
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in PauseResumeJob: {ex.Message}");
+                    System.Windows.MessageBox.Show($"Error pausing/resuming job: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
         
         /// <summary>
-        /// Handles the StopJob command
+        /// Stops a backup job
         /// </summary>
         /// <param name="parameter">The name of the job to stop</param>
         private void StopJob(object parameter)
         {
+            Debug.WriteLine($"StopJob called with parameter: {parameter}");
             if (parameter is string jobName)
             {
-                _backupService.StopJob(jobName);
+                try
+                {
+                    bool result = _backupService.StopJob(jobName);
+                    Debug.WriteLine($"StopJob result: {result}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in StopJob: {ex.Message}");
+                    System.Windows.MessageBox.Show($"Error stopping job: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
@@ -403,7 +467,7 @@ namespace EasySave.ViewModels
             // This event is raised from a background thread, so we need to dispatch to the UI thread
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                Console.WriteLine($"Status changed for job {e.JobName}: {e.Status}");
+                Debug.WriteLine($"Status changed for job {e.JobName}: {e.Status}");
                 
                 // Check if we already have a view model for this job
                 var jobViewModel = ActiveJobs.FirstOrDefault(j => j.JobName == e.JobName);
@@ -414,10 +478,11 @@ namespace EasySave.ViewModels
                     jobViewModel = new ActiveBackupJobViewModel
                     {
                         JobName = e.JobName,
-                        Status = e.Status, // Use the status directly from the event
+                        Status = e.Status,
                         Progress = e.Progress,
                         CurrentFile = e.CurrentFile,
-                        IsPaused = e.Status == "Paused"
+                        // Définir IsPaused en comparant avec la constante JobStatus.Paused
+                        IsPaused = string.Equals(e.Status, JobStatus.Paused, StringComparison.OrdinalIgnoreCase)
                     };
                     
                     ActiveJobs.Add(jobViewModel);
@@ -430,18 +495,19 @@ namespace EasySave.ViewModels
                 }
                 else
                 {
-                    // Update existing view model - IMPORTANT: Use the status directly from the event
+                    // Update existing view model
                     jobViewModel.Status = e.Status;
                     jobViewModel.Progress = e.Progress;
                     jobViewModel.CurrentFile = e.CurrentFile;
-                    jobViewModel.IsPaused = e.Status == "Paused";
+                    // Définir IsPaused en comparant avec la constante JobStatus.Paused
+                    jobViewModel.IsPaused = string.Equals(e.Status, JobStatus.Paused, StringComparison.OrdinalIgnoreCase);
                     
                     // Force property changed notification
                     OnPropertyChanged(nameof(ActiveJobs));
                 }
                 
                 // Remove completed or canceled jobs after a delay
-                if (e.Status == "Completed" || e.Status == "Canceled" || e.Status.StartsWith("Failed"))
+                if (e.Status == JobStatus.Completed || e.Status == JobStatus.Canceled || e.Status.StartsWith("Failed"))
                 {
                     Task.Delay(5000).ContinueWith(_ =>
                     {
@@ -460,7 +526,7 @@ namespace EasySave.ViewModels
                 
                 // Update the last backup time for the corresponding job in the list
                 var job = BackupJobs.FirstOrDefault(j => j.JobName == e.JobName);
-                if (job != null && e.Status == "Completed")
+                if (job != null && e.Status == JobStatus.Completed)
                 {
                     job.LastBackupTime = DateTime.Now;
                 }

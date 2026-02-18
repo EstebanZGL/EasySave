@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:EasySave.Views"
         xmlns:vm="clr-namespace:EasySave.ViewModels"
         xmlns:converters="clr-namespace:EasySave.Converters"
+        xmlns:models="clr-namespace:EasySave.Models"
         mc:Ignorable="d"
         Title="{Binding AppTitle}" Height="700" Width="1100">
     
@@ -21,6 +22,12 @@
         
         <!-- Convertisseur pour inverser la visibilité -->
         <converters:BoolToVisibilityInvertConverter x:Key="BoolToVisInvertConverter"/>
+        
+        <!-- Convertisseur pour transformer une chaîne en visibilité -->
+        <converters:StringToVisibilityConverter x:Key="StringToVisConverter"/>
+        
+        <!-- Convertisseur pour transformer un booléen en texte -->
+        <converters:BoolToStringConverter x:Key="BoolToStringConverter"/>
     </Window.Resources>
     
     <Grid>
@@ -193,18 +200,10 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <!-- Bouton Pause - visible quand le job n'est pas en pause -->
-                                            <Button Content="{Binding DataContext.PauseButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            <!-- Bouton Pause/Resume - Un seul bouton qui change de texte selon l'état -->
+                                            <Button Content="{Binding IsPaused, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Resume|Pause'}"
+                                                    Command="{Binding DataContext.PauseResumeJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding JobName}"
-                                                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisInvertConverter}}"
-                                                    Margin="0,0,5,0" Padding="5,2"/>
-                                            
-                                            <!-- Bouton Resume - visible quand le job est en pause -->
-                                            <Button Content="{Binding DataContext.ResumeButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    Command="{Binding DataContext.ResumeJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding JobName}"
-                                                    Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisConverter}}"
                                                     Margin="0,0,5,0" Padding="5,2"/>
                                             
                                             <!-- Bouton Stop - toujours visible -->

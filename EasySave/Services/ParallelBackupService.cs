@@ -24,11 +24,23 @@ namespace EasySave.Services
         
         private readonly ConcurrentDictionary<string, BackupJobState> _activeJobs = new ConcurrentDictionary<string, BackupJobState>();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _jobCancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
-        private readonly ConcurrentDictionary<string, ManualResetEventSlim> _jobPauseEvents = new ConcurrentDictionary<string, ManualResetEventSlim>();
+        
+        // Utiliser un bool pour suivre l'état de pause au lieu d'un ManualResetEventSlim
+        private readonly ConcurrentDictionary<string, bool> _jobPauseStates = new ConcurrentDictionary<string, bool>();
+        
+        // Dictionnaire pour stocker le dernier fichier traité pour chaque travail (pour la reprise)
+        private readonly ConcurrentDictionary<string, string> _lastProcessedFiles = new ConcurrentDictionary<string, string>();
         
         private readonly SemaphoreSlim _largeFileSemaphore;
         private List<string> _priorityExtensions = new List<string>();
         private long _largeFileThreshold = 1024 * 1024; // 1MB default
+
+        // Constantes pour les statuts - Utiliser les constantes du modèle JobStatus
+        private const string STATUS_RUNNING = JobStatus.Running;
+        private const string STATUS_PAUSED = JobStatus.Paused;
+        private const string STATUS_COMPLETED = JobStatus.Completed;
+        private const string STATUS_CANCELED = JobStatus.Canceled;
+        private const string STATUS_STOPPING = JobStatus.Stopping;
         
         /// <summary>
         /// Event raised when a backup job's status changes
@@ -92,15 +104,17 @@ namespace EasySave.Services
             var cts = new CancellationTokenSource();
             _jobCancellationTokens[job.JobName] = cts;
             
-            // Create a pause event for this job (initially set to allow running)
-            var pauseEvent = new ManualResetEventSlim(true);
-            _jobPauseEvents[job.JobName] = pauseEvent;
+            // Set pause state to false (not paused)
+            _jobPauseStates[job.JobName] = false;
             
-            // Create a state object for this job
+            // Reset the last processed file
+            _lastProcessedFiles[job.JobName] = null;
+            
+            // Create a state object for this job - explicitement utiliser STATUS_RUNNING
             var state = new BackupJobState
             {
                 JobName = job.JobName,
-                Status = "En cours", // Utiliser "En cours" au lieu de "Running"
+                Status = STATUS_RUNNING,
                 StartTime = DateTime.Now
             };
             
@@ -115,8 +129,8 @@ namespace EasySave.Services
                 string.Empty, 
                 string.Empty);
             
-            // Raise the status changed event - IMPORTANT: Use "En cours" not "Starting" or "Running"
-            OnBackupJobStatusChanged(job.JobName, "En cours", 0, string.Empty);
+            // Raise the status changed event - Utiliser STATUS_RUNNING
+            OnBackupJobStatusChanged(job.JobName, STATUS_RUNNING, 0, string.Empty);
             
             // Start the backup job in a background task
             _ = Task.Run(async () =>
@@ -126,7 +140,7 @@ namespace EasySave.Services
                     await ExecuteBackupJobAsync(job, state, cts.Token);
                     
                     // Update the state when the job completes successfully
-                    state.Status = "Completed";
+                    state.Status = STATUS_COMPLETED;
                     state.EndTime = DateTime.Now;
                     state.Progress = 100;
                     
@@ -140,12 +154,15 @@ namespace EasySave.Services
                         string.Empty);
                     
                     // Raise the status changed event
-                    OnBackupJobStatusChanged(job.JobName, "Completed", 100, string.Empty);
+                    OnBackupJobStatusChanged(job.JobName, STATUS_COMPLETED, 100, string.Empty);
+                    
+                    // Clear the last processed file
+                    _lastProcessedFiles.TryRemove(job.JobName, out _);
                 }
                 catch (OperationCanceledException)
                 {
                     // The job was canceled
-                    state.Status = "Canceled";
+                    state.Status = STATUS_CANCELED;
                     state.EndTime = DateTime.Now;
                     
                     // Update the state file
@@ -158,12 +175,16 @@ namespace EasySave.Services
                         string.Empty);
                     
                     // Raise the status changed event
-                    OnBackupJobStatusChanged(job.JobName, "Canceled", state.Progress, string.Empty);
+                    OnBackupJobStatusChanged(job.JobName, STATUS_CANCELED, state.Progress, string.Empty);
+                    
+                    // Clear the last processed file
+                    _lastProcessedFiles.TryRemove(job.JobName, out _);
                 }
                 catch (Exception ex)
                 {
                     // The job failed
-                    state.Status = $"Failed: {ex.Message}";
+                    string errorStatus = $"Failed: {ex.Message}";
+                    state.Status = errorStatus;
                     state.EndTime = DateTime.Now;
                     
                     // Update the state file
@@ -176,26 +197,24 @@ namespace EasySave.Services
                         string.Empty);
                     
                     // Raise the status changed event
-                    OnBackupJobStatusChanged(job.JobName, $"Failed: {ex.Message}", state.Progress, string.Empty);
+                    OnBackupJobStatusChanged(job.JobName, errorStatus, state.Progress, string.Empty);
                     
                     // Log the error
                     _logger.LogError($"Backup job '{job.JobName}' failed: {ex.Message}");
+                    
+                    // Clear the last processed file
+                    _lastProcessedFiles.TryRemove(job.JobName, out _);
                 }
                 finally
                 {
                     // Clean up
                     _activeJobs.TryRemove(job.JobName, out _);
-                    
-                    // Dispose of the pause event
-                    if (_jobPauseEvents.TryRemove(job.JobName, out var pauseEvent))
-                    {
-                        pauseEvent.Dispose();
-                    }
+                    _jobPauseStates.TryRemove(job.JobName, out _);
                     
                     // Dispose of the cancellation token source
-                    if (_jobCancellationTokens.TryRemove(job.JobName, out var cts))
+                    if (_jobCancellationTokens.TryRemove(job.JobName, out var tokenSource))
                     {
-                        cts.Dispose();
+                        tokenSource.Dispose();
                     }
                 }
             });
@@ -208,27 +227,31 @@ namespace EasySave.Services
         /// <returns>True if the job was paused, false otherwise</returns>
         public async Task<bool> PauseJobAsync(string jobName)
         {
+            Debug.WriteLine($"PauseJobAsync called for job: {jobName}");
+            
             if (!_activeJobs.TryGetValue(jobName, out var state))
             {
+                Debug.WriteLine($"Job {jobName} not found in active jobs");
                 return false;
             }
             
-            if (state.Status == "Paused")
+            // Vérifier si le job est déjà en pause (avec une comparaison insensible à la casse)
+            if (string.Equals(state.Status, STATUS_PAUSED, StringComparison.OrdinalIgnoreCase))
             {
+                Debug.WriteLine($"Job {jobName} is already paused");
                 return true; // Already paused
             }
             
             // Update the state immediately
-            state.Status = "Paused";
+            state.Status = STATUS_PAUSED;
+            Debug.WriteLine($"Job {jobName} status updated to: {STATUS_PAUSED}");
             
-            // Raise the status changed event immediately
-            OnBackupJobStatusChanged(jobName, "Paused", state.Progress, state.CurrentFile);
+            // Set the pause flag
+            _jobPauseStates[jobName] = true;
+            Debug.WriteLine($"Pause flag set for job {jobName}");
             
-            // Reset the pause event to block execution
-            if (_jobPauseEvents.TryGetValue(jobName, out var pauseEvent))
-            {
-                pauseEvent.Reset();
-            }
+            // Raise the status changed event immediately - Utiliser STATUS_PAUSED pour être cohérent
+            OnBackupJobStatusChanged(jobName, STATUS_PAUSED, state.Progress, state.CurrentFile);
             
             // Update the state file
             await _stateManager.UpdateStateAsync(
@@ -249,37 +272,31 @@ namespace EasySave.Services
         /// <returns>True if the job was resumed, false otherwise</returns>
         public async Task<bool> ResumeJobAsync(string jobName)
         {
-            Console.WriteLine($"ResumeJobAsync called for job: {jobName}");
+            Debug.WriteLine($"ResumeJobAsync called for job: {jobName}");
             
             if (!_activeJobs.TryGetValue(jobName, out var state))
             {
-                Console.WriteLine($"Job {jobName} not found in active jobs");
+                Debug.WriteLine($"Job {jobName} not found in active jobs");
                 return false;
             }
             
-            if (state.Status != "Paused")
+            // Vérifier si le job est en pause (avec une comparaison insensible à la casse)
+            if (!string.Equals(state.Status, STATUS_PAUSED, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine($"Job {jobName} is not paused (current status: {state.Status})");
+                Debug.WriteLine($"Job {jobName} is not paused (current status: {state.Status})");
                 return false; // Not paused
             }
             
             // Update the state immediately
-            state.Status = "En cours";
-            Console.WriteLine($"Job {jobName} status updated to: En cours");
+            state.Status = STATUS_RUNNING;
+            Debug.WriteLine($"Job {jobName} status updated to: {STATUS_RUNNING}");
             
-            // Raise the status changed event immediately
-            OnBackupJobStatusChanged(jobName, "En cours", state.Progress, state.CurrentFile);
+            // Clear the pause flag
+            _jobPauseStates[jobName] = false;
+            Debug.WriteLine($"Pause flag cleared for job {jobName}");
             
-            // Set the pause event to allow execution
-            if (_jobPauseEvents.TryGetValue(jobName, out var pauseEvent))
-            {
-                Console.WriteLine($"Setting pause event for job {jobName}");
-                pauseEvent.Set();
-            }
-            else
-            {
-                Console.WriteLine($"Pause event not found for job {jobName}");
-            }
+            // Raise the status changed event immediately - Utiliser STATUS_RUNNING pour être cohérent
+            OnBackupJobStatusChanged(jobName, STATUS_RUNNING, state.Progress, state.CurrentFile);
             
             // Update the state file
             await _stateManager.UpdateStateAsync(
@@ -290,7 +307,7 @@ namespace EasySave.Services
                 state.CurrentFile, 
                 state.CurrentFileDestination);
             
-            Console.WriteLine($"State file updated for job {jobName}");
+            Debug.WriteLine($"State file updated for job {jobName}");
             return true;
         }
         
@@ -301,28 +318,34 @@ namespace EasySave.Services
         /// <returns>True if the job was stopped, false otherwise</returns>
         public bool StopJob(string jobName)
         {
+            Debug.WriteLine($"StopJob called for job: {jobName}");
+            
             if (!_jobCancellationTokens.TryGetValue(jobName, out var cts))
             {
+                Debug.WriteLine($"Cancellation token not found for job {jobName}");
                 return false;
             }
             
             // Update the state
             if (_activeJobs.TryGetValue(jobName, out var state))
             {
-                state.Status = "Stopping";
+                state.Status = STATUS_STOPPING;
+                Debug.WriteLine($"Job {jobName} status updated to: {STATUS_STOPPING}");
                 
                 // Raise the status changed event
-                OnBackupJobStatusChanged(jobName, "Stopping", state.Progress, state.CurrentFile);
+                OnBackupJobStatusChanged(jobName, STATUS_STOPPING, state.Progress, state.CurrentFile);
                 
                 // Make sure the job isn't paused when we try to cancel it
-                if (_jobPauseEvents.TryGetValue(jobName, out var pauseEvent))
-                {
-                    pauseEvent.Set();
-                }
+                _jobPauseStates[jobName] = false;
+                Debug.WriteLine($"Pause flag cleared for job {jobName} before cancellation");
             }
             
             // Cancel the job
             cts.Cancel();
+            Debug.WriteLine($"Cancellation requested for job {jobName}");
+            
+            // Clear the last processed file
+            _lastProcessedFiles.TryRemove(jobName, out _);
             
             return true;
         }
@@ -345,12 +368,6 @@ namespace EasySave.Services
         /// <returns>A task representing the asynchronous operation</returns>
         private async Task ExecuteBackupJobAsync(BackupJob job, BackupJobState state, CancellationToken cancellationToken)
         {
-            // Get the pause event for this job
-            if (!_jobPauseEvents.TryGetValue(job.JobName, out var pauseEvent))
-            {
-                throw new InvalidOperationException($"Pause event not found for job '{job.JobName}'");
-            }
-            
             // Validate paths
             if (!Directory.Exists(job.SourcePath))
             {
@@ -363,8 +380,8 @@ namespace EasySave.Services
                 Directory.CreateDirectory(job.TargetPath);
             }
             
-            // Update state to running
-            state.Status = "En cours";
+            // Update state to running - Utiliser STATUS_RUNNING
+            state.Status = STATUS_RUNNING;
             state.TotalFiles = 0;
             state.TotalFilesRemaining = 0;
             state.TotalSize = 0;
@@ -380,146 +397,193 @@ namespace EasySave.Services
                 string.Empty, 
                 string.Empty);
             
-            // Raise the status changed event
-            OnBackupJobStatusChanged(job.JobName, "En cours", 0, string.Empty);
+            // Raise the status changed event - Utiliser STATUS_RUNNING
+            OnBackupJobStatusChanged(job.JobName, STATUS_RUNNING, 0, string.Empty);
             
-            // Get all files to backup
-            var sourceDir = new DirectoryInfo(job.SourcePath);
-            var allFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
-            
-            // Calculate total size and count
-            state.TotalFiles = allFiles.Length;
-            state.TotalSize = allFiles.Sum(f => f.Length);
-            state.TotalFilesRemaining = state.TotalFiles;
-            state.TotalSizeRemaining = state.TotalSize;
-            
-            // Sort files by priority (priority extensions first)
-            var priorityFiles = allFiles
-                .Where(f => _priorityExtensions.Contains(f.Extension.ToLowerInvariant()))
-                .ToList();
-            
-            var normalFiles = allFiles
-                .Where(f => !_priorityExtensions.Contains(f.Extension.ToLowerInvariant()))
-                .ToList();
-            
-            var sortedFiles = priorityFiles.Concat(normalFiles).ToList();
-            
-            // Process each file
-            int processedFiles = 0;
-            long processedSize = 0;
-            
-            foreach (var file in sortedFiles)
+            try
             {
-                // Check for cancellation
-                cancellationToken.ThrowIfCancellationRequested();
+                // Get all files to backup
+                var sourceDir = new DirectoryInfo(job.SourcePath);
+                var allFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
                 
-                // Wait if paused - THIS IS THE KEY PART FOR PAUSE FUNCTIONALITY
-                Console.WriteLine($"Before wait check for job {job.JobName}, pause event is set: {pauseEvent.IsSet}");
-                pauseEvent.Wait(cancellationToken);
-                Console.WriteLine($"After wait check for job {job.JobName}, continuing execution");
+                // Calculate total size and count
+                state.TotalFiles = allFiles.Length;
+                state.TotalSize = allFiles.Sum(f => f.Length);
+                state.TotalFilesRemaining = state.TotalFiles;
+                state.TotalSizeRemaining = state.TotalSize;
                 
-                // Get relative path to maintain directory structure
-                string relativePath = file.FullName.Substring(job.SourcePath.Length).TrimStart('\\', '/');
-                string targetPath = Path.Combine(job.TargetPath, relativePath);
-                string targetDir = Path.GetDirectoryName(targetPath);
+                // Sort files by priority (priority extensions first)
+                var priorityFiles = allFiles
+                    .Where(f => _priorityExtensions.Contains(f.Extension.ToLowerInvariant()))
+                    .ToList();
                 
-                // Update current file in state
-                state.CurrentFile = file.FullName;
-                state.CurrentFileDestination = targetPath;
+                var normalFiles = allFiles
+                    .Where(f => !_priorityExtensions.Contains(f.Extension.ToLowerInvariant()))
+                    .ToList();
                 
-                // Update the state file
-                await _stateManager.UpdateStateAsync(
-                    job.JobName, 
-                    BackupState.Active, 
-                    state.TotalFiles, state.TotalSize, 
-                    state.TotalFilesRemaining, state.TotalSizeRemaining, 
-                    state.CurrentFile, 
-                    state.CurrentFileDestination);
+                var sortedFiles = priorityFiles.Concat(normalFiles).ToList();
                 
-                // Raise the status changed event with updated progress and current file
-                OnBackupJobStatusChanged(job.JobName, state.Status, state.Progress, state.CurrentFile);
+                // Check if we have a last processed file to resume from
+                string lastProcessedFile = _lastProcessedFiles.GetOrAdd(job.JobName, string.Empty);
+                int startIndex = 0;
+                long totalProcessedSize = 0;
                 
-                // Create target directory if it doesn't exist
-                if (!Directory.Exists(targetDir))
+                if (!string.IsNullOrEmpty(lastProcessedFile))
                 {
-                    Directory.CreateDirectory(targetDir);
-                }
-                
-                // Determine if we need to copy the file based on job type
-                bool shouldCopy = job.Type == BackupType.Complete;
-                
-                if (job.Type == BackupType.Differential)
-                {
-                    // For differential backup, only copy if the file doesn't exist or has been modified
-                    if (!File.Exists(targetPath) || file.LastWriteTime > File.GetLastWriteTime(targetPath))
+                    // Find the index of the last processed file
+                    startIndex = sortedFiles.FindIndex(f => f.FullName == lastProcessedFile) + 1;
+                    if (startIndex > 0)
                     {
-                        shouldCopy = true;
+                        Debug.WriteLine($"Resuming job {job.JobName} from file index {startIndex} ({lastProcessedFile})");
+                        
+                        // Update progress based on what's already been processed
+                        totalProcessedSize = sortedFiles.Take(startIndex).Sum(f => f.Length);
+                        state.Progress = (int)((double)totalProcessedSize / state.TotalSize * 100);
+                        state.TotalFilesRemaining = state.TotalFiles - startIndex;
+                        state.TotalSizeRemaining = state.TotalSize - totalProcessedSize;
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Last processed file {lastProcessedFile} not found, starting from beginning");
+                        startIndex = 0;
                     }
                 }
                 
-                if (shouldCopy)
+                // Process each file
+                int processedFiles = startIndex;
+                
+                for (int i = startIndex; i < sortedFiles.Count; i++)
                 {
-                    // Check if this is a large file
-                    bool isLargeFile = file.Length > _largeFileThreshold;
+                    var file = sortedFiles[i];
                     
-                    try
+                    // Check for cancellation
+                    cancellationToken.ThrowIfCancellationRequested();
+                    
+                    // Check if paused - NEW APPROACH: use a simple flag and polling
+                    while (_jobPauseStates.TryGetValue(job.JobName, out bool isPaused) && isPaused)
                     {
-                        // Acquire semaphore if this is a large file
-                        if (isLargeFile)
-                        {
-                            await _largeFileSemaphore.WaitAsync(cancellationToken);
-                        }
+                        // Store the current file for resuming later
+                        _lastProcessedFiles[job.JobName] = file.FullName;
                         
-                        // Copy the file
-                        var stopwatch = Stopwatch.StartNew();
-                        File.Copy(file.FullName, targetPath, true);
-                        stopwatch.Stop();
+                        // Job is paused, wait a short time and check again
+                        Debug.WriteLine($"Job {job.JobName} is paused, waiting...");
+                        await Task.Delay(100, cancellationToken);
                         
-                        // Check if the file should be encrypted
-                        long encryptionTime = 0;
-                        if (_settingsViewModel.ShouldEncryptFile(file.FullName))
-                        {
-                            var encryptStopwatch = Stopwatch.StartNew();
-                            await _cryptoService.EncryptFileAsync(targetPath);
-                            encryptStopwatch.Stop();
-                            encryptionTime = encryptStopwatch.ElapsedMilliseconds;
-                        }
-                        
-                        // Log the file copy
-                        _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                        // Check for cancellation again after delay
+                        cancellationToken.ThrowIfCancellationRequested();
                     }
-                    finally
+                    
+                    // Get relative path to maintain directory structure
+                    string relativePath = file.FullName.Substring(job.SourcePath.Length).TrimStart('\\', '/');
+                    string targetPath = Path.Combine(job.TargetPath, relativePath);
+                    string targetDir = Path.GetDirectoryName(targetPath);
+                    
+                    // Update current file in state
+                    state.CurrentFile = file.FullName;
+                    state.CurrentFileDestination = targetPath;
+                    
+                    // Store the current file for resuming later
+                    _lastProcessedFiles[job.JobName] = file.FullName;
+                    
+                    // Update the state file
+                    await _stateManager.UpdateStateAsync(
+                        job.JobName, 
+                        BackupState.Active, 
+                        state.TotalFiles, state.TotalSize, 
+                        state.TotalFilesRemaining, state.TotalSizeRemaining, 
+                        state.CurrentFile, 
+                        state.CurrentFileDestination);
+                    
+                    // Raise the status changed event with updated progress and current file
+                    OnBackupJobStatusChanged(job.JobName, state.Status, state.Progress, state.CurrentFile);
+                    
+                    // Create target directory if it doesn't exist
+                    if (!Directory.Exists(targetDir))
                     {
-                        // Release semaphore if this was a large file
-                        if (isLargeFile)
+                        Directory.CreateDirectory(targetDir);
+                    }
+                    
+                    // Determine if we need to copy the file based on job type
+                    bool shouldCopy = job.Type == BackupType.Complete;
+                    
+                    if (job.Type == BackupType.Differential)
+                    {
+                        // For differential backup, only copy if the file doesn't exist or has been modified
+                        if (!File.Exists(targetPath) || file.LastWriteTime > File.GetLastWriteTime(targetPath))
                         {
-                            _largeFileSemaphore.Release();
+                            shouldCopy = true;
                         }
                     }
+                    
+                    if (shouldCopy)
+                    {
+                        // Check if this is a large file
+                        bool isLargeFile = file.Length > _largeFileThreshold;
+                        
+                        try
+                        {
+                            // Acquire semaphore if this is a large file
+                            if (isLargeFile)
+                            {
+                                await _largeFileSemaphore.WaitAsync(cancellationToken);
+                            }
+                            
+                            // Copy the file
+                            var stopwatch = Stopwatch.StartNew();
+                            File.Copy(file.FullName, targetPath, true);
+                            stopwatch.Stop();
+                            
+                            // Check if the file should be encrypted
+                            long encryptionTime = 0;
+                            if (_settingsViewModel.ShouldEncryptFile(file.FullName))
+                            {
+                                var encryptStopwatch = Stopwatch.StartNew();
+                                await _cryptoService.EncryptFileAsync(targetPath);
+                                encryptStopwatch.Stop();
+                                encryptionTime = encryptStopwatch.ElapsedMilliseconds;
+                            }
+                            
+                            // Log the file copy
+                            _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                        }
+                        finally
+                        {
+                            // Release semaphore if this was a large file
+                            if (isLargeFile)
+                            {
+                                _largeFileSemaphore.Release();
+                            }
+                        }
+                    }
+                    
+                    // Update progress
+                    processedFiles++;
+                    totalProcessedSize += file.Length;
+                    state.TotalFilesRemaining = state.TotalFiles - processedFiles;
+                    state.TotalSizeRemaining = state.TotalSize - totalProcessedSize;
+                    state.Progress = (int)((double)totalProcessedSize / state.TotalSize * 100);
+                    
+                    // Update the state file
+                    await _stateManager.UpdateStateAsync(
+                        job.JobName, 
+                        BackupState.Active, 
+                        state.TotalFiles, state.TotalSize, 
+                        state.TotalFilesRemaining, state.TotalSizeRemaining, 
+                        state.CurrentFile, 
+                        state.CurrentFileDestination);
+                    
+                    // Raise the status changed event with updated progress and current file
+                    OnBackupJobStatusChanged(job.JobName, state.Status, state.Progress, state.CurrentFile);
                 }
                 
-                // Update progress
-                processedFiles++;
-                processedSize += file.Length;
-                state.TotalFilesRemaining = state.TotalFiles - processedFiles;
-                state.TotalSizeRemaining = state.TotalSize - processedSize;
-                state.Progress = (int)((double)processedSize / state.TotalSize * 100);
-                
-                // Update the state file
-                await _stateManager.UpdateStateAsync(
-                    job.JobName, 
-                    BackupState.Active, 
-                    state.TotalFiles, state.TotalSize, 
-                    state.TotalFilesRemaining, state.TotalSizeRemaining, 
-                    state.CurrentFile, 
-                    state.CurrentFileDestination);
-                
-                // Raise the status changed event with updated progress and current file
-                OnBackupJobStatusChanged(job.JobName, state.Status, state.Progress, state.CurrentFile);
+                // Log completion
+                _logger.LogBackupComplete(job.JobName, job.SourcePath, job.TargetPath, state.TotalFiles, state.TotalSize);
             }
-            
-            // Log completion
-            _logger.LogBackupComplete(job.JobName, job.SourcePath, job.TargetPath, state.TotalFiles, state.TotalSize);
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception in ExecuteBackupJobAsync for job {job.JobName}: {ex.Message}");
+                throw; // Re-throw to be handled by the caller
+            }
         }
         
         /// <summary>
@@ -531,7 +595,7 @@ namespace EasySave.Services
         /// <param name="currentFile">The current file being processed</param>
         private void OnBackupJobStatusChanged(string jobName, string status, int progress, string currentFile)
         {
-            Console.WriteLine($"Raising status changed event for job {jobName}: {status}, progress: {progress}");
+            Debug.WriteLine($"Raising status changed event for job {jobName}: {status}, progress: {progress}");
             BackupJobStatusChanged?.Invoke(this, new Models.BackupJobStatusEventArgs(jobName, status, progress, currentFile));
         }
     }

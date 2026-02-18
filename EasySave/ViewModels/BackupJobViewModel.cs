@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows.Input;
 using EasySave.Models;
+using EasySave.Commands;
 
 namespace EasySave.ViewModels
 {
@@ -8,40 +12,30 @@ namespace EasySave.ViewModels
     /// </summary>
     public class BackupJobViewModel : ViewModelBase
     {
-        private BackupJob _backupJob;
-        private DateTime? _lastBackupTime;
+        private readonly BackupJob _backupJob;
         private bool _isSelected;
-
+        private DateTime? _lastBackupTime;
+        
         /// <summary>
-        /// Creates a new instance of the BackupJobViewModel class
+        /// Creates a new instance of the BackupJobViewModel
         /// </summary>
-        /// <param name="backupJob">The backup job to wrap</param>
+        /// <param name="backupJob">The backup job model</param>
         public BackupJobViewModel(BackupJob backupJob)
         {
-            _backupJob = backupJob ?? throw new ArgumentNullException(nameof(backupJob));
+            _backupJob = backupJob;
+            _lastBackupTime = backupJob.LastBackupTime;
         }
-
+        
         /// <summary>
-        /// Gets the underlying backup job
+        /// Gets the backup job model
         /// </summary>
         public BackupJob BackupJob => _backupJob;
-
+        
         /// <summary>
-        /// Gets or sets the name of the job
+        /// Gets the job name
         /// </summary>
-        public string JobName
-        {
-            get => _backupJob.JobName;
-            set
-            {
-                if (_backupJob.JobName != value)
-                {
-                    _backupJob.JobName = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
+        public string JobName => _backupJob.JobName;
+        
         /// <summary>
         /// Gets or sets the source path
         /// </summary>
@@ -57,7 +51,7 @@ namespace EasySave.ViewModels
                 }
             }
         }
-
+        
         /// <summary>
         /// Gets or sets the target path
         /// </summary>
@@ -73,7 +67,7 @@ namespace EasySave.ViewModels
                 }
             }
         }
-
+        
         /// <summary>
         /// Gets or sets the backup type
         /// </summary>
@@ -89,16 +83,28 @@ namespace EasySave.ViewModels
                 }
             }
         }
-
+        
         /// <summary>
         /// Gets or sets the last backup time
         /// </summary>
         public DateTime? LastBackupTime
         {
             get => _lastBackupTime;
-            set => SetProperty(ref _lastBackupTime, value);
+            set
+            {
+                if (SetProperty(ref _lastBackupTime, value))
+                {
+                    _backupJob.LastBackupTime = value;
+                    OnPropertyChanged(nameof(LastBackupTimeDisplay));
+                }
+            }
         }
-
+        
+        /// <summary>
+        /// Gets the last backup time as a formatted string
+        /// </summary>
+        public string LastBackupTimeDisplay => LastBackupTime.HasValue ? LastBackupTime.Value.ToString("g") : "Never";
+        
         /// <summary>
         /// Gets or sets whether the job is selected
         /// </summary>
@@ -107,17 +113,5 @@ namespace EasySave.ViewModels
             get => _isSelected;
             set => SetProperty(ref _isSelected, value);
         }
-
-        /// <summary>
-        /// Gets a display-friendly string for the backup type
-        /// </summary>
-        public string TypeDisplay => _backupJob.Type.ToString();
-
-        /// <summary>
-        /// Gets a display-friendly string for the last backup time
-        /// </summary>
-        public string LastBackupTimeDisplay => _lastBackupTime.HasValue 
-            ? _lastBackupTime.Value.ToString("g") 
-            : "-";
     }
 }

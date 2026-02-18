@@ -12,6 +12,7 @@ namespace EasySave.Models
         private string _status;
         private int _progress;
         private string _currentFile;
+        private bool _isPaused;
 
         /// <summary>
         /// Gets or sets the name of the job
@@ -41,7 +42,10 @@ namespace EasySave.Models
                 {
                     _status = value;
                     OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsPaused));
+                    
+                    // Update IsPaused based on the status - using case insensitive comparison
+                    IsPaused = string.Equals(_status, JobStatus.Paused, System.StringComparison.OrdinalIgnoreCase);
+                    
                     OnPropertyChanged(nameof(DisplayStatus));
                 }
             }
@@ -75,14 +79,27 @@ namespace EasySave.Models
                 {
                     _currentFile = value;
                     OnPropertyChanged();
+                    // Quand le fichier courant change, mettre à jour DisplayStatus
+                    OnPropertyChanged(nameof(DisplayStatus));
                 }
             }
         }
 
         /// <summary>
-        /// Gets whether the job is paused
+        /// Gets or sets whether the job is paused
         /// </summary>
-        public bool IsPaused => Status?.ToUpper() == "PAUSED" || Status?.ToUpper() == "PAUSING";
+        public bool IsPaused
+        {
+            get => _isPaused;
+            set
+            {
+                if (_isPaused != value)
+                {
+                    _isPaused = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// Gets a display-friendly status
@@ -91,10 +108,14 @@ namespace EasySave.Models
         { 
             get
             {
-                // Si le statut est null ou IDLE mais qu'on a un fichier en cours, montrer "En cours"
-                if ((string.IsNullOrEmpty(Status) || Status?.ToUpper() == "IDLE") && !string.IsNullOrEmpty(CurrentFile))
+                // Si le statut est null ou vide ou IDLE, montrer "En cours" si un fichier est en cours de traitement
+                if (string.IsNullOrEmpty(Status) || Status?.ToUpper() == "IDLE")
                 {
-                    return "En cours";
+                    if (!string.IsNullOrEmpty(CurrentFile))
+                    {
+                        return JobStatus.Running; // Utiliser la constante
+                    }
+                    return "Idle"; // Afficher Idle si pas de fichier en cours
                 }
                 return Status;
             }
