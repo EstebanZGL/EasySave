@@ -13,6 +13,7 @@ namespace EasyLog
     public class XmlLogger : IEncryptionLogger
     {
         private readonly string _logDirectory;
+        private static readonly object _fileLock = new object(); // Lock object for thread safety
 
         /// <summary>
         /// Constructor that uses the default log directory (application execution folder/logs)
@@ -119,44 +120,109 @@ namespace EasyLog
         }
 
         /// <summary>
-        /// Writes a log entry to the daily log file
+        /// Writes a log entry to the daily log file in a safe manner that prevents log loss
         /// </summary>
         private async Task WriteLogEntryAsync(LogEntry logEntry)
         {
             string logFileName = Path.Combine(_logDirectory, $"{DateTime.Now:yyyy-MM-dd}.xml");
             
-            List<LogEntry> logEntries = new List<LogEntry>();
-            if (File.Exists(logFileName))
+            // Use a lock to prevent concurrent file access issues
+            lock (_fileLock)
             {
                 try
                 {
-                    XmlSerializer serializer = new XmlSerializer(typeof(List<LogEntry>));
-                    using (FileStream fs = new FileStream(logFileName, FileMode.Open))
+                    List<LogEntry> logEntries = new List<LogEntry>();
+                    
+                    // Ensure the directory exists
+                    if (!Directory.Exists(_logDirectory))
                     {
-                        logEntries = (List<LogEntry>)serializer.Deserialize(fs) ?? new List<LogEntry>();
+                        Directory.CreateDirectory(_logDirectory);
+                    }
+                    
+                    // Read existing entries if file exists
+                    if (File.Exists(logFileName))
+                    {
+                        try
+                        {
+                            XmlSerializer serializer = new XmlSerializer(typeof(List<LogEntry>));
+                            using (FileStream fs = new FileStream(logFileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            {
+                                var existingEntries = (List<LogEntry>)serializer.Deserialize(fs);
+                                if (existingEntries != null)
+                                {
+                                    logEntries = existingEntries;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // If deserialization fails, create a backup of the corrupted file
+                            Console.WriteLine($"Error reading log file: {ex.Message}. Creating a backup and starting a new log.");
+                            string backupFile = logFileName + ".backup-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+                            File.Copy(logFileName, backupFile, true);
+                            
+                            // Start with a new list but don't delete the original file yet
+                            logEntries = new List<LogEntry>();
+                        }
+                    }
+                    
+                    // Add new entry
+                    logEntries.Add(logEntry);
+                    
+                    // Write to a temporary file first
+                    string tempFile = Path.GetTempFileName();
+                    
+                    XmlSerializer writer = new XmlSerializer(typeof(List<LogEntry>));
+                    XmlWriterSettings settings = new XmlWriterSettings
+                    {
+                        Indent = true,
+                        Async = false // Changed to synchronous for the lock context
+                    };
+                    
+                    using (XmlWriter xmlWriter = XmlWriter.Create(tempFile, settings))
+                    {
+                        writer.Serialize(xmlWriter, logEntries);
+                        xmlWriter.Flush();
+                    }
+                    
+                    // Verify the temp file was written successfully
+                    if (new FileInfo(tempFile).Length > 0)
+                    {
+                        // Replace the original file only if the temp file was written successfully
+                        File.Move(tempFile, logFileName, true);
+                    }
+                    else
+                    {
+                        // If temp file is empty, don't replace the original
+                        File.Delete(tempFile);
+                        throw new IOException("Failed to write log entry: temporary file is empty");
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // If deserialization fails, start with a new list
-                    logEntries = new List<LogEntry>();
+                    Console.WriteLine($"Error writing to log file: {ex.Message}");
+                    
+                    // Ensure we don't lose the log entry - write to a backup file if main file fails
+                    try
+                    {
+                        // Create a simple XML representation of the single entry
+                        string backupFilePath = logFileName + ".backup-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+                        
+                        XmlSerializer singleWriter = new XmlSerializer(typeof(LogEntry));
+                        using (XmlWriter xmlWriter = XmlWriter.Create(backupFilePath))
+                        {
+                            singleWriter.Serialize(xmlWriter, logEntry);
+                        }
+                    }
+                    catch
+                    {
+                        // Last resort - just write to console
+                        Console.WriteLine($"CRITICAL: Could not write log entry: {logEntry.BackupName}, {logEntry.SourcePath}, {logEntry.TargetPath}");
+                    }
                 }
             }
             
-            logEntries.Add(logEntry);
-            
-            XmlSerializer writer = new XmlSerializer(typeof(List<LogEntry>));
-            XmlWriterSettings settings = new XmlWriterSettings
-            {
-                Indent = true,
-                Async = true
-            };
-            
-            using (XmlWriter xmlWriter = XmlWriter.Create(logFileName, settings))
-            {
-                writer.Serialize(xmlWriter, logEntries);
-                await xmlWriter.FlushAsync();
-            }
+            await Task.CompletedTask; // To maintain async signature
         }
         
         /// <summary>

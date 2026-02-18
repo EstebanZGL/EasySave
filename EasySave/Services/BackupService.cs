@@ -27,7 +27,8 @@ namespace EasySave.Services
         public BackupService(ILogger logger, StateManager stateManager)
         {
             // Cast the logger to IEncryptionLogger if possible, otherwise create a new one
-            _logger = logger as IEncryptionLogger ?? LoggerFactory.CreateEncryptionLogger();
+            // Explicitly specify the simpler overload to avoid ambiguity
+            _logger = logger as IEncryptionLogger ?? LoggerFactory.CreateEncryptionLogger("json", null);
             _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
             _settings = new SettingsViewModel();
             _cryptoService = new CryptoService(_settings);
@@ -165,7 +166,7 @@ namespace EasySave.Services
                         Debug.WriteLine("Backup cancelled via cancellation token");
                         await _stateManager.UpdateStateAsync(
                             job.JobName,
-                            BackupState.Cancelled,
+                            BackupState.Canceled,
                             sourceFiles.Length,
                             totalSize,
                             sourceFiles.Length - processedCount,
@@ -190,7 +191,7 @@ namespace EasySave.Services
                             Debug.WriteLine("Backup cancelled while paused");
                             await _stateManager.UpdateStateAsync(
                                 job.JobName,
-                                BackupState.Cancelled,
+                                BackupState.Canceled,
                                 sourceFiles.Length,
                                 totalSize,
                                 sourceFiles.Length - processedCount,
@@ -344,7 +345,7 @@ namespace EasySave.Services
                 // Update state to error
                 await _stateManager.UpdateStateAsync(
                     job.JobName,
-                    BackupState.Error,
+                    BackupState.Failed,
                     0,
                     0,
                     0,

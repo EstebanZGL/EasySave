@@ -362,3 +362,8 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 14/02/2026 : Adaptation de l'injection de dépendances pour utiliser le constructeur approprié de BackupService
 - 14/02/2026 : Compilation réussie et génération de l'exécutable EasySaveCLI.exe
 - 14/02/2026 : Configuration des projets EasySave, EasySaveCLI et CryptoSoft pour générer tous les exécutables dans un dossier output commun à la racine de la solution
+- 17/02/2026 : Correction du problème d'affichage de la fenêtre des paramètres - Ajout du convertisseur EnumToBoolConverter manquant
+- 17/02/2026 : Résolution de l'ambiguïté de référence à Binding.DoNothing dans EnumToBoolConverter
+- 17/02/2026 : Identification des problèmes avec les logs qui s'effacent progressivement
+- 17/02/2026 : Constatation des problèmes de mise à jour du statut des tâches en cours
+- 17/02/2026 : Planification de l'ajout du bouton pause pour les travaux de sauvegarde

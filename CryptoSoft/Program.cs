@@ -1,11 +1,13 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace CryptoSoft
 {
     /// <summary>
     /// CryptoSoft - A simple file encryption utility designed to be called from EasySave.
+    /// Version 3.0: Now with mono-instance support using a system-wide mutex.
     /// </summary>
     public class Program
     {
@@ -20,11 +22,26 @@ namespace CryptoSoft
         private const int ErrorFileNotFound = 2;
         private const int ErrorAccessDenied = 3;
         private const int ErrorEncryption = 4;
+        private const int ErrorMutexTimeout = 5;
+
+        // Name of the mutex to ensure single instance
+        private const string MutexName = "Global\\CryptoSoft_SingleInstance_Mutex";
+        
+        // Timeout for acquiring the mutex (in milliseconds)
+        private const int MutexTimeout = 30000; // 30 seconds
 
         public static int Main(string[] args)
         {
+            bool mutexCreated = false;
+            Mutex mutex = null;
+
             try
             {
+                // Try to create or open the named mutex
+                mutex = new Mutex(false, MutexName, out mutexCreated);
+                
+                Console.WriteLine("CryptoSoft v3.0 - Mono-instance encryption utility");
+                
                 if (args.Length != 2)
                 {
                     Console.Error.WriteLine("Usage: CryptoSoft <source_file> <target_file>");
@@ -40,12 +57,33 @@ namespace CryptoSoft
                     return ErrorFileNotFound;
                 }
 
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                EncryptFile(sourceFile, targetFile);
-                stopwatch.Stop();
+                Console.WriteLine($"Waiting to acquire encryption lock...");
+                
+                // Try to acquire the mutex with a timeout
+                if (!mutex.WaitOne(MutexTimeout))
+                {
+                    Console.Error.WriteLine("Error: Timeout waiting for encryption lock. Another encryption process is taking too long.");
+                    return ErrorMutexTimeout;
+                }
+                
+                Console.WriteLine($"Lock acquired. Encrypting file: {Path.GetFileName(sourceFile)}");
 
-                Console.WriteLine(stopwatch.ElapsedMilliseconds);
-                return Success;
+                try
+                {
+                    // Perform the encryption
+                    Stopwatch stopwatch = Stopwatch.StartNew();
+                    EncryptFile(sourceFile, targetFile);
+                    stopwatch.Stop();
+
+                    Console.WriteLine(stopwatch.ElapsedMilliseconds);
+                    return Success;
+                }
+                finally
+                {
+                    // Always release the mutex when done
+                    mutex.ReleaseMutex();
+                    Console.WriteLine("Encryption lock released.");
+                }
             }
             catch (FileNotFoundException)
             {
@@ -61,6 +99,11 @@ namespace CryptoSoft
             {
                 Console.Error.WriteLine($"Error during encryption: {ex.Message}");
                 return ErrorEncryption;
+            }
+            finally
+            {
+                // Clean up the mutex
+                mutex?.Dispose();
             }
         }
 

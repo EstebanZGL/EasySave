@@ -6,13 +6,14 @@ using EasySave.ViewModels;
 using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
 using EasyLog;
+using EasySave.Models;
 
 namespace EasySave
 {
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : System.Windows.Application  // Spécifiez explicitement System.Windows.Application
+    public partial class App : System.Windows.Application
     {
         private readonly ServiceProvider _serviceProvider;
 
@@ -32,6 +33,10 @@ namespace EasySave
             services.AddSingleton<TranslationService>();
             services.AddSingleton<BackupJobManager>();
             
+            // Enregistrer BackupJobRepository
+            string backupJobsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "backupjobs.json");
+            services.AddSingleton<BackupJobRepository>(provider => new BackupJobRepository(backupJobsFilePath));
+            
             // Enregistrer le chemin du fichier d'état comme un service
             string stateFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "state.json");
             services.AddSingleton(stateFilePath); // Enregistrer le chemin comme un service de type string
@@ -39,15 +44,53 @@ namespace EasySave
             // Ensuite enregistrer StateManager qui utilisera ce string
             services.AddSingleton<StateManager>();
             
+            // Register settings
+            services.AddSingleton<SettingsViewModel>();
+            
             // Configure and register logger
             string logFormat = LoadLogFormat();
+            
             // Créer les répertoires de logs s'ils n'existent pas
             CreateLogDirectories();
-            ILogger logger = LoggerFactory.CreateLogger(logFormat);
+            
+            // Get log centralization settings
+            var logCentralizationSettings = LoadLogCentralizationSettings();
+            
+            // Create the appropriate logger based on centralization settings
+            IEncryptionLogger logger;
+            if (logCentralizationSettings.IsEnabled)
+            {
+                // Create a logger with centralization support
+                logger = LoggerFactory.CreateEncryptionLogger(
+                    logFormat.ToLower(), 
+                    null, // No specific file path, use default
+                    logCentralizationSettings.ServerUrl,
+                    logCentralizationSettings.LogDestination);
+            }
+            else
+            {
+                // Create a standard local logger without centralization
+                logger = LoggerFactory.CreateEncryptionLogger(logFormat.ToLower(), null);
+            }
+            
+            // Register the logger
             services.AddSingleton(logger);
             
+            // Register crypto service
+            services.AddSingleton<CryptoService>();
+            
+            // Register backup services
             services.AddSingleton<BackupService>();
-            services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<ParallelBackupService>();
+            
+            // Register business software monitor with explicit factory to resolve ambiguity
+            services.AddSingleton<BusinessSoftwareMonitor>(provider => {
+                var settingsViewModel = provider.GetRequiredService<SettingsViewModel>();
+                var parallelBackupService = provider.GetRequiredService<ParallelBackupService>();
+                
+                // Use the constructor with ParallelBackupService for version 3.0
+                return new BusinessSoftwareMonitor(settingsViewModel, parallelBackupService);
+            });
             
             // Register ViewModels
             services.AddSingleton<MainViewModel>();
@@ -99,7 +142,7 @@ namespace EasySave
         // Displays command line help information
         private static void DisplayHelp()
         {
-            Console.WriteLine("EasySave 2.0 - Command Line Usage");
+            Console.WriteLine("EasySave 3.0 - Command Line Usage");
             Console.WriteLine("================================");
             Console.WriteLine();
             Console.WriteLine("USAGE:");
@@ -178,6 +221,38 @@ namespace EasySave
             
             // Default to JSON if no preference is found or an error occurs
             return "JSON";
+        }
+        
+        // Load log centralization settings
+        private LogCentralizationSettings LoadLogCentralizationSettings()
+        {
+            try
+            {
+                string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+                if (File.Exists(settingsPath))
+                {
+                    string json = File.ReadAllText(settingsPath);
+                    var settings = System.Text.Json.JsonSerializer.Deserialize<SettingsData>(json);
+                    
+                    if (settings?.LogCentralization != null)
+                    {
+                        return settings.LogCentralization;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading log centralization settings: {ex.Message}");
+            }
+            
+            // Return default settings if no settings are found or an error occurs
+            return new LogCentralizationSettings();
+        }
+        
+        // Settings data class for deserialization
+        private class SettingsData
+        {
+            public LogCentralizationSettings LogCentralization { get; set; }
         }
     }
 }

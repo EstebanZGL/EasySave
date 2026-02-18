@@ -24,6 +24,44 @@ namespace EasySave.Services
         }
 
         /// <summary>
+        /// Encrypts a file using CryptoSoft, encrypting the file in place.
+        /// </summary>
+        /// <param name="filePath">Path to the file to encrypt</param>
+        /// <returns>Time taken to encrypt in milliseconds, or -1 if encryption failed</returns>
+        public async Task<long> EncryptFileAsync(string filePath)
+        {
+            // Create a temporary file path
+            string tempFile = Path.Combine(
+                Path.GetDirectoryName(filePath) ?? string.Empty,
+                Path.GetFileNameWithoutExtension(filePath) + "_temp" + Path.GetExtension(filePath));
+            
+            try
+            {
+                // Encrypt to the temporary file
+                long result = await EncryptFileAsync(filePath, tempFile);
+                
+                if (result >= 0)
+                {
+                    // Replace the original file with the encrypted one
+                    File.Delete(filePath);
+                    File.Move(tempFile, filePath);
+                }
+                
+                return result;
+            }
+            catch
+            {
+                // Clean up the temporary file if it exists
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+                
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Encrypts a file using CryptoSoft.
         /// </summary>
         /// <param name="sourceFile">Path to the source file</param>
