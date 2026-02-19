@@ -235,10 +235,12 @@ namespace EasySave.Services
                 return false;
             }
             
-            // Vérifier si le job est déjà en pause (avec une comparaison insensible à la casse)
-            if (string.Equals(state.Status, STATUS_PAUSED, StringComparison.OrdinalIgnoreCase))
+            // Vérifier l'état de pause actuel dans le dictionnaire _jobPauseStates
+            // plutôt que de se fier uniquement à l'état du job
+            bool isPaused;
+            if (_jobPauseStates.TryGetValue(jobName, out isPaused) && isPaused)
             {
-                Debug.WriteLine($"Job {jobName} is already paused");
+                Debug.WriteLine($"Job {jobName} is already paused according to _jobPauseStates");
                 return true; // Already paused
             }
             
@@ -280,10 +282,12 @@ namespace EasySave.Services
                 return false;
             }
             
-            // Vérifier si le job est en pause (avec une comparaison insensible à la casse)
-            if (!string.Equals(state.Status, STATUS_PAUSED, StringComparison.OrdinalIgnoreCase))
+            // Vérifier l'état de pause actuel dans le dictionnaire _jobPauseStates
+            // plutôt que de se fier uniquement à l'état du job
+            bool isPaused;
+            if (!(_jobPauseStates.TryGetValue(jobName, out isPaused) && isPaused))
             {
-                Debug.WriteLine($"Job {jobName} is not paused (current status: {state.Status})");
+                Debug.WriteLine($"Job {jobName} is not paused according to _jobPauseStates");
                 return false; // Not paused
             }
             
@@ -459,7 +463,7 @@ namespace EasySave.Services
                     // Check for cancellation
                     cancellationToken.ThrowIfCancellationRequested();
                     
-                    // Check if paused - IMPROVED APPROACH: use a simple flag and polling with volatile reads
+                    // Check if paused - Utiliser le dictionnaire _jobPauseStates pour vérifier l'état de pause
                     bool isPaused = false;
                     while (_jobPauseStates.TryGetValue(job.JobName, out isPaused) && isPaused)
                     {
