@@ -459,8 +459,9 @@ namespace EasySave.Services
                     // Check for cancellation
                     cancellationToken.ThrowIfCancellationRequested();
                     
-                    // Check if paused - NEW APPROACH: use a simple flag and polling
-                    while (_jobPauseStates.TryGetValue(job.JobName, out bool isPaused) && isPaused)
+                    // Check if paused - IMPROVED APPROACH: use a simple flag and polling with volatile reads
+                    bool isPaused = false;
+                    while (_jobPauseStates.TryGetValue(job.JobName, out isPaused) && isPaused)
                     {
                         // Store the current file for resuming later
                         _lastProcessedFiles[job.JobName] = file.FullName;
@@ -471,6 +472,13 @@ namespace EasySave.Services
                         
                         // Check for cancellation again after delay
                         cancellationToken.ThrowIfCancellationRequested();
+                    }
+                    
+                    // Double-check that we're not paused before continuing
+                    if (_jobPauseStates.TryGetValue(job.JobName, out isPaused) && isPaused)
+                    {
+                        i--; // Retry this file
+                        continue;
                     }
                     
                     // Get relative path to maintain directory structure

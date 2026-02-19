@@ -44,8 +44,8 @@ namespace EasySave.ViewModels
                     _status = value;
                     OnPropertyChanged();
                     
-                    // Update IsPaused based on status
-                    IsPaused = (_status == "Paused");
+                    // Update IsPaused based on status - COMMENTÉ pour éviter les mises à jour automatiques
+                    // IsPaused = (_status == "Paused");
                 }
             }
         }
@@ -110,6 +110,15 @@ namespace EasySave.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        
+        /// <summary>
+        /// Méthode publique pour déclencher manuellement les notifications de changement de propriété
+        /// </summary>
+        /// <param name="propertyName">Le nom de la propriété qui a changé</param>
+        public void NotifyPropertyChanged(string propertyName)
+        {
+            OnPropertyChanged(propertyName);
         }
     }
 }

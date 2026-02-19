@@ -75,7 +75,7 @@ namespace EasySave.ViewModels
             ExecuteSelectedJobsCommand = new RelayCommand(ExecuteSelectedJobs, param => HasSelectedJobs);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             ChangeLanguageCommand = new RelayCommand(param => ToggleLanguage());
-            PauseResumeJobCommand = new RelayCommand(PauseResumeJob);
+            PauseResumeJobCommand = new RelayCommand(PauseResumeJob, param => true); // Toujours actif
             StopJobCommand = new RelayCommand(StopJob);
             
             // Subscribe to events
@@ -383,42 +383,44 @@ namespace EasySave.ViewModels
                         return;
                     }
                     
-                    // Vérifier si le travail est actuellement en pause en comparant avec la constante JobStatus.Paused
-                    bool isPaused = activeJob.Status == JobStatus.Paused;
-                    Debug.WriteLine($"Job {jobName} is currently paused: {isPaused} (Status: {activeJob.Status})");
+                    // APPROCHE SIMPLIFIÉE : Utiliser uniquement l'état visuel pour déterminer l'action
+                    bool isPaused = activeJob.IsPaused;
+                    Debug.WriteLine($"Job {jobName} is visually paused: {isPaused} (Status: {activeJob.Status})");
                     
                     bool result;
+                    
                     if (isPaused)
                     {
-                        // Job is paused, resume it
+                        // Le travail est visuellement en pause, donc nous devons le reprendre
                         Debug.WriteLine($"Resuming job {jobName}");
                         result = await _backupService.ResumeJobAsync(jobName);
                         Debug.WriteLine($"Resume result: {result}");
                         
-                        // Mettre à jour manuellement le statut pour éviter les problèmes de synchronisation
                         if (result)
                         {
+                            // Mettre à jour l'interface utilisateur
                             activeJob.Status = JobStatus.Running;
                             activeJob.IsPaused = false;
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.Status));
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.IsPaused));
                         }
                     }
                     else
                     {
-                        // Job is running, pause it
+                        // Le travail est visuellement en cours d'exécution, donc nous devons le mettre en pause
                         Debug.WriteLine($"Pausing job {jobName}");
                         result = await _backupService.PauseJobAsync(jobName);
                         Debug.WriteLine($"Pause result: {result}");
                         
-                        // Mettre à jour manuellement le statut pour éviter les problèmes de synchronisation
                         if (result)
                         {
+                            // Mettre à jour l'interface utilisateur
                             activeJob.Status = JobStatus.Paused;
                             activeJob.IsPaused = true;
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.Status));
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.IsPaused));
                         }
                     }
-                    
-                    // Force UI update
-                    OnPropertyChanged(nameof(ActiveJobs));
                 }
                 catch (Exception ex)
                 {
@@ -429,12 +431,12 @@ namespace EasySave.ViewModels
         }
         
         /// <summary>
-        /// Stops a backup job
+        /// Stops a running backup job
         /// </summary>
         /// <param name="parameter">The name of the job to stop</param>
         private void StopJob(object parameter)
         {
-            Debug.WriteLine($"StopJob called with parameter: {parameter}");
+            Debug.WriteLine($"StopJob called for job: {parameter}");
             if (parameter is string jobName)
             {
                 try
@@ -467,10 +469,13 @@ namespace EasySave.ViewModels
             // This event is raised from a background thread, so we need to dispatch to the UI thread
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                Debug.WriteLine($"Status changed for job {e.JobName}: {e.Status}");
+                Debug.WriteLine($"OnBackupJobStatusChanged: Status changed for job {e.JobName}: {e.Status}");
                 
                 // Check if we already have a view model for this job
                 var jobViewModel = ActiveJobs.FirstOrDefault(j => j.JobName == e.JobName);
+                
+                // Normaliser le statut pour éviter les problèmes de casse
+                string normalizedStatus = NormalizeStatus(e.Status);
                 
                 if (jobViewModel == null)
                 {
@@ -478,11 +483,10 @@ namespace EasySave.ViewModels
                     jobViewModel = new ActiveBackupJobViewModel
                     {
                         JobName = e.JobName,
-                        Status = e.Status,
+                        Status = normalizedStatus,
                         Progress = e.Progress,
                         CurrentFile = e.CurrentFile,
-                        // Définir IsPaused en comparant avec la constante JobStatus.Paused
-                        IsPaused = string.Equals(e.Status, JobStatus.Paused, StringComparison.OrdinalIgnoreCase)
+                        IsPaused = normalizedStatus == JobStatus.Paused
                     };
                     
                     ActiveJobs.Add(jobViewModel);
@@ -495,19 +499,23 @@ namespace EasySave.ViewModels
                 }
                 else
                 {
-                    // Update existing view model
-                    jobViewModel.Status = e.Status;
+                    // Mettre à jour toutes les propriétés
                     jobViewModel.Progress = e.Progress;
                     jobViewModel.CurrentFile = e.CurrentFile;
-                    // Définir IsPaused en comparant avec la constante JobStatus.Paused
-                    jobViewModel.IsPaused = string.Equals(e.Status, JobStatus.Paused, StringComparison.OrdinalIgnoreCase);
                     
-                    // Force property changed notification
-                    OnPropertyChanged(nameof(ActiveJobs));
+                    // IMPORTANT: Ne pas écraser l'état de pause si nous l'avons défini manuellement
+                    // via le bouton Pause/Resume, sauf si c'est un état final
+                    if (normalizedStatus == JobStatus.Completed || 
+                        normalizedStatus == JobStatus.Canceled || 
+                        normalizedStatus.StartsWith("Failed"))
+                    {
+                        jobViewModel.Status = normalizedStatus;
+                        jobViewModel.IsPaused = false;
+                    }
                 }
                 
                 // Remove completed or canceled jobs after a delay
-                if (e.Status == JobStatus.Completed || e.Status == JobStatus.Canceled || e.Status.StartsWith("Failed"))
+                if (normalizedStatus == JobStatus.Completed || normalizedStatus == JobStatus.Canceled || normalizedStatus.StartsWith("Failed"))
                 {
                     Task.Delay(5000).ContinueWith(_ =>
                     {
@@ -526,11 +534,41 @@ namespace EasySave.ViewModels
                 
                 // Update the last backup time for the corresponding job in the list
                 var job = BackupJobs.FirstOrDefault(j => j.JobName == e.JobName);
-                if (job != null && e.Status == JobStatus.Completed)
+                if (job != null && normalizedStatus == JobStatus.Completed)
                 {
                     job.LastBackupTime = DateTime.Now;
                 }
             });
+        }
+
+        /// <summary>
+        /// Normalise un statut pour éviter les problèmes de casse
+        /// </summary>
+        /// <param name="status">Le statut à normaliser</param>
+        /// <returns>Le statut normalisé</returns>
+        private string NormalizeStatus(string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return JobStatus.Running;
+                
+            // Convertir en minuscules pour la comparaison
+            string lowerStatus = status.ToLowerInvariant();
+            
+            if (lowerStatus.Contains("pause"))
+                return JobStatus.Paused;
+            if (lowerStatus.Contains("en cours") || lowerStatus.Contains("running"))
+                return JobStatus.Running;
+            if (lowerStatus.Contains("complet"))
+                return JobStatus.Completed;
+            if (lowerStatus.Contains("cancel"))
+                return JobStatus.Canceled;
+            if (lowerStatus.Contains("stop"))
+                return JobStatus.Stopping;
+            if (lowerStatus.Contains("fail") || lowerStatus.Contains("error"))
+                return "Failed: " + status;
+                
+            // Si on ne reconnaît pas le statut, on le retourne tel quel
+            return status;
         }
 
         /// <summary>
