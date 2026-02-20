@@ -2,436 +2,650 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using EasySave.Models;
 using EasySave.Services;
+using EasySave.Commands;
 using EasySave.Views;
-using WPF = System.Windows;
+using System.Diagnostics;
 
 namespace EasySave.ViewModels
 {
-    public class MainViewModel : INotifyPropertyChanged
+    /// <summary>
+    /// View model for the main window
+    /// </summary>
+    public class MainViewModel : ViewModelBase
     {
-        private readonly BackupJobManager _jobManager;
-        private readonly BackupService _backupService;
+        // Services
+        private readonly BackupJobRepository _backupJobRepository;
+        private readonly ParallelBackupService _backupService;
+        private readonly BusinessSoftwareMonitor _businessSoftwareMonitor;
         private readonly TranslationService _translationService;
-        private readonly StateManager _stateManager;
-        private readonly SettingsViewModel _settingsViewModel;
-        private string _selectedLanguage;
-        private ObservableCollection<BackupJob> _backupJobs;
-        private BackupJob _selectedBackupJob;
-        private string _statusMessage;
-        private bool _isBusinessSoftwareRunning;
+        
+        // Properties for UI
+        private ObservableCollection<BackupJobViewModel> _backupJobs;
+        private ObservableCollection<ActiveBackupJobViewModel> _activeJobs;
+        private BackupJobViewModel _selectedBackupJob;
         private bool _isAllJobsSelected;
+        private bool _isBusinessSoftwareRunning;
+        private string _statusMessage;
+        private bool _hasSelectedJobs;
+        
+        // Commands
+        public ICommand CreateBackupJobCommand { get; }
+        public ICommand EditBackupJobCommand { get; }
+        public ICommand DeleteBackupJobCommand { get; }
+        public ICommand ExecuteBackupJobCommand { get; }
+        public ICommand ExecuteSelectedJobsCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
+        public ICommand ChangeLanguageCommand { get; }
+        public ICommand PauseResumeJobCommand { get; }
+        public ICommand StopJobCommand { get; }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public MainViewModel(BackupJobManager jobManager, BackupService backupService, 
-                          TranslationService translationService, StateManager stateManager)
+        /// <summary>
+        /// Creates a new instance of the MainViewModel
+        /// </summary>
+        /// <param name="backupJobRepository">The backup job repository</param>
+        /// <param name="backupService">The backup service</param>
+        /// <param name="businessSoftwareMonitor">The business software monitor</param>
+        /// <param name="translationService">The translation service</param>
+        public MainViewModel(
+            BackupJobRepository backupJobRepository,
+            ParallelBackupService backupService,
+            BusinessSoftwareMonitor businessSoftwareMonitor,
+            TranslationService translationService)
         {
-            _jobManager = jobManager;
+            _backupJobRepository = backupJobRepository;
             _backupService = backupService;
+            _businessSoftwareMonitor = businessSoftwareMonitor;
             _translationService = translationService;
-            _stateManager = stateManager;
-            _settingsViewModel = new SettingsViewModel();
             
-            // S'abonner aux changements de langue
-            _translationService.PropertyChanged += (s, e) => 
-            {
-                if (e.PropertyName == "AllTranslations" || e.PropertyName == nameof(TranslationService.CurrentLanguage))
-                {
-                    SelectedLanguage = _translationService.CurrentLanguage;
-                    // Mettre à jour tous les textes traduits
-                    OnPropertyChanged(nameof(AppTitle));
-                    OnPropertyChanged(nameof(BackupJobsHeader));
-                    OnPropertyChanged(nameof(BackupJobDetailsHeader));
-                    OnPropertyChanged(nameof(CreateButtonText));
-                    OnPropertyChanged(nameof(ExecuteButtonText));
-                    OnPropertyChanged(nameof(EditButtonText));
-                    OnPropertyChanged(nameof(DeleteButtonText));
-                    OnPropertyChanged(nameof(SettingsButtonText));
-                    OnPropertyChanged(nameof(NameLabel));
-                    OnPropertyChanged(nameof(SourcePathLabel));
-                    OnPropertyChanged(nameof(TargetPathLabel));
-                    OnPropertyChanged(nameof(TypeLabel));
-                    OnPropertyChanged(nameof(JobStatusLabel));
-                    OnPropertyChanged(nameof(NotRunningText));
-                    OnPropertyChanged(nameof(SelectAllText));
-                    OnPropertyChanged(nameof(ExecuteSelectedJobsText));
-                    OnPropertyChanged(nameof(LastBackupLabel));
-                }
-            };
-            
-            _selectedLanguage = _translationService.CurrentLanguage;
-            
-            LoadBackupJobs();
+            // Initialize collections
+            _backupJobs = new ObservableCollection<BackupJobViewModel>();
+            _activeJobs = new ObservableCollection<ActiveBackupJobViewModel>();
             
             // Initialize commands
-            CreateBackupJobCommand = new RelayCommand(_ => OpenCreateBackupJobDialog());
-            EditBackupJobCommand = new RelayCommand(_ => OpenEditBackupJobDialog(), _ => SelectedBackupJob != null);
-            DeleteBackupJobCommand = new RelayCommand(async _ => await DeleteBackupJob(), _ => SelectedBackupJob != null);
-            ExecuteBackupJobCommand = new RelayCommand(async _ => await ExecuteBackupJob(), _ => SelectedBackupJob != null && !IsBusinessSoftwareRunning);
-            ChangeLanguageCommand = new RelayCommand(_ => ChangeLanguage());
-            OpenSettingsCommand = new RelayCommand(_ => OpenSettings());
-            ExecuteSelectedJobsCommand = new RelayCommand(async _ => await ExecuteSelectedJobs(), _ => HasSelectedJobs && !IsBusinessSoftwareRunning);
+            CreateBackupJobCommand = new RelayCommand(CreateBackupJob);
+            EditBackupJobCommand = new RelayCommand(EditBackupJob, param => SelectedBackupJob != null);
+            DeleteBackupJobCommand = new RelayCommand(DeleteBackupJob, param => SelectedBackupJob != null);
+            ExecuteBackupJobCommand = new RelayCommand(ExecuteBackupJob, param => SelectedBackupJob != null);
+            ExecuteSelectedJobsCommand = new RelayCommand(ExecuteSelectedJobs, param => HasSelectedJobs);
+            OpenSettingsCommand = new RelayCommand(OpenSettings);
+            ChangeLanguageCommand = new RelayCommand(param => ToggleLanguage());
+            PauseResumeJobCommand = new RelayCommand(PauseResumeJob, param => true); // Toujours actif
+            StopJobCommand = new RelayCommand(StopJob);
             
-            // Start business software monitoring
-            StartBusinessSoftwareMonitoring();
+            // Subscribe to events
+            _backupService.BackupJobStatusChanged += OnBackupJobStatusChanged;
+            _businessSoftwareMonitor.BusinessSoftwareStatusChanged += OnBusinessSoftwareStatusChanged;
+            _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
+            
+            // Load backup jobs
+            LoadBackupJobs();
         }
-        
-        // Propriétés pour les textes traduits
-        public string AppTitle => _translationService.GetTranslation("app_title");
-        public string BackupJobsHeader => _translationService.GetTranslation("backup_jobs");
-        public string BackupJobDetailsHeader => _translationService.GetTranslation("backup_job_details");
-        public string CreateButtonText => _translationService.GetTranslation("menu_create");
-        public string ExecuteButtonText => _translationService.GetTranslation("menu_execute");
-        public string EditButtonText => _translationService.GetTranslation("menu_edit");
-        public string DeleteButtonText => _translationService.GetTranslation("menu_delete");
-        public string SettingsButtonText => _translationService.GetTranslation("menu_settings");
-        public string NameLabel => _translationService.GetTranslation("name");
-        public string SourcePathLabel => _translationService.GetTranslation("source_path");
-        public string TargetPathLabel => _translationService.GetTranslation("target_path");
-        public string TypeLabel => _translationService.GetTranslation("type");
-        public string JobStatusLabel => _translationService.GetTranslation("job_status");
-        public string NotRunningText => _translationService.GetTranslation("not_running");
-        public string SelectAllText => _translationService.GetTranslation("select_all") ?? "Select All";
-        public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected") ?? "Execute Selected";
-        public string LastBackupLabel => _translationService.GetTranslation("last_backup");
 
-        public ObservableCollection<BackupJob> BackupJobs
+        /// <summary>
+        /// Gets the collection of backup jobs
+        /// </summary>
+        public ObservableCollection<BackupJobViewModel> BackupJobs
         {
             get => _backupJobs;
-            set
-            {
-                _backupJobs = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _backupJobs, value);
         }
 
-        public BackupJob SelectedBackupJob
+        /// <summary>
+        /// Gets the collection of active jobs
+        /// </summary>
+        public ObservableCollection<ActiveBackupJobViewModel> ActiveJobs
+        {
+            get => _activeJobs;
+            set => SetProperty(ref _activeJobs, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the selected backup job
+        /// </summary>
+        public BackupJobViewModel SelectedBackupJob
         {
             get => _selectedBackupJob;
-            set
-            {
-                _selectedBackupJob = value;
-                OnPropertyChanged();
-                // Update command can execute status
-                CommandManager.InvalidateRequerySuggested();
-            }
+            set => SetProperty(ref _selectedBackupJob, value);
         }
 
+        /// <summary>
+        /// Gets or sets whether all jobs are selected
+        /// </summary>
         public bool IsAllJobsSelected
         {
             get => _isAllJobsSelected;
             set
             {
-                if (_isAllJobsSelected != value)
+                if (SetProperty(ref _isAllJobsSelected, value))
                 {
-                    _isAllJobsSelected = value;
-                    OnPropertyChanged();
-                    
-                    // Update all jobs' selection state
-                    if (BackupJobs != null)
+                    foreach (var job in BackupJobs)
                     {
-                        foreach (var job in BackupJobs)
-                        {
-                            job.IsSelected = value;
-                        }
+                        job.IsSelected = value;
                     }
-                    
-                    OnPropertyChanged(nameof(HasSelectedJobs));
-                    CommandManager.InvalidateRequerySuggested();
+                    UpdateHasSelectedJobs();
                 }
             }
         }
-        
-        public bool HasSelectedJobs => BackupJobs != null && BackupJobs.Any(job => job.IsSelected);
 
-        public string SelectedLanguage
-        {
-            get => _selectedLanguage;
-            set
-            {
-                _selectedLanguage = value;
-                OnPropertyChanged();
-            }
-        }
-        
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set
-            {
-                _statusMessage = value;
-                OnPropertyChanged();
-            }
-        }
-        
+        /// <summary>
+        /// Gets or sets whether a business software is running
+        /// </summary>
         public bool IsBusinessSoftwareRunning
         {
             get => _isBusinessSoftwareRunning;
-            set
+            set => SetProperty(ref _isBusinessSoftwareRunning, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the status message
+        /// </summary>
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set => SetProperty(ref _statusMessage, value);
+        }
+
+        /// <summary>
+        /// Gets whether any jobs are selected
+        /// </summary>
+        public bool HasSelectedJobs
+        {
+            get => _hasSelectedJobs;
+            private set => SetProperty(ref _hasSelectedJobs, value);
+        }
+
+        // Translation properties
+        public string AppTitle => _translationService.GetTranslation("app_title");
+        public string SelectedLanguage => _translationService.CurrentLanguage == "en" ? "English" : "Français";
+        public string SettingsButtonText => _translationService.GetTranslation("menu_settings");
+        public string SelectAllText => _translationService.GetTranslation("select_all");
+        public string BackupJobsHeader => _translationService.GetTranslation("backup_jobs");
+        public string NameLabel => _translationService.GetTranslation("name");
+        public string SourcePathLabel => _translationService.GetTranslation("source_path");
+        public string TargetPathLabel => _translationService.GetTranslation("target_path");
+        public string TypeLabel => _translationService.GetTranslation("type");
+        public string LastBackupLabel => _translationService.GetTranslation("last_backup");
+        public string BackupJobDetailsHeader => _translationService.GetTranslation("backup_job_details");
+        public string JobStatusLabel => _translationService.GetTranslation("job_status");
+        public string NotRunningText => _translationService.GetTranslation("not_running");
+        public string ExecuteButtonText => _translationService.GetTranslation("menu_execute");
+        public string EditButtonText => _translationService.GetTranslation("menu_edit");
+        public string DeleteButtonText => _translationService.GetTranslation("menu_delete");
+        public string ActiveJobsHeader => _translationService.GetTranslation("job_status");
+        public string CreateButtonText => _translationService.GetTranslation("menu_create");
+        public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected");
+        
+        // Propriétés de traduction pour les en-têtes des colonnes dans la liste des travaux actifs
+        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
+        public string ProgressLabel => _translationService.GetTranslation("progress");
+        
+        // Utiliser les traductions pour les boutons de contrôle des travaux
+        public string PauseButtonText => _translationService.GetTranslation("pause");
+        public string ResumeButtonText => _translationService.GetTranslation("resume");
+        public string StopButtonText => _translationService.GetTranslation("stop");
+        
+        /// <summary>
+        /// Loads backup jobs from the repository
+        /// </summary>
+        private void LoadBackupJobs()
+        {
+            BackupJobs.Clear();
+            
+            foreach (var job in _backupJobRepository.GetAllBackupJobs())
             {
-                if (_isBusinessSoftwareRunning != value)
+                var jobViewModel = new BackupJobViewModel(job);
+                jobViewModel.PropertyChanged += OnBackupJobViewModelPropertyChanged;
+                BackupJobs.Add(jobViewModel);
+            }
+            
+            UpdateHasSelectedJobs();
+        }
+        
+        /// <summary>
+        /// Updates the HasSelectedJobs property based on the current selection state
+        /// </summary>
+        private void UpdateHasSelectedJobs()
+        {
+            HasSelectedJobs = BackupJobs.Any(j => j.IsSelected);
+        }
+        
+        /// <summary>
+        /// Event handler for property changes in BackupJobViewModel instances
+        /// </summary>
+        private void OnBackupJobViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(BackupJobViewModel.IsSelected))
+            {
+                UpdateHasSelectedJobs();
+            }
+        }
+        
+        /// <summary>
+        /// Creates a new backup job
+        /// </summary>
+        private void CreateBackupJob(object parameter)
+        {
+            var dialog = new BackupJobDialog();
+            
+            if (dialog.ShowDialog() == true)
+            {
+                var newJob = dialog.BackupJob;
+                
+                if (_backupJobRepository.AddBackupJob(newJob))
                 {
-                    _isBusinessSoftwareRunning = value;
-                    OnPropertyChanged();
-                    CommandManager.InvalidateRequerySuggested();
-                    
-                    if (value)
-                    {
-                        StatusMessage = $"Business software ({_settingsViewModel.BusinessSoftwareName}) is running. Backup operations are paused.";
-                    }
-                    else
-                    {
-                        StatusMessage = _translationService.GetTranslation("status_ready");
-                    }
+                    var jobViewModel = new BackupJobViewModel(newJob);
+                    jobViewModel.PropertyChanged += OnBackupJobViewModelPropertyChanged;
+                    BackupJobs.Add(jobViewModel);
+                    UpdateHasSelectedJobs();
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"A job with the name '{newJob.JobName}' already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
-
-        public ICommand CreateBackupJobCommand { get; }
-        public ICommand EditBackupJobCommand { get; }
-        public ICommand DeleteBackupJobCommand { get; }
-        public ICommand ExecuteBackupJobCommand { get; }
-        public ICommand ChangeLanguageCommand { get; }
-        public ICommand OpenSettingsCommand { get; }
-        public ICommand ExecuteSelectedJobsCommand { get; }
-
-        private void LoadBackupJobs()
-        {
-            var jobs = _jobManager.GetJobs();
-            BackupJobs = new ObservableCollection<BackupJob>(jobs);
-            
-            // Subscribe to IsSelected property changes for each job
-            foreach (var job in BackupJobs)
-            {
-                job.PropertyChanged += (sender, e) => 
-                {
-                    if (e.PropertyName == nameof(BackupJob.IsSelected))
-                    {
-                        OnPropertyChanged(nameof(HasSelectedJobs));
-                        CommandManager.InvalidateRequerySuggested();
-                        
-                        // Update IsAllJobsSelected if needed
-                        if (!job.IsSelected && IsAllJobsSelected)
-                        {
-                            _isAllJobsSelected = false;
-                            OnPropertyChanged(nameof(IsAllJobsSelected));
-                        }
-                        else if (BackupJobs.All(j => j.IsSelected) && !IsAllJobsSelected)
-                        {
-                            _isAllJobsSelected = true;
-                            OnPropertyChanged(nameof(IsAllJobsSelected));
-                        }
-                    }
-                };
-            }
-        }
         
-        private void OpenCreateBackupJobDialog()
-        {
-            var dialog = new BackupJobDialog();
-            if (dialog.ShowDialog() == true)
-            {
-                CreateBackupJob(dialog.BackupJob);
-            }
-        }
-        
-        private void OpenEditBackupJobDialog()
+        /// <summary>
+        /// Edits the selected backup job
+        /// </summary>
+        private void EditBackupJob(object parameter)
         {
             if (SelectedBackupJob == null) return;
             
-            var dialog = new BackupJobDialog(SelectedBackupJob);
+            var dialog = new BackupJobDialog(SelectedBackupJob.BackupJob);
+            
             if (dialog.ShowDialog() == true)
             {
-                // Delete old job and create new one with updated values
-                _jobManager.DeleteJob(SelectedBackupJob.JobName);
-                CreateBackupJob(dialog.BackupJob);
+                var updatedJob = dialog.BackupJob;
+                
+                if (_backupJobRepository.UpdateBackupJob(updatedJob))
+                {
+                    // Update the view model
+                    SelectedBackupJob.SourcePath = updatedJob.SourcePath;
+                    SelectedBackupJob.TargetPath = updatedJob.TargetPath;
+                    SelectedBackupJob.Type = updatedJob.Type;
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"Failed to update job '{updatedJob.JobName}'.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
-
-        private async void CreateBackupJob(BackupJob job)
+        
+        /// <summary>
+        /// Deletes the selected backup job
+        /// </summary>
+        private void DeleteBackupJob(object parameter)
         {
+            if (SelectedBackupJob == null) return;
+            
+            var result = System.Windows.MessageBox.Show($"Are you sure you want to delete the job '{SelectedBackupJob.JobName}'?", 
+                "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                
+            if (result == MessageBoxResult.Yes)
+            {
+                if (_backupJobRepository.DeleteBackupJob(SelectedBackupJob.JobName))
+                {
+                    BackupJobs.Remove(SelectedBackupJob);
+                    SelectedBackupJob = null;
+                    UpdateHasSelectedJobs();
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"Failed to delete job '{SelectedBackupJob.JobName}'.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Executes the selected backup job
+        /// </summary>
+        private async void ExecuteBackupJob(object parameter)
+        {
+            if (SelectedBackupJob == null) return;
+            
             try
             {
-                await _jobManager.CreateJob(job);
-                LoadBackupJobs(); // Reload all jobs
-                StatusMessage = $"Backup job '{job.JobName}' created successfully.";
+                var job = SelectedBackupJob.BackupJob;
+                await _backupService.StartBackupJobAsync(job);
+                
+                // Update the last backup time
+                SelectedBackupJob.LastBackupTime = DateTime.Now;
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error creating backup job: {ex.Message}";
-                WPF.MessageBox.Show($"Error creating backup job: {ex.Message}", "Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Error);
-            }
-        }
-
-        private async Task DeleteBackupJob()
-        {
-            if (SelectedBackupJob != null)
-            {
-                var result = WPF.MessageBox.Show($"Are you sure you want to delete the backup job '{SelectedBackupJob.JobName}'?", 
-                    "Confirm Deletion", WPF.MessageBoxButton.YesNo, WPF.MessageBoxImage.Question);
-                
-                if (result == WPF.MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        await _jobManager.DeleteJob(SelectedBackupJob.JobName);
-                        BackupJobs.Remove(SelectedBackupJob);
-                        SelectedBackupJob = null;
-                        StatusMessage = "Backup job deleted successfully.";
-                    }
-                    catch (Exception ex)
-                    {
-                        StatusMessage = $"Error deleting backup job: {ex.Message}";
-                        WPF.MessageBox.Show($"Error deleting backup job: {ex.Message}", "Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Error);
-                    }
-                }
-            }
-        }
-
-        private async Task ExecuteBackupJob()
-        {
-            if (SelectedBackupJob != null)
-            {
-                if (_settingsViewModel.IsBusinessSoftwareRunning())
-                {
-                    StatusMessage = $"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.";
-                    WPF.MessageBox.Show($"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.", 
-                        "Business Software Running", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Warning);
-                    return;
-                }
-                
-                try
-                {
-                    StatusMessage = $"Executing backup job '{SelectedBackupJob.JobName}'...";
-                    await _backupService.ExecuteBackupJobAsync(SelectedBackupJob);
-                    
-                    // Mettre à jour la date de dernière sauvegarde
-                    SelectedBackupJob.LastBackupTime = DateTime.Now;
-                    
-                    // Persister la mise à jour dans le fichier JSON
-                    await _jobManager.UpdateJob(SelectedBackupJob);
-                    
-                    StatusMessage = $"Backup job '{SelectedBackupJob.JobName}' completed successfully.";
-                }
-                catch (Exception ex)
-                {
-                    StatusMessage = $"Error executing backup job: {ex.Message}";
-                    WPF.MessageBox.Show($"Error executing backup job: {ex.Message}", "Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Error);
-                }
+                System.Windows.MessageBox.Show($"Error executing backup job: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
-        private async Task ExecuteSelectedJobs()
+        /// <summary>
+        /// Executes all selected backup jobs
+        /// </summary>
+        private async void ExecuteSelectedJobs(object parameter)
         {
-            if (_settingsViewModel.IsBusinessSoftwareRunning())
+            var selectedJobs = BackupJobs.Where(j => j.IsSelected).ToList();
+            
+            if (!selectedJobs.Any()) return;
+            
+            try
             {
-                StatusMessage = $"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.";
-                WPF.MessageBox.Show($"Cannot start backup: Business software ({_settingsViewModel.BusinessSoftwareName}) is running.", 
-                    "Business Software Running", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Warning);
-                return;
-            }
-            
-            var selectedJobs = BackupJobs.Where(job => job.IsSelected).ToList();
-            if (selectedJobs.Count == 0) return;
-            
-            int successCount = 0;
-            int failCount = 0;
-            
-            StatusMessage = $"Executing {selectedJobs.Count} selected backup jobs...";
-            
-            foreach (var job in selectedJobs)
-            {
-                try
+                foreach (var jobViewModel in selectedJobs)
                 {
-                    await _backupService.ExecuteBackupJobAsync(job);
+                    var job = jobViewModel.BackupJob;
+                    await _backupService.StartBackupJobAsync(job);
                     
-                    // Mettre à jour la date de dernière sauvegarde
-                    job.LastBackupTime = DateTime.Now;
-                    
-                    // Persister la mise à jour dans le fichier JSON
-                    await _jobManager.UpdateJob(job);
-                    
-                    successCount++;
-                }
-                catch (Exception ex)
-                {
-                    failCount++;
-                    Debug.WriteLine($"Error executing backup job '{job.JobName}': {ex.Message}");
+                    // Update the last backup time
+                    jobViewModel.LastBackupTime = DateTime.Now;
                 }
             }
-            
-            if (failCount == 0)
+            catch (Exception ex)
             {
-                StatusMessage = $"All {successCount} backup jobs completed successfully.";
+                System.Windows.MessageBox.Show($"Error executing backup jobs: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        /// <summary>
+        /// Opens the settings window
+        /// </summary>
+        private void OpenSettings(object parameter)
+        {
+            // Get the settings view model from the service provider
+            var settingsViewModel = ((App)System.Windows.Application.Current).ServiceProvider.GetService(typeof(SettingsViewModel)) as SettingsViewModel;
+            
+            if (settingsViewModel != null)
+            {
+                var settingsWindow = new SettingsWindow(settingsViewModel);
+                settingsWindow.ShowDialog();
             }
             else
             {
-                StatusMessage = $"{successCount} jobs completed successfully, {failCount} jobs failed.";
-                WPF.MessageBox.Show($"{failCount} backup jobs failed to execute. Check the logs for details.", 
-                    "Backup Execution Error", WPF.MessageBoxButton.OK, WPF.MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Could not create settings window.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        /// <summary>
+        /// Pauses or resumes a backup job based on its current state
+        /// </summary>
+        /// <param name="parameter">The name of the job to pause or resume</param>
+        private async void PauseResumeJob(object parameter)
+        {
+            Debug.WriteLine($"PauseResumeJob called with parameter: {parameter}");
+            
+            if (parameter is string jobName)
+            {
+                try
+                {
+                    // Find the job in the active jobs list
+                    var activeJob = ActiveJobs.FirstOrDefault(j => j.JobName == jobName);
+                    if (activeJob == null)
+                    {
+                        Debug.WriteLine($"Job {jobName} not found in active jobs");
+                        return;
+                    }
+                    
+                    // APPROCHE SIMPLIFIÉE : Utiliser uniquement l'état visuel pour déterminer l'action
+                    bool isPaused = activeJob.IsPaused;
+                    Debug.WriteLine($"Job {jobName} is visually paused: {isPaused} (Status: {activeJob.Status})");
+                    
+                    bool result;
+                    
+                    if (isPaused)
+                    {
+                        // Le travail est visuellement en pause, donc nous devons le reprendre
+                        Debug.WriteLine($"Resuming job {jobName}");
+                        result = await _backupService.ResumeJobAsync(jobName);
+                        Debug.WriteLine($"Resume result: {result}");
+                        
+                        if (result)
+                        {
+                            // Mettre à jour l'interface utilisateur
+                            activeJob.Status = JobStatus.Running;
+                            activeJob.IsPaused = false;
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.Status));
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.IsPaused));
+                        }
+                    }
+                    else
+                    {
+                        // Le travail est visuellement en cours d'exécution, donc nous devons le mettre en pause
+                        Debug.WriteLine($"Pausing job {jobName}");
+                        result = await _backupService.PauseJobAsync(jobName);
+                        Debug.WriteLine($"Pause result: {result}");
+                        
+                        if (result)
+                        {
+                            // Mettre à jour l'interface utilisateur
+                            activeJob.Status = JobStatus.Paused;
+                            activeJob.IsPaused = true;
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.Status));
+                            activeJob.NotifyPropertyChanged(nameof(activeJob.IsPaused));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in PauseResumeJob: {ex.Message}");
+                    System.Windows.MessageBox.Show($"Error pausing/resuming job: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Stops a running backup job
+        /// </summary>
+        /// <param name="parameter">The name of the job to stop</param>
+        private void StopJob(object parameter)
+        {
+            Debug.WriteLine($"StopJob called for job: {parameter}");
+            if (parameter is string jobName)
+            {
+                try
+                {
+                    bool result = _backupService.StopJob(jobName);
+                    Debug.WriteLine($"StopJob result: {result}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error in StopJob: {ex.Message}");
+                    System.Windows.MessageBox.Show($"Error stopping job: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
-        private void ChangeLanguage()
+        /// <summary>
+        /// Toggles the current language
+        /// </summary>
+        private void ToggleLanguage()
         {
             _translationService.ToggleLanguage();
-            // La mise à jour de SelectedLanguage et des autres propriétés traduites 
-            // se fait via l'événement PropertyChanged du TranslationService
+            OnPropertyChanged(nameof(SelectedLanguage));
         }
         
-        private void OpenSettings()
+        /// <summary>
+        /// Event handler for backup job status changes
+        /// </summary>
+        private void OnBackupJobStatusChanged(object sender, Models.BackupJobStatusEventArgs e)
         {
-            var settingsWindow = new SettingsWindow(_settingsViewModel);
-            settingsWindow.ShowDialog();
-        }
-        
-        private void StartBusinessSoftwareMonitoring()
-        {
-            Task.Run(async () =>
+            // This event is raised from a background thread, so we need to dispatch to the UI thread
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                while (true)
+                Debug.WriteLine($"OnBackupJobStatusChanged: Status changed for job {e.JobName}: {e.Status}");
+                
+                // Check if we already have a view model for this job
+                var jobViewModel = ActiveJobs.FirstOrDefault(j => j.JobName == e.JobName);
+                
+                // Normaliser le statut pour éviter les problèmes de casse
+                string normalizedStatus = NormalizeStatus(e.Status);
+                
+                if (jobViewModel == null)
                 {
-                    IsBusinessSoftwareRunning = _settingsViewModel.IsBusinessSoftwareRunning();
-                    await Task.Delay(2000); // Check every 2 seconds
+                    // Create a new view model for this job with the translation service
+                    jobViewModel = new ActiveBackupJobViewModel(_translationService)
+                    {
+                        JobName = e.JobName,
+                        Status = normalizedStatus,
+                        Progress = e.Progress,
+                        CurrentFile = e.CurrentFile,
+                        IsPaused = normalizedStatus == JobStatus.Paused
+                    };
+                    
+                    ActiveJobs.Add(jobViewModel);
+                    
+                    // Si c'est le premier job actif, démarrer la surveillance
+                    if (ActiveJobs.Count == 1)
+                    {
+                        StartBusinessSoftwareMonitoring();
+                    }
+                }
+                else
+                {
+                    // Mettre à jour toutes les propriétés
+                    jobViewModel.Progress = e.Progress;
+                    jobViewModel.CurrentFile = e.CurrentFile;
+                    
+                    // IMPORTANT: Ne pas écraser l'état de pause si nous l'avons défini manuellement
+                    // via le bouton Pause/Resume, sauf si c'est un état final
+                    if (normalizedStatus == JobStatus.Completed || 
+                        normalizedStatus == JobStatus.Canceled || 
+                        normalizedStatus.StartsWith("Failed"))
+                    {
+                        jobViewModel.Status = normalizedStatus;
+                        jobViewModel.IsPaused = false;
+                    }
+                }
+                
+                // Remove completed or canceled jobs after a delay
+                if (normalizedStatus == JobStatus.Completed || normalizedStatus == JobStatus.Canceled || normalizedStatus.StartsWith("Failed"))
+                {
+                    Task.Delay(5000).ContinueWith(_ =>
+                    {
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            ActiveJobs.Remove(jobViewModel);
+                            
+                            // Si c'était le dernier job actif, arrêter la surveillance
+                            if (ActiveJobs.Count == 0)
+                            {
+                                StopBusinessSoftwareMonitoring();
+                            }
+                        });
+                    });
+                }
+                
+                // Update the last backup time for the corresponding job in the list
+                var job = BackupJobs.FirstOrDefault(j => j.JobName == e.JobName);
+                if (job != null && normalizedStatus == JobStatus.Completed)
+                {
+                    job.LastBackupTime = DateTime.Now;
                 }
             });
         }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        /// <summary>
+        /// Normalise un statut pour éviter les problèmes de casse
+        /// </summary>
+        /// <param name="status">Le statut à normaliser</param>
+        /// <returns>Le statut normalisé</returns>
+        private string NormalizeStatus(string status)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (string.IsNullOrEmpty(status))
+                return JobStatus.Running;
+                
+            // Convertir en minuscules pour la comparaison
+            string lowerStatus = status.ToLowerInvariant();
+            
+            if (lowerStatus.Contains("pause"))
+                return JobStatus.Paused;
+            if (lowerStatus.Contains("en cours") || lowerStatus.Contains("running"))
+                return JobStatus.Running;
+            if (lowerStatus.Contains("complet"))
+                return JobStatus.Completed;
+            if (lowerStatus.Contains("cancel"))
+                return JobStatus.Canceled;
+            if (lowerStatus.Contains("stop"))
+                return JobStatus.Stopping;
+            if (lowerStatus.Contains("fail") || lowerStatus.Contains("error"))
+                return "Failed: " + status;
+                
+            // Si on ne reconnaît pas le statut, on le retourne tel quel
+            return status;
         }
-    }
 
-    // Basic implementation of ICommand for our ViewModel
-    public class RelayCommand : ICommand
-    {
-        private readonly Action<object> _execute;
-        private readonly Predicate<object> _canExecute;
-
-        public RelayCommand(Action<object> execute, Predicate<object> canExecute = null)
+        /// <summary>
+        /// Event handler for business software status changes
+        /// </summary>
+        private void OnBusinessSoftwareStatusChanged(object sender, bool isRunning)
         {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsBusinessSoftwareRunning = isRunning;
+                StatusMessage = isRunning 
+                    ? _translationService.GetTranslation("business_software_running")
+                    : string.Empty;
+            });
         }
 
-        public bool CanExecute(object parameter) => _canExecute == null || _canExecute(parameter);
-
-        public void Execute(object parameter) => _execute(parameter);
-
-        public event EventHandler CanExecuteChanged
+        /// <summary>
+        /// Event handler for translation service property changes
+        /// </summary>
+        private void OnTranslationServicePropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            add => CommandManager.RequerySuggested += value;
-            remove => CommandManager.RequerySuggested -= value;
+            // If the language changes, we need to update all the translation properties
+            if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
+            {
+                OnPropertyChanged(nameof(AppTitle));
+                OnPropertyChanged(nameof(SelectedLanguage));
+                OnPropertyChanged(nameof(SettingsButtonText));
+                OnPropertyChanged(nameof(SelectAllText));
+                OnPropertyChanged(nameof(BackupJobsHeader));
+                OnPropertyChanged(nameof(NameLabel));
+                OnPropertyChanged(nameof(SourcePathLabel));
+                OnPropertyChanged(nameof(TargetPathLabel));
+                OnPropertyChanged(nameof(TypeLabel));
+                OnPropertyChanged(nameof(LastBackupLabel));
+                OnPropertyChanged(nameof(BackupJobDetailsHeader));
+                OnPropertyChanged(nameof(JobStatusLabel));
+                OnPropertyChanged(nameof(NotRunningText));
+                OnPropertyChanged(nameof(ExecuteButtonText));
+                OnPropertyChanged(nameof(EditButtonText));
+                OnPropertyChanged(nameof(DeleteButtonText));
+                OnPropertyChanged(nameof(ActiveJobsHeader));
+                OnPropertyChanged(nameof(CreateButtonText));
+                OnPropertyChanged(nameof(ExecuteSelectedJobsText));
+                OnPropertyChanged(nameof(PauseButtonText));
+                OnPropertyChanged(nameof(ResumeButtonText));
+                OnPropertyChanged(nameof(StopButtonText));
+                OnPropertyChanged(nameof(CurrentFileLabel));
+                OnPropertyChanged(nameof(ProgressLabel));
+                
+                // Mettre à jour le message de statut si le logiciel métier est en cours d'exécution
+                if (IsBusinessSoftwareRunning)
+                {
+                    StatusMessage = _translationService.GetTranslation("business_software_running");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Starts monitoring for business software
+        /// </summary>
+        private void StartBusinessSoftwareMonitoring()
+        {
+            _businessSoftwareMonitor.Start();
+        }
+
+        /// <summary>
+        /// Stops monitoring for business software
+        /// </summary>
+        private void StopBusinessSoftwareMonitoring()
+        {
+            _businessSoftwareMonitor.Stop();
         }
     }
 }

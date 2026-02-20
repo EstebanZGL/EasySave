@@ -185,22 +185,59 @@ namespace EasySave.Models
         Differential
     }
 
-    // State of a backup job
+    /// <summary>
+    /// State of a backup job
+    /// </summary>
     public enum BackupState
     {
-        // Backup job is inactive
+        /// <summary>
+        /// The backup job has not started yet
+        /// </summary>
+        NotStarted,
+        
+        /// <summary>
+        /// Backup job is inactive
+        /// </summary>
         Inactive,
         
-        // Backup job is active
-        Active,
+        /// <summary>
+        /// The backup job is in progress
+        /// </summary>
+        InProgress,
         
-        // Backup job has completed successfully
+        /// <summary>
+        /// Backup job is active (legacy name, same as InProgress)
+        /// </summary>
+        Active = InProgress,
+        
+        /// <summary>
+        /// The backup job is paused
+        /// </summary>
+        Paused,
+        
+        /// <summary>
+        /// The backup job has been canceled
+        /// </summary>
+        Canceled,
+        
+        /// <summary>
+        /// The backup job has been cancelled (legacy spelling)
+        /// </summary>
+        Cancelled = Canceled,
+        
+        /// <summary>
+        /// The backup job has completed successfully
+        /// </summary>
         Completed,
         
-        // Backup job has been cancelled
-        Cancelled,
+        /// <summary>
+        /// The backup job has failed
+        /// </summary>
+        Failed,
         
-        // Backup job has failed
-        Error
+        /// <summary>
+        /// Backup job has failed (legacy name, same as Failed)
+        /// </summary>
+        Error = Failed
     }
 }

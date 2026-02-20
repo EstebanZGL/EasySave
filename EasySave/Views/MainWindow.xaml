@@ -6,8 +6,9 @@
         xmlns:local="clr-namespace:EasySave.Views"
         xmlns:vm="clr-namespace:EasySave.ViewModels"
         xmlns:converters="clr-namespace:EasySave.Converters"
+        xmlns:models="clr-namespace:EasySave.Models"
         mc:Ignorable="d"
-        Title="{Binding AppTitle}" Height="600" Width="1000">
+        Title="{Binding AppTitle}" Height="700" Width="1100">
     
     <Window.Resources>
         <!-- Converter to change null to false and non-null to true -->
@@ -16,12 +17,24 @@
         <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
         
         <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        
+        <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
+        
+        <!-- Convertisseur pour inverser la visibilité -->
+        <converters:BoolToVisibilityInvertConverter x:Key="BoolToVisInvertConverter"/>
+        
+        <!-- Convertisseur pour transformer une chaîne en visibilité -->
+        <converters:StringToVisibilityConverter x:Key="StringToVisConverter"/>
+        
+        <!-- Convertisseur pour transformer un booléen en texte -->
+        <converters:BoolToStringConverter x:Key="BoolToStringConverter"/>
     </Window.Resources>
     
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -33,7 +46,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <TextBlock Grid.Column="0" Text="EasySave 2.0" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="0" Text="EasySave 3.0" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
             
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button Content="{Binding SelectedLanguage}" Command="{Binding ChangeLanguageCommand}" Width="50" Margin="0,0,10,0"/>
@@ -151,15 +164,79 @@
             </Border>
         </Grid>
         
+        <!-- Active Jobs Section -->
+        <Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1" Margin="10,5">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="{Binding ActiveJobsHeader}" FontWeight="Bold" Margin="10,5"/>
+                <ListView ItemsSource="{Binding ActiveJobs}" MaxHeight="150">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="120" DisplayMemberBinding="{Binding JobName}"/>
+                            <GridViewColumn Header="{Binding DataContext.JobStatusLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="80" DisplayMemberBinding="{Binding Status}"/>
+                            <GridViewColumn Header="{Binding DataContext.CurrentFileLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="200">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding CurrentFile}" 
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding CurrentFile}"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="{Binding DataContext.ProgressLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="120">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <ProgressBar Value="{Binding Progress}" Width="100" Height="15"/>
+                                            <TextBlock Text="{Binding Progress, StringFormat={}{0}%}" 
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontSize="10" FontWeight="Bold"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Actions" Width="180">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- Bouton Pause/Resume - Utilise la propriété PauseResumeButtonText -->
+                                            <Button Content="{Binding PauseResumeButtonText}"
+                                                    Command="{Binding DataContext.PauseResumeJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding JobName}"
+                                                    Margin="0,0,5,0" Padding="5,2"/>
+                                            
+                                            <!-- Bouton Stop - Utilise la propriété StopButtonText -->
+                                            <Button Content="{Binding StopButtonText}"
+                                                    Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding JobName}"
+                                                    Margin="0,0,5,0" Padding="5,2"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+            </DockPanel>
+        </Border>
+        
         <!-- Action buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,5">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="10,5">
             <Button Content="{Binding CreateButtonText}" Command="{Binding CreateBackupJobCommand}" Padding="10,5" Margin="0,0,10,0"/>
             <Button Content="{Binding ExecuteSelectedJobsText}" Command="{Binding ExecuteSelectedJobsCommand}" Padding="10,5"
                     IsEnabled="{Binding HasSelectedJobs}"/>
         </StackPanel>
         
         <!-- Status bar -->
-        <Border Grid.Row="3" Background="{Binding IsBusinessSoftwareRunning, Converter={StaticResource BoolToColorConverter}}" 
+        <Border Grid.Row="4" Background="{Binding IsBusinessSoftwareRunning, Converter={StaticResource BoolToColorConverter}}" 
                 BorderBrush="Gray" BorderThickness="0,1,0,0">
             <TextBlock Text="{Binding StatusMessage}" Margin="10,5" FontWeight="SemiBold"/>
         </Border>

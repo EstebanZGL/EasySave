@@ -1,117 +1,224 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Automation;
 using EasySave.ViewModels;
 using EasyLog;
 
 namespace EasySave.Services
 {
     /// <summary>
-    /// Service for monitoring business software and controlling backup operations
+    /// Service for monitoring business software that should pause backups when running
     /// </summary>
     public class BusinessSoftwareMonitor : IDisposable
     {
-        private readonly SettingsViewModel _settings;
-        private readonly BackupService _backupService;
-        private readonly ILogger _logger;
-        private System.Threading.Timer _monitorTimer;
-        private bool _wasRunning;
-        private const int CHECK_INTERVAL_MS = 1000; // Check every second
-
+        private readonly SettingsViewModel _settingsViewModel;
+        private readonly object _backupService; // Can be BackupService or ParallelBackupService
+        private readonly IEncryptionLogger _logger;
+        private CancellationTokenSource _cancellationTokenSource;
+        private bool _isMonitoring;
+        private List<string> _pausedJobs = new List<string>();
+        
+        /// <summary>
+        /// Event raised when business software status changes
+        /// </summary>
         public event EventHandler<bool> BusinessSoftwareStatusChanged;
-
-        public BusinessSoftwareMonitor(SettingsViewModel settings, BackupService backupService, ILogger logger)
+        
+        /// <summary>
+        /// Creates a new instance of the BusinessSoftwareMonitor with ParallelBackupService
+        /// </summary>
+        /// <param name="settingsViewModel">The settings view model</param>
+        /// <param name="backupService">The parallel backup service</param>
+        public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, ParallelBackupService backupService)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _backupService = backupService ?? throw new ArgumentNullException(nameof(backupService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _wasRunning = _settings.IsBusinessSoftwareRunning();
+            _settingsViewModel = settingsViewModel;
+            _backupService = backupService;
+            _logger = null;
+        }
+        
+        /// <summary>
+        /// Creates a new instance of the BusinessSoftwareMonitor with BackupService
+        /// </summary>
+        /// <param name="settingsViewModel">The settings view model</param>
+        /// <param name="backupService">The backup service</param>
+        /// <param name="logger">The logger</param>
+        public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, BackupService backupService, IEncryptionLogger logger)
+        {
+            _settingsViewModel = settingsViewModel;
+            _backupService = backupService;
+            _logger = logger;
+        }
+        
+        /// <summary>
+        /// Starts monitoring for business software
+        /// </summary>
+        public void Start()
+        {
+            if (_isMonitoring)
+            {
+                return;
+            }
+            
+            _isMonitoring = true;
+            _cancellationTokenSource = new CancellationTokenSource();
+            
+            Task.Run(async () => await MonitorBusinessSoftwareAsync(_cancellationTokenSource.Token));
+        }
+        
+        /// <summary>
+        /// Stops monitoring for business software
+        /// </summary>
+        public void Stop()
+        {
+            if (!_isMonitoring)
+            {
+                return;
+            }
+            
+            _isMonitoring = false;
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = null;
         }
 
         /// <summary>
-        /// Starts monitoring the business software
+        /// Alias for Start method (for compatibility with BackupService)
         /// </summary>
         public void StartMonitoring()
         {
-            // Stop any existing timer
-            StopMonitoring();
-
-            // Create a new timer that checks the business software status
-            _monitorTimer = new System.Threading.Timer(CheckBusinessSoftwareStatus, null, 0, CHECK_INTERVAL_MS);
-            
-            Debug.WriteLine($"Started monitoring business software: {_settings.BusinessSoftwareName}");
+            Start();
         }
 
         /// <summary>
-        /// Stops monitoring the business software
+        /// Alias for Stop method (for compatibility with BackupService)
         /// </summary>
         public void StopMonitoring()
         {
-            if (_monitorTimer != null)
-            {
-                _monitorTimer.Dispose();
-                _monitorTimer = null;
-                Debug.WriteLine("Stopped monitoring business software");
-            }
+            Stop();
         }
-
+        
         /// <summary>
-        /// Checks if the business software is running and takes appropriate action
+        /// Monitors for business software in a loop
         /// </summary>
-        private async void CheckBusinessSoftwareStatus(object state)
+        /// <param name="cancellationToken">Token to monitor for cancellation</param>
+        private async Task MonitorBusinessSoftwareAsync(CancellationToken cancellationToken)
         {
-            try
+            bool wasRunning = false;
+            
+            while (!cancellationToken.IsCancellationRequested)
             {
-                bool isRunning = _settings.IsBusinessSoftwareRunning();
-                
-                // If status changed, take action
-                if (isRunning != _wasRunning)
+                try
                 {
-                    _wasRunning = isRunning;
+                    bool isRunning = IsBusinessSoftwareRunning();
                     
-                    if (isRunning)
+                    if (isRunning != wasRunning)
                     {
-                        // Business software started, pause backup
-                        Debug.WriteLine($"Business software {_settings.BusinessSoftwareName} started - pausing backup");
-                        _backupService.PauseBackupJob();
-                        await _logger.LogApplicationEventAsync(
-                            "BackupPaused",
-                            $"Backup paused because business software started: {_settings.BusinessSoftwareName}");
-                    }
-                    else
-                    {
-                        // Business software stopped, resume backup
-                        Debug.WriteLine($"Business software {_settings.BusinessSoftwareName} stopped - resuming backup");
-                        _backupService.ResumeBackupJob();
-                        await _logger.LogApplicationEventAsync(
-                            "BackupResumed",
-                            $"Backup resumed because business software stopped: {_settings.BusinessSoftwareName}");
+                        wasRunning = isRunning;
+                        OnBusinessSoftwareStatusChanged(isRunning);
+                        
+                        if (isRunning)
+                        {
+                            // Business software started running, pause all active jobs
+                            await PauseAllActiveJobsAsync();
+                        }
+                        else
+                        {
+                            // Business software stopped running, resume all paused jobs
+                            await ResumeAllPausedJobsAsync();
+                        }
                     }
                     
-                    // Notify subscribers about the status change
-                    BusinessSoftwareStatusChanged?.Invoke(this, isRunning);
+                    // Check every second
+                    await Task.Delay(1000, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Monitoring was canceled
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but continue monitoring
+                    Debug.WriteLine($"Error monitoring business software: {ex.Message}");
+                    await Task.Delay(5000, cancellationToken); // Longer delay after error
                 }
             }
-            catch (Exception ex)
+        }
+        
+        /// <summary>
+        /// Checks if any configured business software is running
+        /// </summary>
+        /// <returns>True if business software is running, false otherwise</returns>
+        private bool IsBusinessSoftwareRunning()
+        {
+            // Use the IsBusinessSoftwareRunning method from SettingsViewModel
+            return _settingsViewModel.IsBusinessSoftwareRunning();
+        }
+        
+        /// <summary>
+        /// Pauses all active backup jobs
+        /// </summary>
+        private async Task PauseAllActiveJobsAsync()
+        {
+            _pausedJobs.Clear();
+            
+            if (_backupService is ParallelBackupService parallelService)
             {
-                Debug.WriteLine($"Error in business software monitor: {ex.Message}");
+                foreach (var job in parallelService.GetActiveJobs())
+                {
+                    if (job.Status != "Paused" && job.Status != "Completed" && 
+                        job.Status != "Canceled" && !job.Status.StartsWith("Failed"))
+                    {
+                        await parallelService.PauseJobAsync(job.JobName);
+                        _pausedJobs.Add(job.JobName);
+                    }
+                }
             }
+            else if (_backupService is BackupService service)
+            {
+                service.PauseBackupJob();
+                // No need to track job names for the old BackupService
+            }
+        }
+        
+        /// <summary>
+        /// Resumes all previously paused backup jobs
+        /// </summary>
+        private async Task ResumeAllPausedJobsAsync()
+        {
+            if (_backupService is ParallelBackupService parallelService)
+            {
+                foreach (var jobName in _pausedJobs)
+                {
+                    await parallelService.ResumeJobAsync(jobName);
+                }
+            }
+            else if (_backupService is BackupService service)
+            {
+                service.ResumeBackupJob();
+            }
+            
+            _pausedJobs.Clear();
+        }
+        
+        /// <summary>
+        /// Raises the BusinessSoftwareStatusChanged event
+        /// </summary>
+        /// <param name="isRunning">Whether business software is running</param>
+        private void OnBusinessSoftwareStatusChanged(bool isRunning)
+        {
+            BusinessSoftwareStatusChanged?.Invoke(this, isRunning);
         }
 
         /// <summary>
-        /// Checks if the business software is currently running
+        /// Disposes resources used by the monitor
         /// </summary>
-        /// <returns>True if the business software is running, false otherwise</returns>
-        public bool IsBusinessSoftwareRunning()
-        {
-            return _settings.IsBusinessSoftwareRunning();
-        }
-
         public void Dispose()
         {
-            StopMonitoring();
+            Stop();
+            _cancellationTokenSource?.Dispose();
         }
     }
 }

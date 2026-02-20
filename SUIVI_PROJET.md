@@ -235,9 +235,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] Mise à jour des diagrammes UML
 
 #### Développement Core
-- [ ] Implémentation des sauvegardes en parallèle
-  - [ ] Système de threading
-  - [ ] Gestion des ressources partagées
+- [x] Implémentation des sauvegardes en parallèle
+  - [x] Système de threading
+  - [x] Gestion des ressources partagées
 - [ ] Gestion des fichiers prioritaires
   - [ ] Système de priorité par extension
   - [ ] File d'attente intelligente
@@ -256,8 +256,8 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Configuration des projets pour générer tous les exécutables dans un dossier commun
 
 #### Interface Utilisateur
-- [ ] Contrôles Play/Pause/Stop pour chaque travail
-- [ ] Affichage en temps réel de la progression
+- [x] Contrôles Play/Pause/Stop pour chaque travail
+- [x] Affichage en temps réel de la progression
 - [ ] Interface de configuration des priorités
 - [ ] Interface de configuration de la bande passante
 
@@ -362,3 +362,15 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 14/02/2026 : Adaptation de l'injection de dépendances pour utiliser le constructeur approprié de BackupService
 - 14/02/2026 : Compilation réussie et génération de l'exécutable EasySaveCLI.exe
 - 14/02/2026 : Configuration des projets EasySave, EasySaveCLI et CryptoSoft pour générer tous les exécutables dans un dossier output commun à la racine de la solution
+- 17/02/2026 : Correction du problème d'affichage de la fenêtre des paramètres - Ajout du convertisseur EnumToBoolConverter manquant
+- 17/02/2026 : Résolution de l'ambiguïté de référence à Binding.DoNothing dans EnumToBoolConverter
+- 17/02/2026 : Identification des problèmes avec les logs qui s'effacent progressivement
+- 17/02/2026 : Constatation des problèmes de mise à jour du statut des tâches en cours
+- 17/02/2026 : Planification de l'ajout du bouton pause pour les travaux de sauvegarde
+- 18/02/2026 : Correction du problème d'affichage "IDLE" au lieu de "En cours" dans les statuts des travaux
+- 18/02/2026 : Correction du problème de reprise des travaux mis en pause
+- 18/02/2026 : Amélioration de la gestion des états de pause/reprise dans ParallelBackupService
+- 18/02/2026 : Modification de ActiveBackupJobViewModel pour mieux gérer l'affichage des statuts
+- 18/02/2026 : Utilisation des constantes de JobStatus pour une meilleure cohérence des statuts
+- 18/02/2026 : Ajout d'un mécanisme de stockage du dernier fichier traité pour améliorer la reprise des travaux
+- 18/02/2026 : Amélioration du système de debugging avec plus de messages dans le journal de débogage
