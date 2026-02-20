@@ -4,8 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using EasySave.Models;
-using EasySave.Services;
-using EasySave.Views;
+using Microsoft.Win32;
 
 namespace EasySave.Views
 {
@@ -21,20 +20,15 @@ namespace EasySave.Views
         private bool _isDifferentialType;
         private string _validationMessage;
         private bool _useDefaultTargetPath = true; // Par défaut, utiliser le chemin par défaut
-        private readonly TranslationService _translationService;
-        private readonly bool _isEditMode;
 
         public BackupJobDialog()
         {
             InitializeComponent();
-            _translationService = TranslationServiceProvider.GetTranslationService();
-            _translationService.PropertyChanged += TranslationService_PropertyChanged;
             DataContext = this;
         }
 
         public BackupJobDialog(BackupJob job) : this()
         {
-            _isEditMode = true;
             JobName = job.JobName;
             SourcePath = job.SourcePath;
             
@@ -54,42 +48,6 @@ namespace EasySave.Views
             IsCompleteType = job.Type == BackupType.Complete;
             IsDifferentialType = job.Type == BackupType.Differential;
         }
-
-        private void TranslationService_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            // Mettre à jour toutes les propriétés liées aux traductions
-            if (e.PropertyName == "AllTranslations" || e.PropertyName == "CurrentLanguage")
-            {
-                OnPropertyChanged(nameof(DialogTitle));
-                OnPropertyChanged(nameof(NameLabel));
-                OnPropertyChanged(nameof(SourcePathLabel));
-                OnPropertyChanged(nameof(TargetPathLabel));
-                OnPropertyChanged(nameof(BackupTypeLabel));
-                OnPropertyChanged(nameof(BrowseButtonText));
-                OnPropertyChanged(nameof(UseDefaultLocationText));
-                OnPropertyChanged(nameof(CompleteTypeText));
-                OnPropertyChanged(nameof(DifferentialTypeText));
-                OnPropertyChanged(nameof(SaveButtonText));
-                OnPropertyChanged(nameof(CancelButtonText));
-                OnPropertyChanged(nameof(DefaultTargetPathDisplay));
-            }
-        }
-
-        // Propriétés pour les traductions
-        public string DialogTitle => _isEditMode 
-            ? _translationService.GetTranslation("edit_backup_job") 
-            : _translationService.GetTranslation("create_backup_job");
-        
-        public string NameLabel => _translationService.GetTranslation("name");
-        public string SourcePathLabel => _translationService.GetTranslation("source_path");
-        public string TargetPathLabel => _translationService.GetTranslation("target_path");
-        public string BackupTypeLabel => _translationService.GetTranslation("type");
-        public string BrowseButtonText => _translationService.GetTranslation("browse");
-        public string UseDefaultLocationText => "Use default location";  // À traduire
-        public string CompleteTypeText => _translationService.GetTranslation("complete");
-        public string DifferentialTypeText => _translationService.GetTranslation("differential");
-        public string SaveButtonText => _translationService.GetTranslation("save");
-        public string CancelButtonText => _translationService.GetTranslation("cancel");
 
         public string JobName
         {
@@ -169,10 +127,7 @@ namespace EasySave.Views
             get
             {
                 string path = GetDefaultTargetPath(JobName);
-                string defaultLocationText = _translationService.CurrentLanguage == "fr" 
-                    ? "Emplacement par défaut: " 
-                    : "Default location: ";
-                return $"{defaultLocationText}{path}";
+                return $"Default location: {path}";
             }
         }
 
@@ -214,7 +169,7 @@ namespace EasySave.Views
                 return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "saves", "unnamed_backup");
             }
             
-            // Créer le chemin de base saves/[Nom de la sauvegarde]
+            // Créer le chemin de base output/saves/[Nom de la sauvegarde]
             string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "saves");
             
             // Nettoyer le nom du travail pour qu'il soit valide comme nom de dossier
@@ -262,19 +217,19 @@ namespace EasySave.Views
 
             if (string.IsNullOrWhiteSpace(JobName))
             {
-                ValidationMessage = _translationService.GetTranslation("name_required");
+                ValidationMessage = "Name is required.";
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(SourcePath))
             {
-                ValidationMessage = _translationService.GetTranslation("source_required");
+                ValidationMessage = "Source path is required.";
                 return false;
             }
 
             if (!Directory.Exists(SourcePath))
             {
-                ValidationMessage = _translationService.GetTranslation("source_not_exist");
+                ValidationMessage = "Source directory does not exist.";
                 return false;
             }
 
@@ -282,7 +237,7 @@ namespace EasySave.Views
 
             if (string.IsNullOrWhiteSpace(finalTargetPath))
             {
-                ValidationMessage = _translationService.GetTranslation("target_required");
+                ValidationMessage = "Target path is required.";
                 return false;
             }
 
@@ -296,7 +251,7 @@ namespace EasySave.Views
             }
             catch (Exception ex)
             {
-                ValidationMessage = string.Format(_translationService.GetTranslation("target_error"), ex.Message);
+                ValidationMessage = $"Error creating target directory: {ex.Message}";
                 return false;
             }
 
