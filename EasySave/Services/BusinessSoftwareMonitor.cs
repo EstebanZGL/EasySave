@@ -22,6 +22,15 @@ namespace EasySave.Services
         private bool _isMonitoring;
         private List<string> _pausedJobs = new List<string>();
         
+        // Paramètres de surveillance intelligente
+        private const int INITIAL_CHECK_INTERVAL = 1000;      // Intervalle initial (1 seconde)
+        private const int NORMAL_CHECK_INTERVAL = 3000;       // Intervalle normal (3 secondes)
+        private const int EXTENDED_CHECK_INTERVAL = 10000;    // Intervalle étendu (10 secondes)
+        private const int MAX_STABLE_CHECKS = 5;              // Nombre de vérifications stables avant de passer à l'intervalle étendu
+        private int _currentCheckInterval = INITIAL_CHECK_INTERVAL;
+        private int _stableCheckCount = 0;
+        private bool _lastStatus = false;
+        
         /// <summary>
         /// Event raised when business software status changes
         /// </summary>
@@ -65,6 +74,10 @@ namespace EasySave.Services
             _isMonitoring = true;
             _cancellationTokenSource = new CancellationTokenSource();
             
+            // Réinitialiser les paramètres de surveillance
+            _currentCheckInterval = INITIAL_CHECK_INTERVAL;
+            _stableCheckCount = 0;
+            
             Task.Run(async () => await MonitorBusinessSoftwareAsync(_cancellationTokenSource.Token));
         }
         
@@ -100,7 +113,7 @@ namespace EasySave.Services
         }
         
         /// <summary>
-        /// Monitors for business software in a loop
+        /// Monitors for business software in a loop with adaptive checking intervals
         /// </summary>
         /// <param name="cancellationToken">Token to monitor for cancellation</param>
         private async Task MonitorBusinessSoftwareAsync(CancellationToken cancellationToken)
@@ -115,7 +128,12 @@ namespace EasySave.Services
                     
                     if (isRunning != wasRunning)
                     {
+                        // Le statut a changé, réinitialiser l'intervalle et le compteur de stabilité
+                        _currentCheckInterval = INITIAL_CHECK_INTERVAL;
+                        _stableCheckCount = 0;
                         wasRunning = isRunning;
+                        
+                        Debug.WriteLine($"Business software status changed to: {(isRunning ? "Running" : "Not running")}");
                         OnBusinessSoftwareStatusChanged(isRunning);
                         
                         if (isRunning)
@@ -129,9 +147,35 @@ namespace EasySave.Services
                             await ResumeAllPausedJobsAsync();
                         }
                     }
+                    else
+                    {
+                        // Le statut est stable, ajuster l'intervalle de vérification
+                        if (isRunning == _lastStatus)
+                        {
+                            _stableCheckCount++;
+                            
+                            // Si le statut est stable depuis plusieurs vérifications, augmenter l'intervalle
+                            if (_stableCheckCount >= MAX_STABLE_CHECKS)
+                            {
+                                _currentCheckInterval = EXTENDED_CHECK_INTERVAL;
+                            }
+                            else if (_stableCheckCount >= 2)
+                            {
+                                _currentCheckInterval = NORMAL_CHECK_INTERVAL;
+                            }
+                        }
+                        else
+                        {
+                            // Réinitialiser le compteur si le statut est différent de la dernière fois
+                            _stableCheckCount = 0;
+                            _currentCheckInterval = INITIAL_CHECK_INTERVAL;
+                        }
+                    }
                     
-                    // Check every second
-                    await Task.Delay(1000, cancellationToken);
+                    _lastStatus = isRunning;
+                    
+                    // Attendre selon l'intervalle de vérification actuel
+                    await Task.Delay(_currentCheckInterval, cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -153,8 +197,16 @@ namespace EasySave.Services
         /// <returns>True if business software is running, false otherwise</returns>
         private bool IsBusinessSoftwareRunning()
         {
-            // Use the IsBusinessSoftwareRunning method from SettingsViewModel
-            return _settingsViewModel.IsBusinessSoftwareRunning();
+            try
+            {
+                // Use the IsBusinessSoftwareRunning method from SettingsViewModel
+                return _settingsViewModel.IsBusinessSoftwareRunning();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error checking business software status: {ex.Message}");
+                return false;
+            }
         }
         
         /// <summary>
@@ -162,24 +214,42 @@ namespace EasySave.Services
         /// </summary>
         private async Task PauseAllActiveJobsAsync()
         {
+            Debug.WriteLine("Pausing all active backup jobs due to business software running");
             _pausedJobs.Clear();
             
-            if (_backupService is ParallelBackupService parallelService)
+            try
             {
-                foreach (var job in parallelService.GetActiveJobs())
+                if (_backupService is ParallelBackupService parallelService)
                 {
-                    if (job.Status != "Paused" && job.Status != "Completed" && 
-                        job.Status != "Canceled" && !job.Status.StartsWith("Failed"))
+                    foreach (var job in parallelService.GetActiveJobs())
                     {
-                        await parallelService.PauseJobAsync(job.JobName);
-                        _pausedJobs.Add(job.JobName);
+                        if (job.Status != "Paused" && job.Status != "Completed" && 
+                            job.Status != "Canceled" && !job.Status.StartsWith("Failed"))
+                        {
+                            await parallelService.PauseJobAsync(job.JobName);
+                            _pausedJobs.Add(job.JobName);
+                            Debug.WriteLine($"Paused job: {job.JobName}");
+                        }
                     }
                 }
+                else if (_backupService is BackupService service)
+                {
+                    service.PauseBackupJob();
+                    Debug.WriteLine("Paused backup job in BackupService");
+                    // No need to track job names for the old BackupService
+                }
+                
+                // Log the event if logger is available
+                if (_logger != null)
+                {
+                    await _logger.LogApplicationEventAsync(
+                        "BusinessSoftwareStarted",
+                        $"Backup paused because business software started: {_settingsViewModel.BusinessSoftwareName}");
+                }
             }
-            else if (_backupService is BackupService service)
+            catch (Exception ex)
             {
-                service.PauseBackupJob();
-                // No need to track job names for the old BackupService
+                Debug.WriteLine($"Error pausing jobs: {ex.Message}");
             }
         }
         
@@ -188,16 +258,35 @@ namespace EasySave.Services
         /// </summary>
         private async Task ResumeAllPausedJobsAsync()
         {
-            if (_backupService is ParallelBackupService parallelService)
+            Debug.WriteLine("Resuming all paused backup jobs as business software is no longer running");
+            
+            try
             {
-                foreach (var jobName in _pausedJobs)
+                if (_backupService is ParallelBackupService parallelService)
                 {
-                    await parallelService.ResumeJobAsync(jobName);
+                    foreach (var jobName in _pausedJobs)
+                    {
+                        await parallelService.ResumeJobAsync(jobName);
+                        Debug.WriteLine($"Resumed job: {jobName}");
+                    }
+                }
+                else if (_backupService is BackupService service)
+                {
+                    service.ResumeBackupJob();
+                    Debug.WriteLine("Resumed backup job in BackupService");
+                }
+                
+                // Log the event if logger is available
+                if (_logger != null)
+                {
+                    await _logger.LogApplicationEventAsync(
+                        "BusinessSoftwareStopped",
+                        $"Backup resumed because business software stopped: {_settingsViewModel.BusinessSoftwareName}");
                 }
             }
-            else if (_backupService is BackupService service)
+            catch (Exception ex)
             {
-                service.ResumeBackupJob();
+                Debug.WriteLine($"Error resuming jobs: {ex.Message}");
             }
             
             _pausedJobs.Clear();

@@ -84,6 +84,26 @@ namespace EasySave.Services
         }
         
         /// <summary>
+        /// Met à jour la date de dernière sauvegarde d'un travail de sauvegarde
+        /// </summary>
+        /// <param name="jobName">Le nom du travail à mettre à jour</param>
+        /// <param name="lastBackupTime">La nouvelle date de dernière sauvegarde</param>
+        /// <returns>True si le travail a été mis à jour, false si le travail n'a pas été trouvé</returns>
+        public bool UpdateBackupJobLastBackupTime(string jobName, DateTime lastBackupTime)
+        {
+            var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == jobName);
+            if (existingJob == null)
+            {
+                return false;
+            }
+            
+            existingJob.LastBackupTime = lastBackupTime;
+            
+            SaveBackupJobs();
+            return true;
+        }
+        
+        /// <summary>
         /// Deletes a backup job
         /// </summary>
         /// <param name="jobName">The name of the job to delete</param>
