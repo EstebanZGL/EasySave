@@ -1,5 +1,6 @@
 using EasyLog;
 using EasySave.Models;
+using EasySave.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -22,11 +23,14 @@ namespace EasySave.ViewModels
         private long _largeFileThreshold;
         private List<string> _priorityExtensions;
         private LogCentralizationSettings _logCentralizationSettings;
+        private readonly TranslationService _translationService;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public SettingsViewModel()
+        public SettingsViewModel(TranslationService translationService = null)
         {
+            _translationService = translationService;
+            
             // Default values
             _businessSoftwareName = "calc.exe";  // Default to Calculator for demo
             _encryptionExtensions = new List<string> { ".txt", ".doc", ".pdf" };
@@ -42,6 +46,12 @@ namespace EasySave.ViewModels
             
             // Debug: Print the current business software name
             Debug.WriteLine($"Business software name set to: {_businessSoftwareName}");
+            
+            // Subscribe to translation changes if service is available
+            if (_translationService != null)
+            {
+                _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
+            }
         }
 
         public string BusinessSoftwareName
@@ -223,6 +233,37 @@ namespace EasySave.ViewModels
                 OnPropertyChanged();
             }
         }
+
+        // Propriétés de traduction
+        public string WindowTitle => GetTranslation("menu_settings");
+        public string GeneralSettingsHeader => GetTranslation("general_settings");
+        public string BusinessSoftwareLabel => GetTranslation("business_software");
+        public string CryptoSoftPathLabel => GetTranslation("cryptosoft_path");
+        public string LogFormatLabel => GetTranslation("log_format_setting");
+        public string RestartRequiredText => GetTranslation("restart_required");
+        public string ParallelBackupSettingsHeader => GetTranslation("parallel_backup_settings");
+        public string MaxParallelJobsLabel => GetTranslation("max_parallel_jobs");
+        public string LargeFileThresholdLabel => GetTranslation("large_file_threshold");
+        public string PriorityExtensionsLabel => GetTranslation("priority_extensions");
+        public string EncryptionSettingsHeader => GetTranslation("encryption_settings");
+        public string EncryptExtensionsLabel => GetTranslation("encrypt_extensions");
+        public string LogCentralizationHeader => GetTranslation("log_centralization_settings");
+        public string EnableCentralizationLabel => GetTranslation("enable_centralization");
+        public string LogServerUrlLabel => GetTranslation("log_server_url");
+        public string LogDestinationLabel => GetTranslation("log_destination");
+        public string LocalOnlyText => GetTranslation("local_only");
+        public string RemoteOnlyText => GetTranslation("remote_only");
+        public string BothLocalRemoteText => GetTranslation("both_local_remote");
+        public string NotesLabel => GetTranslation("settings_notes");
+        public string BusinessSoftwareNote => GetTranslation("settings_business_note");
+        public string MaxParallelJobsNote => GetTranslation("max_parallel_jobs_note");
+        public string LargeFileThresholdNote => GetTranslation("large_file_threshold_note");
+        public string PriorityExtensionsNote => GetTranslation("priority_extensions_note");
+        public string EncryptExtensionsNote => GetTranslation("settings_encrypt_note");
+        public string LogCentralizationNote => GetTranslation("log_centralization_note");
+        public string ChangesNote => GetTranslation("settings_changes_note");
+        public string CloseButtonText => GetTranslation("close");
+        public string BrowseButtonText => GetTranslation("browse");
 
         /// <summary>
         /// Checks if the configured business software is currently running using multiple detection methods
@@ -556,6 +597,48 @@ namespace EasySave.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void OnTranslationServicePropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
+            {
+                // Mettre à jour toutes les propriétés de traduction
+                OnPropertyChanged(nameof(WindowTitle));
+                OnPropertyChanged(nameof(GeneralSettingsHeader));
+                OnPropertyChanged(nameof(BusinessSoftwareLabel));
+                OnPropertyChanged(nameof(CryptoSoftPathLabel));
+                OnPropertyChanged(nameof(LogFormatLabel));
+                OnPropertyChanged(nameof(RestartRequiredText));
+                OnPropertyChanged(nameof(ParallelBackupSettingsHeader));
+                OnPropertyChanged(nameof(MaxParallelJobsLabel));
+                OnPropertyChanged(nameof(LargeFileThresholdLabel));
+                OnPropertyChanged(nameof(PriorityExtensionsLabel));
+                OnPropertyChanged(nameof(EncryptionSettingsHeader));
+                OnPropertyChanged(nameof(EncryptExtensionsLabel));
+                OnPropertyChanged(nameof(LogCentralizationHeader));
+                OnPropertyChanged(nameof(EnableCentralizationLabel));
+                OnPropertyChanged(nameof(LogServerUrlLabel));
+                OnPropertyChanged(nameof(LogDestinationLabel));
+                OnPropertyChanged(nameof(LocalOnlyText));
+                OnPropertyChanged(nameof(RemoteOnlyText));
+                OnPropertyChanged(nameof(BothLocalRemoteText));
+                OnPropertyChanged(nameof(NotesLabel));
+                OnPropertyChanged(nameof(BusinessSoftwareNote));
+                OnPropertyChanged(nameof(MaxParallelJobsNote));
+                OnPropertyChanged(nameof(LargeFileThresholdNote));
+                OnPropertyChanged(nameof(PriorityExtensionsNote));
+                OnPropertyChanged(nameof(EncryptExtensionsNote));
+                OnPropertyChanged(nameof(LogCentralizationNote));
+                OnPropertyChanged(nameof(ChangesNote));
+                OnPropertyChanged(nameof(CloseButtonText));
+                OnPropertyChanged(nameof(BrowseButtonText));
+            }
+        }
+
+        private string GetTranslation(string key)
+        {
+            return _translationService?.GetTranslation(key) ?? key;
         }
 
         private class SettingsData

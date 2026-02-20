@@ -1,3 +1,4 @@
+using EasySave.Services;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,28 @@ namespace EasySave.ViewModels
         private int _progress;
         private string _currentFile;
         private bool _isPaused;
+        private readonly TranslationService _translationService;
+
+        /// <summary>
+        /// Creates a new instance of ActiveBackupJobViewModel
+        /// </summary>
+        public ActiveBackupJobViewModel()
+        {
+            // Default constructor
+        }
+
+        /// <summary>
+        /// Creates a new instance of ActiveBackupJobViewModel with translation service
+        /// </summary>
+        /// <param name="translationService">The translation service to use</param>
+        public ActiveBackupJobViewModel(TranslationService translationService)
+        {
+            _translationService = translationService;
+            if (_translationService != null)
+            {
+                _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the name of the job
@@ -94,9 +117,32 @@ namespace EasySave.ViewModels
                 {
                     _isPaused = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(PauseResumeButtonText)); // Mettre à jour le texte du bouton
                 }
             }
         }
+
+        /// <summary>
+        /// Gets the translated label for "Current File"
+        /// </summary>
+        public string CurrentFileLabel => GetTranslation("current_file");
+
+        /// <summary>
+        /// Gets the translated label for "Progress"
+        /// </summary>
+        public string ProgressLabel => GetTranslation("progress");
+
+        /// <summary>
+        /// Gets the translated text for the pause/resume button based on the current state
+        /// </summary>
+        public string PauseResumeButtonText => IsPaused ? 
+            GetTranslation("resume") : 
+            GetTranslation("pause");
+
+        /// <summary>
+        /// Gets the translated text for the stop button
+        /// </summary>
+        public string StopButtonText => GetTranslation("stop");
 
         /// <summary>
         /// Event raised when a property changes
@@ -119,6 +165,28 @@ namespace EasySave.ViewModels
         public void NotifyPropertyChanged(string propertyName)
         {
             OnPropertyChanged(propertyName);
+        }
+
+        /// <summary>
+        /// Event handler for translation service property changes
+        /// </summary>
+        private void OnTranslationServicePropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
+            {
+                OnPropertyChanged(nameof(CurrentFileLabel));
+                OnPropertyChanged(nameof(ProgressLabel));
+                OnPropertyChanged(nameof(PauseResumeButtonText));
+                OnPropertyChanged(nameof(StopButtonText));
+            }
+        }
+
+        /// <summary>
+        /// Gets a translation for a key
+        /// </summary>
+        private string GetTranslation(string key)
+        {
+            return _translationService?.GetTranslation(key) ?? key;
         }
     }
 }

@@ -175,7 +175,8 @@
                                             Width="120" DisplayMemberBinding="{Binding JobName}"/>
                             <GridViewColumn Header="{Binding DataContext.JobStatusLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
                                             Width="80" DisplayMemberBinding="{Binding Status}"/>
-                            <GridViewColumn Header="Current File" Width="200">
+                            <GridViewColumn Header="{Binding DataContext.CurrentFileLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="200">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding CurrentFile}" 
@@ -184,7 +185,8 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Header="Progress" Width="120">
+                            <GridViewColumn Header="{Binding DataContext.ProgressLabel, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="120">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid>
@@ -200,14 +202,14 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <!-- Bouton Pause/Resume - Un seul bouton qui change de texte selon l'état -->
-                                            <Button Content="{Binding IsPaused, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Resume|Pause'}"
+                                            <!-- Bouton Pause/Resume - Utilise la propriété PauseResumeButtonText -->
+                                            <Button Content="{Binding PauseResumeButtonText}"
                                                     Command="{Binding DataContext.PauseResumeJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding JobName}"
                                                     Margin="0,0,5,0" Padding="5,2"/>
                                             
-                                            <!-- Bouton Stop - toujours visible -->
-                                            <Button Content="{Binding DataContext.StopButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            <!-- Bouton Stop - Utilise la propriété StopButtonText -->
+                                            <Button Content="{Binding StopButtonText}"
                                                     Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding JobName}"
                                                     Margin="0,0,5,0" Padding="5,2"/>

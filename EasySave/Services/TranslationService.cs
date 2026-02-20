@@ -135,6 +135,38 @@ namespace EasySave.Services
             translations["en_settings_log_note"] = "- Log Format: Changes to log format require application restart to take effect";
             translations["en_settings_changes_note"] = "- Changes are saved automatically";
             translations["en_close"] = "Close";
+            
+            // Ajout des traductions pour les boutons de contrôle des travaux
+            translations["en_pause"] = "Pause";
+            translations["en_resume"] = "Resume";
+            translations["en_stop"] = "Stop";
+            translations["en_priority_extensions"] = "Priority Extensions:";
+            translations["en_large_file_threshold"] = "Large File Threshold (bytes):";
+            translations["en_business_software_running"] = "Business software is running. Backups are paused.";
+            
+            // Ajout des traductions pour les sections des paramètres
+            translations["en_general_settings"] = "General Settings";
+            translations["en_parallel_backup_settings"] = "Parallel Backup Settings";
+            translations["en_encryption_settings"] = "Encryption Settings";
+            translations["en_log_centralization_settings"] = "Log Centralization Settings";
+            
+            // Ajout des traductions pour les paramètres de centralisation des logs
+            translations["en_enable_centralization"] = "Enable Centralization:";
+            translations["en_log_server_url"] = "Log Server URL:";
+            translations["en_log_destination"] = "Log Destination:";
+            translations["en_local_only"] = "Local Only";
+            translations["en_remote_only"] = "Remote Only";
+            translations["en_both_local_remote"] = "Both Local and Remote";
+            
+            // Ajout des traductions pour les notes des paramètres
+            translations["en_max_parallel_jobs_note"] = "- Max Parallel Jobs: Maximum number of backup jobs that can run simultaneously";
+            translations["en_large_file_threshold_note"] = "- Large File Threshold: Files larger than this size cannot be transferred simultaneously";
+            translations["en_priority_extensions_note"] = "- Priority Extensions: File types that will be processed before any other files";
+            translations["en_log_centralization_note"] = "- Log Centralization: Configure where log files are stored (local, remote server, or both)";
+            
+            // Ajout des traductions pour la barre d'avancement
+            translations["en_current_file"] = "Current File:";
+            translations["en_progress"] = "Progress:";
 
             // French translations
             translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
@@ -189,6 +221,38 @@ namespace EasySave.Services
             translations["fr_settings_log_note"] = "- Format des Logs: Les changements de format nécessitent un redémarrage pour prendre effet";
             translations["fr_settings_changes_note"] = "- Les changements sont sauvegardés automatiquement";
             translations["fr_close"] = "Fermer";
+            
+            // Ajout des traductions pour les boutons de contrôle des travaux
+            translations["fr_pause"] = "Pause";
+            translations["fr_resume"] = "Reprendre";
+            translations["fr_stop"] = "Arrêter";
+            translations["fr_priority_extensions"] = "Extensions Prioritaires:";
+            translations["fr_large_file_threshold"] = "Seuil Fichier Volumineux (octets):";
+            translations["fr_business_software_running"] = "Le logiciel métier est en cours d'exécution. Les sauvegardes sont en pause.";
+            
+            // Ajout des traductions pour les sections des paramètres
+            translations["fr_general_settings"] = "Paramètres Généraux";
+            translations["fr_parallel_backup_settings"] = "Paramètres de Sauvegarde Parallèle";
+            translations["fr_encryption_settings"] = "Paramètres de Chiffrement";
+            translations["fr_log_centralization_settings"] = "Paramètres de Centralisation des Logs";
+            
+            // Ajout des traductions pour les paramètres de centralisation des logs
+            translations["fr_enable_centralization"] = "Activer la Centralisation:";
+            translations["fr_log_server_url"] = "URL du Serveur de Logs:";
+            translations["fr_log_destination"] = "Destination des Logs:";
+            translations["fr_local_only"] = "Local Uniquement";
+            translations["fr_remote_only"] = "Distant Uniquement";
+            translations["fr_both_local_remote"] = "Local et Distant";
+            
+            // Ajout des traductions pour les notes des paramètres
+            translations["fr_max_parallel_jobs_note"] = "- Travaux Parallèles Max: Nombre maximum de travaux de sauvegarde pouvant s'exécuter simultanément";
+            translations["fr_large_file_threshold_note"] = "- Seuil Fichier Volumineux: Les fichiers plus grands que cette taille ne peuvent pas être transférés simultanément";
+            translations["fr_priority_extensions_note"] = "- Extensions Prioritaires: Types de fichiers qui seront traités avant tous les autres fichiers";
+            translations["fr_log_centralization_note"] = "- Centralisation des Logs: Configurer où les fichiers de log sont stockés (local, serveur distant, ou les deux)";
+            
+            // Ajout des traductions pour la barre d'avancement
+            translations["fr_current_file"] = "Fichier Actuel:";
+            translations["fr_progress"] = "Progression:";
 
             return translations;
         }

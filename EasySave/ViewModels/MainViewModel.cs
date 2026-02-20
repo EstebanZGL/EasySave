@@ -180,9 +180,15 @@ namespace EasySave.ViewModels
         public string ActiveJobsHeader => _translationService.GetTranslation("job_status");
         public string CreateButtonText => _translationService.GetTranslation("menu_create");
         public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected");
-        public string PauseButtonText => "Pause";
-        public string ResumeButtonText => "Resume";
-        public string StopButtonText => "Stop";
+        
+        // Propriétés de traduction pour les en-têtes des colonnes dans la liste des travaux actifs
+        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
+        public string ProgressLabel => _translationService.GetTranslation("progress");
+        
+        // Utiliser les traductions pour les boutons de contrôle des travaux
+        public string PauseButtonText => _translationService.GetTranslation("pause");
+        public string ResumeButtonText => _translationService.GetTranslation("resume");
+        public string StopButtonText => _translationService.GetTranslation("stop");
         
         /// <summary>
         /// Loads backup jobs from the repository
@@ -479,8 +485,8 @@ namespace EasySave.ViewModels
                 
                 if (jobViewModel == null)
                 {
-                    // Create a new view model for this job
-                    jobViewModel = new ActiveBackupJobViewModel
+                    // Create a new view model for this job with the translation service
+                    jobViewModel = new ActiveBackupJobViewModel(_translationService)
                     {
                         JobName = e.JobName,
                         Status = normalizedStatus,
@@ -580,7 +586,7 @@ namespace EasySave.ViewModels
             {
                 IsBusinessSoftwareRunning = isRunning;
                 StatusMessage = isRunning 
-                    ? "Business software is running. Backups are paused."
+                    ? _translationService.GetTranslation("business_software_running")
                     : string.Empty;
             });
         }
@@ -615,6 +621,14 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(PauseButtonText));
                 OnPropertyChanged(nameof(ResumeButtonText));
                 OnPropertyChanged(nameof(StopButtonText));
+                OnPropertyChanged(nameof(CurrentFileLabel));
+                OnPropertyChanged(nameof(ProgressLabel));
+                
+                // Mettre à jour le message de statut si le logiciel métier est en cours d'exécution
+                if (IsBusinessSoftwareRunning)
+                {
+                    StatusMessage = _translationService.GetTranslation("business_software_running");
+                }
             }
         }
 

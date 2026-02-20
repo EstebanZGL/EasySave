@@ -147,7 +147,7 @@ namespace EasySave
         // Display help for command line usage
         private void DisplayCommandLineHelp()
         {
-            Console.WriteLine("EasySave 2.0 - Command Line Usage");
+            Console.WriteLine("EasySave 3.0 - Command Line Usage");
             Console.WriteLine("================================");
             Console.WriteLine();
             Console.WriteLine("USAGE:");
@@ -176,7 +176,7 @@ namespace EasySave
         {
             // This method is only used in console mode, which is no longer needed in v2.0
             // But we keep it for backward compatibility with command-line mode
-            Console.WriteLine("EasySave 2.0 - Console Mode");
+            Console.WriteLine("EasySave 3.0 - Console Mode");
             Console.WriteLine("Please use the graphical interface for full functionality.");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
