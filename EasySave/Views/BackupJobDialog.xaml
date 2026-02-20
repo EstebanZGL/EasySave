@@ -5,10 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EasySave.Views"
         mc:Ignorable="d"
-        Title="Backup Job" Height="350" Width="500" 
+        Title="{Binding DialogTitle}" Height="380" Width="500" 
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -23,37 +24,52 @@
         </Grid.ColumnDefinitions>
 
         <!-- Job Name -->
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding NameLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
         <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding JobName}" Margin="0,0,0,10"/>
 
         <!-- Source Path -->
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Source Path:" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding SourcePathLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SourcePath}" Margin="0,0,10,10"/>
-        <Button Grid.Row="1" Grid.Column="2" Content="Browse..." Click="BrowseSourceButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+        <Button Grid.Row="1" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseSourceButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+
+        <!-- Default Target Path Option -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding TargetPathLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <CheckBox Grid.Row="2" Grid.Column="1" Content="{Binding UseDefaultLocationText}" IsChecked="{Binding UseDefaultTargetPath}" 
+                  VerticalAlignment="Center" Margin="0,0,0,10"/>
 
         <!-- Target Path -->
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Target Path:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TargetPath}" Margin="0,0,10,10"/>
-        <Button Grid.Row="2" Grid.Column="2" Content="Browse..." Click="BrowseTargetButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding TargetPathLabel}" VerticalAlignment="Center" Margin="0,0,10,10"
+                   Visibility="{Binding UseDefaultTargetPath, Converter={StaticResource BoolToVisibilityInvertConverter}}"/>
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TargetPath}" Margin="0,0,10,10"
+                 IsEnabled="{Binding UseDefaultTargetPath, Converter={StaticResource InverseBoolConverter}}"
+                 Visibility="{Binding UseDefaultTargetPath, Converter={StaticResource BoolToVisibilityInvertConverter}}"/>
+        <Button Grid.Row="3" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseTargetButton_Click" Padding="10,0" Margin="0,0,0,10"
+                IsEnabled="{Binding UseDefaultTargetPath, Converter={StaticResource InverseBoolConverter}}"
+                Visibility="{Binding UseDefaultTargetPath, Converter={StaticResource BoolToVisibilityInvertConverter}}"/>
+
+        <!-- Default Target Path Display -->
+        <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding DefaultTargetPathDisplay}" 
+                   Visibility="{Binding UseDefaultTargetPath, Converter={StaticResource BoolToVisibilityConverter}}"
+                   Margin="0,0,0,10" FontStyle="Italic"/>
 
         <!-- Backup Type -->
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Backup Type:" VerticalAlignment="Center" Margin="0,0,10,10"/>
-        <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
-            <RadioButton Content="Complete" IsChecked="{Binding IsCompleteType}" Margin="0,0,15,0"/>
-            <RadioButton Content="Differential" IsChecked="{Binding IsDifferentialType}"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding BackupTypeLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+        <StackPanel Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <RadioButton Content="{Binding CompleteTypeText}" IsChecked="{Binding IsCompleteType}" Margin="0,0,15,0"/>
+            <RadioButton Content="{Binding DifferentialTypeText}" IsChecked="{Binding IsDifferentialType}"/>
         </StackPanel>
 
         <!-- Validation Message -->
-        <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
+        <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" 
                    Text="{Binding ValidationMessage}" 
                    Foreground="Red" 
                    TextWrapping="Wrap"
                    VerticalAlignment="Center"/>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Save" Click="SaveButton_Click" Width="80" Margin="0,0,10,0"/>
-            <Button Content="Cancel" Click="CancelButton_Click" Width="80"/>
+        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="{Binding SaveButtonText}" Click="SaveButton_Click" Width="80" Margin="0,0,10,0"/>
+            <Button Content="{Binding CancelButtonText}" Click="CancelButton_Click" Width="80"/>
         </StackPanel>
     </Grid>
 </Window>

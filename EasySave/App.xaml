@@ -6,5 +6,8 @@
     <Application.Resources>
         <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
         <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:BoolToVisibilityInvertConverter x:Key="BoolToVisibilityInvertConverter"/>
+        <converters:InverseBoolConverter x:Key="InverseBoolConverter"/>
     </Application.Resources>
 </Application>

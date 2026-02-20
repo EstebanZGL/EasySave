@@ -83,7 +83,7 @@ namespace EasySave.Services
             var translations = new Dictionary<string, string>(100);
 
             // English translations
-            translations["en_app_title"] = "EasySave 2.0 - Backup Software";
+            translations["en_app_title"] = "EasySave 3.0 - Backup Software";
             translations["en_menu_title"] = "Main Menu";
             translations["en_menu_create"] = "Create New Backup Job";
             translations["en_menu_execute"] = "Execute Backup";
@@ -169,7 +169,7 @@ namespace EasySave.Services
             translations["en_progress"] = "Progress:";
 
             // French translations
-            translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
+            translations["fr_app_title"] = "EasySave 3.0 - Logiciel de Sauvegarde";
             translations["fr_menu_title"] = "Menu Principal";
             translations["fr_menu_create"] = "Créer un Nouveau Travail";
             translations["fr_menu_execute"] = "Exécuter la Sauvegarde";
