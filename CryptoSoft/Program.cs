@@ -2,12 +2,14 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Windows.Forms;
+using System.Drawing;
 
 namespace CryptoSoft
 {
     /// <summary>
     /// CryptoSoft - A simple file encryption utility designed to be called from EasySave.
-    /// Version 3.0: Now with mono-instance support using a system-wide mutex.
+    /// Version 4.0: Now with a simple GUI and mono-instance support.
     /// </summary>
     public class Program
     {
@@ -30,60 +32,101 @@ namespace CryptoSoft
         // Timeout for acquiring the mutex (in milliseconds)
         private const int MutexTimeout = 30000; // 30 seconds
 
+        // Global mutex reference
+        private static Mutex? _mutex;
+        private static bool _mutexCreated;
+
+        [STAThread]
         public static int Main(string[] args)
         {
-            bool mutexCreated = false;
-            Mutex mutex = null;
-
             try
             {
                 // Try to create or open the named mutex
-                mutex = new Mutex(false, MutexName, out mutexCreated);
+                _mutex = new Mutex(false, MutexName, out _mutexCreated);
                 
-                Console.WriteLine("CryptoSoft v3.0 - Mono-instance encryption utility");
-                
-                if (args.Length != 2)
+                // Check if another instance is already running
+                if (!_mutex.WaitOne(0, false))
                 {
-                    Console.Error.WriteLine("Usage: CryptoSoft <source_file> <target_file>");
-                    return ErrorInvalidArgs;
-                }
-
-                string sourceFile = args[0];
-                string targetFile = args[1];
-
-                if (!File.Exists(sourceFile))
-                {
-                    Console.Error.WriteLine($"Error: Source file not found: {sourceFile}");
-                    return ErrorFileNotFound;
-                }
-
-                Console.WriteLine($"Waiting to acquire encryption lock...");
-                
-                // Try to acquire the mutex with a timeout
-                if (!mutex.WaitOne(MutexTimeout))
-                {
-                    Console.Error.WriteLine("Error: Timeout waiting for encryption lock. Another encryption process is taking too long.");
+                    if (args.Length == 0)
+                    {
+                        MessageBox.Show("CryptoSoft is already running.", "CryptoSoft", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Error: Another instance of CryptoSoft is already running.");
+                    }
                     return ErrorMutexTimeout;
                 }
-                
-                Console.WriteLine($"Lock acquired. Encrypting file: {Path.GetFileName(sourceFile)}");
 
                 try
                 {
-                    // Perform the encryption
-                    Stopwatch stopwatch = Stopwatch.StartNew();
-                    EncryptFile(sourceFile, targetFile);
-                    stopwatch.Stop();
-
-                    Console.WriteLine(stopwatch.ElapsedMilliseconds);
+                    // If command-line arguments are provided, run in CLI mode
+                    if (args.Length == 2)
+                    {
+                        return RunCliMode(args);
+                    }
+                    
+                    // Otherwise, run in GUI mode
+                    Application.EnableVisualStyles();
+                    Application.SetCompatibleTextRenderingDefault(false);
+                    Application.Run(new CryptoSoftForm());
+                    
                     return Success;
                 }
                 finally
                 {
                     // Always release the mutex when done
-                    mutex.ReleaseMutex();
-                    Console.WriteLine("Encryption lock released.");
+                    _mutex.ReleaseMutex();
                 }
+            }
+            catch (Exception ex)
+            {
+                if (args.Length == 0)
+                {
+                    MessageBox.Show($"Unexpected error: {ex.Message}", "CryptoSoft Error", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Error: {ex.Message}");
+                }
+                return ErrorEncryption;
+            }
+            finally
+            {
+                // Dispose of the mutex
+                _mutex?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Runs CryptoSoft in command-line mode for compatibility with EasySave
+        /// </summary>
+        private static int RunCliMode(string[] args)
+        {
+            Console.WriteLine("CryptoSoft v4.0 - CLI Mode");
+            
+            string sourceFile = args[0];
+            string targetFile = args[1];
+
+            if (!File.Exists(sourceFile))
+            {
+                Console.Error.WriteLine($"Error: Source file not found: {sourceFile}");
+                return ErrorFileNotFound;
+            }
+
+            Console.WriteLine($"Encrypting file: {Path.GetFileName(sourceFile)}");
+
+            try
+            {
+                // Perform the encryption
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                EncryptFile(sourceFile, targetFile);
+                stopwatch.Stop();
+
+                Console.WriteLine(stopwatch.ElapsedMilliseconds);
+                return Success;
             }
             catch (FileNotFoundException)
             {
@@ -100,16 +143,16 @@ namespace CryptoSoft
                 Console.Error.WriteLine($"Error during encryption: {ex.Message}");
                 return ErrorEncryption;
             }
-            finally
-            {
-                // Clean up the mutex
-                mutex?.Dispose();
-            }
         }
 
-        private static void EncryptFile(string sourceFile, string targetFile)
+        /// <summary>
+        /// Encrypts or decrypts a file using XOR encryption
+        /// </summary>
+        /// <param name="sourceFile">Source file path</param>
+        /// <param name="targetFile">Target file path</param>
+        public static void EncryptFile(string sourceFile, string targetFile)
         {
-            string targetDirectory = Path.GetDirectoryName(targetFile) ?? string.Empty;
+            string? targetDirectory = Path.GetDirectoryName(targetFile);
             if (!string.IsNullOrEmpty(targetDirectory) && !Directory.Exists(targetDirectory))
             {
                 Directory.CreateDirectory(targetDirectory);
