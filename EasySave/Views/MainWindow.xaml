@@ -6,10 +6,11 @@
         xmlns:converters="clr-namespace:EasySave.Converters"
         mc:Ignorable="d"
         Title="{Binding AppTitle}"
+        SizeChanged="Window_SizeChanged"
         Height="760"
         Width="1280"
-        MinHeight="700"
-        MinWidth="1100"
+        MinHeight="360"
+        MinWidth="560"
         FontFamily="Segoe UI"
         FontSize="13"
         Background="#F6F7F5">
@@ -72,7 +73,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
+    <Grid x:Name="RootGrid" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -80,7 +81,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource RoundedPanel}" Margin="0,0,0,10" Padding="14,10">
+        <Border x:Name="HeaderPanel" Grid.Row="0" Style="{StaticResource RoundedPanel}" Margin="0,0,0,10" Padding="14,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -88,21 +89,21 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="140" Height="70" Margin="0,0,18,0" Background="Transparent">
+                    <Border x:Name="LogoHost" Width="140" Height="70" Margin="0,0,18,0" Background="Transparent">
                         <Image Source="/EasySave;component/Resources/easysave_logo_trimmed.png"
                                Stretch="Uniform"
                                VerticalAlignment="Center"
                                HorizontalAlignment="Left"/>
                     </Border>
-                    <Button Command="{Binding CreateBackupJobCommand}" Style="{StaticResource PrimaryButtonStyle}" MinWidth="290" Height="56">
+                    <Button x:Name="CreateJobButton" Command="{Binding CreateBackupJobCommand}" Style="{StaticResource PrimaryButtonStyle}" MinWidth="290" Height="56">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="+" FontSize="24" Margin="0,-4,6,0"/>
-                            <TextBlock Text="{Binding CreateButtonText}" FontSize="18"/>
+                            <TextBlock x:Name="CreatePlusText" Text="+" FontSize="24" Margin="0,-4,6,0"/>
+                            <TextBlock x:Name="CreateLabelText" Text="{Binding CreateButtonText}" FontSize="18"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
 
-                <Button Grid.Column="1"
+                <Button x:Name="SettingsButton" Grid.Column="1"
                         Command="{Binding OpenSettingsCommand}"
                         ToolTip="{Binding SettingsButtonText}"
                         Width="50"
@@ -114,13 +115,13 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" x:Name="MainContentGrid">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.12*"/>
                 <ColumnDefinition Width="1.88*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource RoundedPanel}" Margin="0,0,10,0">
+            <Border x:Name="BackupJobsPanel" Grid.Column="0" Style="{StaticResource RoundedPanel}" Margin="0,0,10,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -129,9 +130,9 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="{Binding BackupJobsHeader}" FontSize="20" FontWeight="Bold" Margin="8,4,8,6"/>
+                    <TextBlock x:Name="BackupJobsTitle" Grid.Row="0" Text="{Binding BackupJobsHeader}" FontSize="20" FontWeight="Bold" Margin="8,4,8,6"/>
 
-                    <CheckBox Grid.Row="1"
+                    <CheckBox x:Name="SelectAllCheckBox" Grid.Row="1"
                               Content="{Binding SelectAllText}"
                               IsChecked="{Binding IsAllJobsSelected}"
                               Margin="8,0,8,8"
@@ -141,6 +142,7 @@
                               x:Name="BackupJobsListView"
                               ItemsSource="{Binding BackupJobs}"
                               SelectedItem="{Binding SelectedBackupJob}"
+                              SelectionMode="Extended"
                               SelectionChanged="BackupJobsListView_SelectionChanged"
                               IsSynchronizedWithCurrentItem="True"
                               BorderThickness="0"
@@ -159,20 +161,22 @@
                         </ListView.Resources>
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Width="40">
+                                <GridViewColumn x:Name="SelectColumn" Width="34">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" Width="180" DisplayMemberBinding="{Binding JobName}"/>
-                                <GridViewColumn Header="{Binding DataContext.LastBackupLabel, RelativeSource={RelativeSource AncestorType=Window}}" Width="190" DisplayMemberBinding="{Binding LastBackupTimeDisplay}"/>
+                                <GridViewColumn x:Name="NameColumn" Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" Width="260" DisplayMemberBinding="{Binding JobName}"/>
+                                <GridViewColumn x:Name="LastBackupColumn" Header="{Binding DataContext.LastBackupLabel, RelativeSource={RelativeSource AncestorType=Window}}" Width="300" DisplayMemberBinding="{Binding LastBackupTimeDisplay}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
 
-                    <Button Grid.Row="3"
+                    <Button x:Name="ExecuteSelectedButton" Grid.Row="3"
                             Content="{Binding ExecuteSelectedJobsText}"
                             Command="{Binding ExecuteSelectedJobsCommand}"
                             IsEnabled="{Binding HasSelectedJobs}"
@@ -183,7 +187,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Style="{StaticResource RoundedPanel}" Margin="10,0,0,0">
+            <Border x:Name="DetailsPanel" Grid.Column="1" Style="{StaticResource RoundedPanel}" Margin="10,0,0,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -267,7 +271,7 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="2" Style="{StaticResource RoundedPanel}" Margin="0,10,0,0">
+        <Border x:Name="JobStatusPanel" Grid.Row="2" Style="{StaticResource RoundedPanel}" Margin="0,10,0,0">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="{Binding ActiveJobsHeader}" FontSize="20" FontWeight="Bold" Margin="8,0,8,6"/>
                 <ListView ItemsSource="{Binding ActiveJobs}" BorderThickness="0" Background="Transparent">
