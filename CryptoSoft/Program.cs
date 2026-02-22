@@ -33,7 +33,8 @@ namespace CryptoSoft
         public static int Main(string[] args)
         {
             bool mutexCreated = false;
-            Mutex mutex = null;
+            // Initialiser le mutex à une valeur non nulle
+            Mutex? mutex = null;
 
             try
             {
@@ -60,7 +61,7 @@ namespace CryptoSoft
                 Console.WriteLine($"Waiting to acquire encryption lock...");
                 
                 // Try to acquire the mutex with a timeout
-                if (!mutex.WaitOne(MutexTimeout))
+                if (mutex != null && !mutex.WaitOne(MutexTimeout))
                 {
                     Console.Error.WriteLine("Error: Timeout waiting for encryption lock. Another encryption process is taking too long.");
                     return ErrorMutexTimeout;
@@ -81,7 +82,7 @@ namespace CryptoSoft
                 finally
                 {
                     // Always release the mutex when done
-                    mutex.ReleaseMutex();
+                    mutex?.ReleaseMutex();
                     Console.WriteLine("Encryption lock released.");
                 }
             }

@@ -27,6 +27,11 @@ namespace EasySave.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Constructeur sans paramètre pour faciliter les tests
+        public SettingsViewModel() : this(null)
+        {
+        }
+
         public SettingsViewModel(TranslationService translationService = null)
         {
             _translationService = translationService;
@@ -87,7 +92,8 @@ namespace EasySave.ViewModels
         }
 
         // Property needed for compatibility with CryptoServiceTests
-        public string[] ExtensionsToEncrypt
+        // Rendre cette propriété virtuelle pour permettre le mocking
+        public virtual string[] ExtensionsToEncrypt
         {
             get => _encryptionExtensions?.ToArray();
             set
@@ -291,7 +297,7 @@ namespace EasySave.ViewModels
         /// Checks if the configured business software is currently running using multiple detection methods
         /// </summary>
         /// <returns>True if the business software is running, false otherwise</returns>
-        public bool IsBusinessSoftwareRunning()
+        public virtual bool IsBusinessSoftwareRunning()
         {
             if (string.IsNullOrWhiteSpace(BusinessSoftwareName))
             {
@@ -428,7 +434,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        public bool ShouldEncryptFile(string filePath)
+        public virtual bool ShouldEncryptFile(string filePath)
         {
             if (EncryptionExtensions == null || EncryptionExtensions.Count == 0)
                 return false;
@@ -437,7 +443,7 @@ namespace EasySave.ViewModels
             return EncryptionExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        public bool IsPriorityFile(string filePath)
+        public virtual bool IsPriorityFile(string filePath)
         {
             if (PriorityExtensions == null || PriorityExtensions.Count == 0)
                 return false;
@@ -446,7 +452,7 @@ namespace EasySave.ViewModels
             return PriorityExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        private void LoadSettings()
+        protected virtual void LoadSettings()
         {
             try
             {
@@ -493,7 +499,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveSettings()
+        protected virtual void SaveSettings()
         {
             try
             {
@@ -526,7 +532,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void LoadLogFormat()
+        protected virtual void LoadLogFormat()
         {
             try
             {
@@ -547,7 +553,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveLogFormat()
+        protected virtual void SaveLogFormat()
         {
             try
             {

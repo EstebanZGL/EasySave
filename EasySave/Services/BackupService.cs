@@ -12,7 +12,7 @@ using EasyLog;
 namespace EasySave.Services
 {
     // Service for executing backup operations
-    public class BackupService : IDisposable
+    public class BackupService : IBackupService
     {
         private readonly IEncryptionLogger _logger;
         private readonly StateManager _stateManager;
@@ -22,6 +22,12 @@ namespace EasySave.Services
         private bool _isPaused;
         private readonly object _pauseLock = new object();
         private BusinessSoftwareMonitor _businessSoftwareMonitor;
+
+        // Constructeur sans paramètre pour les tests
+        protected BackupService()
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+        }
 
         // Constructor that initializes the logger and state manager
         public BackupService(ILogger logger, StateManager stateManager)
@@ -76,24 +82,24 @@ namespace EasySave.Services
             {
                 // Business software started, pause backup
                 PauseBackupJob();
-                await _logger.LogApplicationEventAsync(
+                await _logger?.LogApplicationEventAsync(
                     "BusinessSoftwareStarted",
-                    $"Backup paused because business software started: {_settings.BusinessSoftwareName}");
+                    $"Backup paused because business software started: {_settings?.BusinessSoftwareName}");
             }
             else
             {
                 // Business software stopped, resume backup
                 ResumeBackupJob();
-                await _logger.LogApplicationEventAsync(
+                await _logger?.LogApplicationEventAsync(
                     "BusinessSoftwareStopped",
-                    $"Backup resumed because business software stopped: {_settings.BusinessSoftwareName}");
+                    $"Backup resumed because business software stopped: {_settings?.BusinessSoftwareName}");
             }
         }
 
         // Executes a backup job asynchronously
         // Throws ArgumentException if job is invalid
         // Throws DirectoryNotFoundException if source directory doesn't exist
-        public async Task ExecuteBackupJobAsync(BackupJob job)
+        public virtual async Task ExecuteBackupJobAsync(BackupJob job)
         {
             // Validate job
             if (job == null || !job.Validate())
@@ -103,17 +109,17 @@ namespace EasySave.Services
             }
 
             Debug.WriteLine("Checking if business software is running before starting backup...");
-            bool isBusinessSoftwareRunning = _settings.IsBusinessSoftwareRunning();
+            bool isBusinessSoftwareRunning = _settings?.IsBusinessSoftwareRunning() ?? false;
             Debug.WriteLine($"Business software running check result: {isBusinessSoftwareRunning}");
 
             // Check if business software is running
             if (isBusinessSoftwareRunning)
             {
-                Debug.WriteLine($"Business software {_settings.BusinessSoftwareName} is running, cancelling backup");
-                await _logger.LogApplicationEventAsync(
+                Debug.WriteLine($"Business software {_settings?.BusinessSoftwareName} is running, cancelling backup");
+                await _logger?.LogApplicationEventAsync(
                     "BackupCancelled",
-                    $"Backup job {job.JobName} cancelled because business software is running: {_settings.BusinessSoftwareName}");
-                throw new InvalidOperationException($"Cannot start backup: Business software ({_settings.BusinessSoftwareName}) is running.");
+                    $"Backup job {job.JobName} cancelled because business software is running: {_settings?.BusinessSoftwareName}");
+                throw new InvalidOperationException($"Cannot start backup: Business software ({_settings?.BusinessSoftwareName}) is running.");
             }
 
             Debug.WriteLine($"Starting backup job: {job.JobName}");
@@ -126,7 +132,7 @@ namespace EasySave.Services
 
                 // Start monitoring business software
                 Debug.WriteLine("Starting business software monitor");
-                _businessSoftwareMonitor.StartMonitoring();
+                _businessSoftwareMonitor?.StartMonitoring();
 
                 // Check source directory
                 if (!Directory.Exists(job.SourcePath))
@@ -145,7 +151,7 @@ namespace EasySave.Services
                 long totalSize = sourceFiles.Sum(f => new FileInfo(f).Length);
 
                 // Initialize state
-                await _stateManager.UpdateStateAsync(
+                await _stateManager?.UpdateStateAsync(
                     job.JobName,
                     BackupState.Active,
                     sourceFiles.Length,
@@ -164,7 +170,7 @@ namespace EasySave.Services
                     if (_cancellationTokenSource.Token.IsCancellationRequested)
                     {
                         Debug.WriteLine("Backup cancelled via cancellation token");
-                        await _stateManager.UpdateStateAsync(
+                        await _stateManager?.UpdateStateAsync(
                             job.JobName,
                             BackupState.Canceled,
                             sourceFiles.Length,
@@ -189,7 +195,7 @@ namespace EasySave.Services
                         if (_cancellationTokenSource.Token.IsCancellationRequested)
                         {
                             Debug.WriteLine("Backup cancelled while paused");
-                            await _stateManager.UpdateStateAsync(
+                            await _stateManager?.UpdateStateAsync(
                                 job.JobName,
                                 BackupState.Canceled,
                                 sourceFiles.Length,
@@ -217,7 +223,7 @@ namespace EasySave.Services
                     long fileSize = sourceFileInfo.Length;
 
                     // Update state
-                    await _stateManager.UpdateStateAsync(
+                    await _stateManager?.UpdateStateAsync(
                         job.JobName,
                         BackupState.Active,
                         sourceFiles.Length,
@@ -245,7 +251,7 @@ namespace EasySave.Services
                             var stopwatch = Stopwatch.StartNew();
                             
                             // Determine if the file needs encryption
-                            bool needsEncryption = _cryptoService.ShouldEncrypt(sourceFile);
+                            bool needsEncryption = _cryptoService?.ShouldEncrypt(sourceFile) ?? false;
                             long encryptionTime = 0;
                             
                             if (needsEncryption)
@@ -280,7 +286,7 @@ namespace EasySave.Services
                             // Log transfer with encryption time if needed
                             if (needsEncryption)
                             {
-                                await _logger.LogEncryptedTransferAsync(
+                                await _logger?.LogEncryptedTransferAsync(
                                     job.JobName,
                                     sourceFile,
                                     targetFile,
@@ -290,7 +296,7 @@ namespace EasySave.Services
                             }
                             else
                             {
-                                await _logger.LogTransferAsync(
+                                await _logger?.LogTransferAsync(
                                     job.JobName,
                                     sourceFile,
                                     targetFile,
@@ -303,7 +309,7 @@ namespace EasySave.Services
                         catch (Exception ex)
                         {
                             // Log error
-                            await _logger.LogTransferAsync(
+                            await _logger?.LogTransferAsync(
                                 job.JobName,
                                 sourceFile,
                                 targetFile,
@@ -329,7 +335,7 @@ namespace EasySave.Services
                 }
 
                 // Mark job as completed
-                await _stateManager.UpdateStateAsync(
+                await _stateManager?.UpdateStateAsync(
                     job.JobName,
                     BackupState.Completed,
                     sourceFiles.Length,
@@ -343,7 +349,7 @@ namespace EasySave.Services
             catch (Exception ex)
             {
                 // Update state to error
-                await _stateManager.UpdateStateAsync(
+                await _stateManager?.UpdateStateAsync(
                     job.JobName,
                     BackupState.Failed,
                     0,
@@ -359,7 +365,7 @@ namespace EasySave.Services
             {
                 // Stop monitoring business software
                 Debug.WriteLine("Stopping business software monitor");
-                _businessSoftwareMonitor.StopMonitoring();
+                _businessSoftwareMonitor?.StopMonitoring();
             }
         }
 
@@ -388,7 +394,7 @@ namespace EasySave.Services
                         File.Delete(targetFile);
                         
                         // Log the deletion
-                        await _logger.LogTransferAsync(
+                        await _logger?.LogTransferAsync(
                             $"{backupName} (Deletion)",
                             "N/A",
                             targetFile,
@@ -433,7 +439,7 @@ namespace EasySave.Services
         }
 
         // Pauses the current backup job
-        public void PauseBackupJob()
+        public virtual void PauseBackupJob()
         {
             lock (_pauseLock)
             {
@@ -446,7 +452,7 @@ namespace EasySave.Services
         }
 
         // Resumes the current backup job
-        public void ResumeBackupJob()
+        public virtual void ResumeBackupJob()
         {
             lock (_pauseLock)
             {
@@ -459,14 +465,14 @@ namespace EasySave.Services
         }
 
         // Stops the current backup job
-        public void StopBackupJob()
+        public virtual void StopBackupJob()
         {
             _cancellationTokenSource.Cancel();
             Debug.WriteLine("Backup job stopped");
         }
         
         // Dispose resources
-        public void Dispose()
+        public virtual void Dispose()
         {
             _businessSoftwareMonitor?.Dispose();
             _cancellationTokenSource?.Dispose();
