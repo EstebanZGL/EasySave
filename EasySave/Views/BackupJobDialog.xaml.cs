@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using EasySave.Models;
+using EasySave.Services;
 using Microsoft.Win32;
 
 namespace EasySave.Views
@@ -20,11 +21,15 @@ namespace EasySave.Views
         private bool _isDifferentialType;
         private string _validationMessage;
         private bool _useDefaultTargetPath = true; // Par défaut, utiliser le chemin par défaut
+        private readonly TranslationService _translationService;
 
         public BackupJobDialog()
         {
             InitializeComponent();
             DataContext = this;
+            
+            // Obtenir le service de traduction depuis l'application en spécifiant explicitement System.Windows.Application
+            _translationService = ((App)System.Windows.Application.Current).ServiceProvider.GetService(typeof(TranslationService)) as TranslationService;
         }
 
         public BackupJobDialog(BackupJob job) : this()
@@ -127,7 +132,7 @@ namespace EasySave.Views
             get
             {
                 string path = GetDefaultTargetPath(JobName);
-                return $"Default location: {path}";
+                return $"{GetTranslation("default_location")}: {path}";
             }
         }
 
@@ -156,6 +161,22 @@ namespace EasySave.Views
                 };
             }
         }
+
+        // Propriétés de traduction
+        public string DialogTitle => IsEditMode ? GetTranslation("edit_backup_job") : GetTranslation("create_backup_job");
+        public string NameLabel => GetTranslation("job_name");
+        public string SourcePathLabel => GetTranslation("source_path");
+        public string TargetPathLabel => GetTranslation("target_path");
+        public string UseDefaultLocationText => GetTranslation("use_default_location");
+        public string BackupTypeLabel => GetTranslation("backup_type");
+        public string CompleteTypeText => GetTranslation("complete");
+        public string DifferentialTypeText => GetTranslation("differential");
+        public string SaveButtonText => GetTranslation("save");
+        public string CancelButtonText => GetTranslation("cancel");
+        public string BrowseButtonText => GetTranslation("browse");
+
+        // Propriété pour déterminer si nous sommes en mode édition
+        private bool IsEditMode => !string.IsNullOrEmpty(JobName);
 
         /// <summary>
         /// Génère le chemin de destination par défaut basé sur le nom du travail
@@ -217,19 +238,19 @@ namespace EasySave.Views
 
             if (string.IsNullOrWhiteSpace(JobName))
             {
-                ValidationMessage = "Name is required.";
+                ValidationMessage = GetTranslation("error_name_required");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(SourcePath))
             {
-                ValidationMessage = "Source path is required.";
+                ValidationMessage = GetTranslation("error_source_required");
                 return false;
             }
 
             if (!Directory.Exists(SourcePath))
             {
-                ValidationMessage = "Source directory does not exist.";
+                ValidationMessage = GetTranslation("error_source_not_exist");
                 return false;
             }
 
@@ -237,7 +258,7 @@ namespace EasySave.Views
 
             if (string.IsNullOrWhiteSpace(finalTargetPath))
             {
-                ValidationMessage = "Target path is required.";
+                ValidationMessage = GetTranslation("error_target_required");
                 return false;
             }
 
@@ -251,11 +272,16 @@ namespace EasySave.Views
             }
             catch (Exception ex)
             {
-                ValidationMessage = $"Error creating target directory: {ex.Message}";
+                ValidationMessage = $"{GetTranslation("error_creating_target")}: {ex.Message}";
                 return false;
             }
 
             return true;
+        }
+
+        private string GetTranslation(string key)
+        {
+            return _translationService?.GetTranslation(key) ?? key;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

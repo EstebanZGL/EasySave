@@ -21,6 +21,7 @@ namespace EasySave.Services
         private readonly StateManager _stateManager;
         private readonly CryptoService _cryptoService;
         private readonly SettingsViewModel _settingsViewModel;
+        private readonly BackupJobRepository _backupJobRepository; // Ajout du repository pour mettre à jour les jobs
         
         private readonly ConcurrentDictionary<string, BackupJobState> _activeJobs = new ConcurrentDictionary<string, BackupJobState>();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _jobCancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
@@ -31,7 +32,9 @@ namespace EasySave.Services
         // Dictionnaire pour stocker le dernier fichier traité pour chaque travail (pour la reprise)
         private readonly ConcurrentDictionary<string, string> _lastProcessedFiles = new ConcurrentDictionary<string, string>();
         
+        // Sémaphore pour les fichiers volumineux - limité à 1 fichier volumineux à la fois
         private readonly SemaphoreSlim _largeFileSemaphore;
+        
         private List<string> _priorityExtensions = new List<string>();
         private long _largeFileThreshold = 1024 * 1024; // 1MB default
 
@@ -54,12 +57,19 @@ namespace EasySave.Services
         /// <param name="stateManager">The state manager to use</param>
         /// <param name="cryptoService">The crypto service to use</param>
         /// <param name="settingsViewModel">The settings view model</param>
-        public ParallelBackupService(IEncryptionLogger logger, StateManager stateManager, CryptoService cryptoService, SettingsViewModel settingsViewModel)
+        /// <param name="backupJobRepository">The repository for backup jobs</param>
+        public ParallelBackupService(
+            IEncryptionLogger logger, 
+            StateManager stateManager, 
+            CryptoService cryptoService, 
+            SettingsViewModel settingsViewModel,
+            BackupJobRepository backupJobRepository) // Ajout du paramètre repository
         {
             _logger = logger;
             _stateManager = stateManager;
             _cryptoService = cryptoService;
             _settingsViewModel = settingsViewModel;
+            _backupJobRepository = backupJobRepository; // Initialisation du repository
             
             // Initialize the semaphore with a count of 1 (only one large file at a time by default)
             _largeFileSemaphore = new SemaphoreSlim(1, 1);
@@ -106,9 +116,6 @@ namespace EasySave.Services
             
             // Set pause state to false (not paused)
             _jobPauseStates[job.JobName] = false;
-            
-            // Reset the last processed file
-            _lastProcessedFiles[job.JobName] = null;
             
             // Create a state object for this job - explicitement utiliser STATUS_RUNNING
             var state = new BackupJobState
@@ -158,6 +165,9 @@ namespace EasySave.Services
                     
                     // Clear the last processed file
                     _lastProcessedFiles.TryRemove(job.JobName, out _);
+                    
+                    // Mettre à jour la date de dernière sauvegarde dans le job
+                    UpdateLastBackupTime(job.JobName);
                 }
                 catch (OperationCanceledException)
                 {
@@ -218,6 +228,37 @@ namespace EasySave.Services
                     }
                 }
             });
+        }
+        
+        /// <summary>
+        /// Updates the last backup time for a job
+        /// </summary>
+        /// <param name="jobName">The name of the job</param>
+        private void UpdateLastBackupTime(string jobName)
+        {
+            try
+            {
+                // Récupérer le job depuis le repository
+                var job = _backupJobRepository.GetBackupJob(jobName);
+                if (job != null)
+                {
+                    // Mettre à jour la date de dernière sauvegarde
+                    job.LastBackupTime = DateTime.Now;
+                    
+                    // Enregistrer le job mis à jour
+                    _backupJobRepository.UpdateBackupJob(job);
+                    
+                    Debug.WriteLine($"Updated last backup time for job {jobName} to {job.LastBackupTime}");
+                }
+                else
+                {
+                    Debug.WriteLine($"Job {jobName} not found in repository, could not update last backup time");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating last backup time for job {jobName}: {ex.Message}");
+            }
         }
         
         /// <summary>
@@ -364,6 +405,17 @@ namespace EasySave.Services
         }
         
         /// <summary>
+        /// Gets the last processed file for a job
+        /// </summary>
+        /// <param name="jobName">The name of the job</param>
+        /// <returns>The path of the last processed file, or null if none</returns>
+        public string GetLastProcessedFile(string jobName)
+        {
+            _lastProcessedFiles.TryGetValue(jobName, out var lastFile);
+            return lastFile;
+        }
+        
+        /// <summary>
         /// Executes a backup job asynchronously
         /// </summary>
         /// <param name="job">The backup job to execute</param>
@@ -428,7 +480,9 @@ namespace EasySave.Services
                 var sortedFiles = priorityFiles.Concat(normalFiles).ToList();
                 
                 // Check if we have a last processed file to resume from
-                string lastProcessedFile = _lastProcessedFiles.GetOrAdd(job.JobName, string.Empty);
+                string lastProcessedFile;
+                _lastProcessedFiles.TryGetValue(job.JobName, out lastProcessedFile);
+                
                 int startIndex = 0;
                 long totalProcessedSize = 0;
                 
@@ -469,6 +523,7 @@ namespace EasySave.Services
                     {
                         // Store the current file for resuming later
                         _lastProcessedFiles[job.JobName] = file.FullName;
+                        Debug.WriteLine($"Job {job.JobName} is paused, last file: {file.FullName}");
                         
                         // Job is paused, wait a short time and check again
                         Debug.WriteLine($"Job {job.JobName} is paused, waiting...");
@@ -494,10 +549,10 @@ namespace EasySave.Services
                     state.CurrentFile = file.FullName;
                     state.CurrentFileDestination = targetPath;
                     
-                    // Store the current file for resuming later
+                    // Store the current file for resuming later - Mise à jour à chaque fichier
                     _lastProcessedFiles[job.JobName] = file.FullName;
                     
-                    // Update the state file
+                    // Update the state file with current file information
                     await _stateManager.UpdateStateAsync(
                         job.JobName, 
                         BackupState.Active, 
@@ -534,37 +589,105 @@ namespace EasySave.Services
                         
                         try
                         {
-                            // Acquire semaphore if this is a large file
+                            // Si c'est un fichier volumineux, nous devons acquérir le sémaphore
                             if (isLargeFile)
                             {
-                                await _largeFileSemaphore.WaitAsync(cancellationToken);
-                            }
-                            
-                            // Copy the file
-                            var stopwatch = Stopwatch.StartNew();
-                            File.Copy(file.FullName, targetPath, true);
-                            stopwatch.Stop();
-                            
-                            // Check if the file should be encrypted
-                            long encryptionTime = 0;
-                            if (_settingsViewModel.ShouldEncryptFile(file.FullName))
-                            {
-                                var encryptStopwatch = Stopwatch.StartNew();
-                                await _cryptoService.EncryptFileAsync(targetPath);
-                                encryptStopwatch.Stop();
-                                encryptionTime = encryptStopwatch.ElapsedMilliseconds;
-                            }
-                            
-                            // Log the file copy
-                            _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
-                        }
-                        finally
-                        {
-                            // Release semaphore if this was a large file
-                            if (isLargeFile)
-                            {
+                                Debug.WriteLine($"Job {job.JobName}: Large file detected ({file.Name}, {file.Length} bytes)");
+                                
+                                // Essayer d'acquérir le sémaphore sans bloquer d'abord
+                                bool acquired = false;
+                                
+                                // Boucle d'attente pour acquérir le sémaphore
+                                while (!acquired)
+                                {
+                                    // Vérifier l'annulation
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    
+                                    // Vérifier si le job est en pause
+                                    if (_jobPauseStates.TryGetValue(job.JobName, out isPaused) && isPaused)
+                                    {
+                                        // Attendre un peu et réessayer
+                                        await Task.Delay(100, cancellationToken);
+                                        continue;
+                                    }
+                                    
+                                    // Essayer d'acquérir le sémaphore sans bloquer
+                                    acquired = await _largeFileSemaphore.WaitAsync(0);
+                                    
+                                    // Si on n'a pas pu acquérir le sémaphore, attendre un peu et réessayer
+                                    if (!acquired)
+                                    {
+                                        Debug.WriteLine($"Job {job.JobName}: Waiting for large file semaphore for file {file.Name}");
+                                        await Task.Delay(500, cancellationToken);
+                                    }
+                                }
+                                
+                                Debug.WriteLine($"Job {job.JobName}: Acquired large file semaphore for file {file.Name}");
+                                
+                                // Copier le fichier volumineux
+                                var stopwatch = Stopwatch.StartNew();
+                                File.Copy(file.FullName, targetPath, true);
+                                stopwatch.Stop();
+                                
+                                // Check if the file should be encrypted
+                                long encryptionTime = 0;
+                                if (_settingsViewModel.ShouldEncryptFile(file.FullName))
+                                {
+                                    var encryptStopwatch = Stopwatch.StartNew();
+                                    await _cryptoService.EncryptFileAsync(targetPath);
+                                    encryptStopwatch.Stop();
+                                    encryptionTime = encryptStopwatch.ElapsedMilliseconds;
+                                }
+                                
+                                // Log the file copy
+                                _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                                
+                                // Libérer le sémaphore
                                 _largeFileSemaphore.Release();
+                                Debug.WriteLine($"Job {job.JobName}: Released large file semaphore for file {file.Name}");
                             }
+                            else
+                            {
+                                // Pour les fichiers normaux, pas besoin d'acquérir le sémaphore
+                                var stopwatch = Stopwatch.StartNew();
+                                File.Copy(file.FullName, targetPath, true);
+                                stopwatch.Stop();
+                                
+                                // Check if the file should be encrypted
+                                long encryptionTime = 0;
+                                if (_settingsViewModel.ShouldEncryptFile(file.FullName))
+                                {
+                                    var encryptStopwatch = Stopwatch.StartNew();
+                                    await _cryptoService.EncryptFileAsync(targetPath);
+                                    encryptStopwatch.Stop();
+                                    encryptionTime = encryptStopwatch.ElapsedMilliseconds;
+                                }
+                                
+                                // Log the file copy
+                                _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // En cas d'erreur, s'assurer que le sémaphore est libéré si c'était un fichier volumineux
+                            if (isLargeFile)
+                            {
+                                try
+                                {
+                                    _largeFileSemaphore.Release();
+                                    Debug.WriteLine($"Job {job.JobName}: Released large file semaphore after error for file {file.Name}");
+                                }
+                                catch (SemaphoreFullException)
+                                {
+                                    // Le sémaphore était déjà libéré, ignorer
+                                }
+                            }
+                            
+                            // Journaliser l'erreur
+                            _logger.LogError($"Error copying file {file.FullName} to {targetPath}: {ex.Message}");
+                            
+                            // Relancer l'exception pour qu'elle soit gérée par le bloc try/catch englobant
+                            throw;
                         }
                     }
                     
@@ -575,7 +698,7 @@ namespace EasySave.Services
                     state.TotalSizeRemaining = state.TotalSize - totalProcessedSize;
                     state.Progress = (int)((double)totalProcessedSize / state.TotalSize * 100);
                     
-                    // Update the state file
+                    // Update the state file with progress information
                     await _stateManager.UpdateStateAsync(
                         job.JobName, 
                         BackupState.Active, 
@@ -607,7 +730,7 @@ namespace EasySave.Services
         /// <param name="currentFile">The current file being processed</param>
         private void OnBackupJobStatusChanged(string jobName, string status, int progress, string currentFile)
         {
-            Debug.WriteLine($"Raising status changed event for job {jobName}: {status}, progress: {progress}");
+            Debug.WriteLine($"Raising status changed event for job {jobName}: {status}, progress: {progress}, file: {currentFile}");
             BackupJobStatusChanged?.Invoke(this, new Models.BackupJobStatusEventArgs(jobName, status, progress, currentFile));
         }
     }

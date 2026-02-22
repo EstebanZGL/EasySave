@@ -141,7 +141,7 @@ namespace EasySave.Services
             translations["en_resume"] = "Resume";
             translations["en_stop"] = "Stop";
             translations["en_priority_extensions"] = "Priority Extensions:";
-            translations["en_large_file_threshold"] = "Large File Threshold (bytes):";
+            translations["en_large_file_threshold"] = "Large File Threshold (Megabytes):";
             translations["en_business_software_running"] = "Business software is running. Backups are paused.";
             
             // Ajout des traductions pour les sections des paramètres
@@ -227,10 +227,7 @@ namespace EasySave.Services
             translations["fr_resume"] = "Reprendre";
             translations["fr_stop"] = "Arrêter";
             translations["fr_priority_extensions"] = "Extensions Prioritaires:";
-            translations["fr_large_file_threshold"] = "Seuil Fichier Volumineux (octets):";
-            translations["fr_business_software_running"] = "Le logiciel métier est en cours d'exécution. Les sauvegardes sont en pause.";
-            
-            // Ajout des traductions pour les sections des paramètres
+            translations["fr_large_file_threshold"] = "Seuil Fichier Volumineux (Megaoctets):";
             translations["fr_general_settings"] = "Paramètres Généraux";
             translations["fr_parallel_backup_settings"] = "Paramètres de Sauvegarde Parallèle";
             translations["fr_encryption_settings"] = "Paramètres de Chiffrement";

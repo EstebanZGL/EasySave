@@ -152,22 +152,44 @@ namespace EasySave.ViewModels
             {
                 if (_largeFileThreshold != value)
                 {
-                    _largeFileThreshold = Math.Max(1024, value); // Ensure at least 1KB
+                    _largeFileThreshold = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdMB));
                     SaveSettings();
                 }
             }
         }
 
-        public string LargeFileThresholdDisplay
+        // Nouvelle propriété pour afficher et définir la taille en MB uniquement
+        public int LargeFileThresholdMB
         {
-            get => FormatFileSize(_largeFileThreshold);
+            get => (int)(_largeFileThreshold / (1024 * 1024));
             set
             {
-                if (TryParseFileSize(value, out long size))
+                // Convertir MB en bytes
+                long newThreshold = value * 1024L * 1024L;
+                if (_largeFileThreshold != newThreshold)
                 {
-                    LargeFileThreshold = size;
+                    _largeFileThreshold = newThreshold;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdDisplay));
+                    SaveSettings();
+                }
+            }
+        }
+
+        // Propriété pour l'affichage uniquement (pour la rétrocompatibilité)
+        public string LargeFileThresholdDisplay
+        {
+            get => $"{LargeFileThresholdMB} MB";
+            set
+            {
+                // Extraire uniquement la partie numérique
+                string numericPart = new string(value.TakeWhile(c => char.IsDigit(c)).ToArray());
+                
+                if (int.TryParse(numericPart, out int mbValue))
+                {
+                    LargeFileThresholdMB = mbValue;
                 }
             }
         }
@@ -536,61 +558,6 @@ namespace EasySave.ViewModels
             {
                 // Log error
                 Debug.WriteLine($"Error saving log format: {ex.Message}");
-            }
-        }
-
-        private string FormatFileSize(long bytes)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            double len = bytes;
-            int order = 0;
-            
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            
-            return $"{len:0.##} {sizes[order]}";
-        }
-
-        private bool TryParseFileSize(string input, out long bytes)
-        {
-            bytes = 0;
-            if (string.IsNullOrWhiteSpace(input))
-                return false;
-                
-            input = input.Trim().ToUpperInvariant();
-            
-            // Extract the numeric part and the unit
-            string numericPart = new string(input.TakeWhile(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
-            string unit = input.Substring(numericPart.Length).Trim();
-            
-            if (!double.TryParse(numericPart.Replace(',', '.'), out double value))
-                return false;
-                
-            // Convert to bytes based on the unit
-            switch (unit)
-            {
-                case "B":
-                    bytes = (long)value;
-                    return true;
-                case "KB":
-                    bytes = (long)(value * 1024);
-                    return true;
-                case "MB":
-                    bytes = (long)(value * 1024 * 1024);
-                    return true;
-                case "GB":
-                    bytes = (long)(value * 1024 * 1024 * 1024);
-                    return true;
-                case "TB":
-                    bytes = (long)(value * 1024 * 1024 * 1024 * 1024);
-                    return true;
-                default:
-                    // If no unit is specified, assume bytes
-                    bytes = (long)value;
-                    return true;
             }
         }
 
