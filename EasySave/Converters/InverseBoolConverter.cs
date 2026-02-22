@@ -1,30 +1,29 @@
 using System;
 using System.Globalization;
-using System.Windows;
 using System.Windows.Data;
 
 namespace EasySave.Converters
 {
     /// <summary>
-    /// Converts a boolean value to Visibility with inverted logic
-    /// True -> Collapsed, False -> Visible
+    /// Converts a boolean value to its inverse
+    /// True -> False, False -> True
     /// </summary>
-    public class BoolToVisibilityInvertConverter : IValueConverter
+    public class InverseBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool boolValue)
             {
-                return boolValue ? Visibility.Collapsed : Visibility.Visible;
+                return !boolValue;
             }
-            return Visibility.Visible;
+            return true;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is Visibility visibility)
+            if (value is bool boolValue)
             {
-                return visibility != Visibility.Visible;
+                return !boolValue;
             }
             return true;
         }

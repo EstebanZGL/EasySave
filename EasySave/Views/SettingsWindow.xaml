@@ -82,10 +82,19 @@
 
             <!-- Large File Threshold -->
             <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding LargeFileThresholdLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
-                     Text="{Binding LargeFileThresholdDisplay, UpdateSourceTrigger=PropertyChanged}" 
-                     ToolTip="Enter size threshold for large files (e.g. 10MB, 1GB)"
-                     Margin="0,0,0,10"/>
+            <Grid Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" 
+                         Text="{Binding LargeFileThresholdMB, UpdateSourceTrigger=PropertyChanged}" 
+                         ToolTip="Enter size threshold for large files in MB"
+                         Margin="0,0,5,0"/>
+                <TextBlock Grid.Column="1" 
+                           Text="MB" 
+                           VerticalAlignment="Center"/>
+            </Grid>
 
             <!-- Priority Extensions -->
             <TextBlock Grid.Row="7" Grid.Column="0" Text="{Binding PriorityExtensionsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>

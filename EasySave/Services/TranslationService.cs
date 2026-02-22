@@ -83,7 +83,7 @@ namespace EasySave.Services
             var translations = new Dictionary<string, string>(100);
 
             // English translations
-            translations["en_app_title"] = "EasySave 2.0 - Backup Software";
+            translations["en_app_title"] = "EasySave 3.0 - Backup Software";
             translations["en_menu_title"] = "Main Menu";
             translations["en_menu_create"] = "Create New Backup Job";
             translations["en_menu_execute"] = "Execute Backup";
@@ -141,7 +141,7 @@ namespace EasySave.Services
             translations["en_resume"] = "Resume";
             translations["en_stop"] = "Stop";
             translations["en_priority_extensions"] = "Priority Extensions:";
-            translations["en_large_file_threshold"] = "Large File Threshold (bytes):";
+            translations["en_large_file_threshold"] = "Large File Threshold (Megabytes):";
             translations["en_business_software_running"] = "Business software is running. Backups are paused.";
             
             // Ajout des traductions pour les sections des paramètres
@@ -169,7 +169,7 @@ namespace EasySave.Services
             translations["en_progress"] = "Progress:";
 
             // French translations
-            translations["fr_app_title"] = "EasySave 2.0 - Logiciel de Sauvegarde";
+            translations["fr_app_title"] = "EasySave 3.0 - Logiciel de Sauvegarde";
             translations["fr_menu_title"] = "Menu Principal";
             translations["fr_menu_create"] = "Créer un Nouveau Travail";
             translations["fr_menu_execute"] = "Exécuter la Sauvegarde";
@@ -227,10 +227,7 @@ namespace EasySave.Services
             translations["fr_resume"] = "Reprendre";
             translations["fr_stop"] = "Arrêter";
             translations["fr_priority_extensions"] = "Extensions Prioritaires:";
-            translations["fr_large_file_threshold"] = "Seuil Fichier Volumineux (octets):";
-            translations["fr_business_software_running"] = "Le logiciel métier est en cours d'exécution. Les sauvegardes sont en pause.";
-            
-            // Ajout des traductions pour les sections des paramètres
+            translations["fr_large_file_threshold"] = "Seuil Fichier Volumineux (Megaoctets):";
             translations["fr_general_settings"] = "Paramètres Généraux";
             translations["fr_parallel_backup_settings"] = "Paramètres de Sauvegarde Parallèle";
             translations["fr_encryption_settings"] = "Paramètres de Chiffrement";
