@@ -39,11 +39,11 @@
     <ProjectReference Include="..\CryptoSoft\CryptoSoft.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- 
   <ItemGroup>
     <Resource Include="Resources\easysave_icon.ico" />
+    <Resource Include="Resources\easysave_logo.png" />
+    <Resource Include="Resources\easysave_logo_trimmed.png" />
   </ItemGroup>
-  -->
 
   <!-- Modification de la cible pour copier CryptoSoft dans le dossier output -->
   <Target Name="CopyCryptoSoftBundle" AfterTargets="Build">

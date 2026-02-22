@@ -77,6 +77,7 @@ namespace EasySave.Services
             
             existingJob.SourcePath = backupJob.SourcePath;
             existingJob.TargetPath = backupJob.TargetPath;
+            existingJob.Description = backupJob.Description;
             existingJob.Type = backupJob.Type;
             
             SaveBackupJobs();
@@ -115,7 +116,27 @@ namespace EasySave.Services
             try
             {
                 var json = File.ReadAllText(_filePath);
-                return JsonSerializer.Deserialize<List<BackupJob>>(json) ?? new List<BackupJob>();
+                var jobs = JsonSerializer.Deserialize<List<BackupJob>>(json) ?? new List<BackupJob>();
+
+                bool hadBackfillChanges = false;
+
+                // Backfill creation dates for jobs created before this field existed.
+                foreach (var job in jobs)
+                {
+                    if (job.CreatedAt == default)
+                    {
+                        job.CreatedAt = job.LastBackupTime ?? DateTime.Now;
+                        hadBackfillChanges = true;
+                    }
+                }
+
+                if (hadBackfillChanges)
+                {
+                    var updatedJson = JsonSerializer.Serialize(jobs);
+                    File.WriteAllText(_filePath, updatedJson);
+                }
+
+                return jobs;
             }
             catch (Exception ex)
             {

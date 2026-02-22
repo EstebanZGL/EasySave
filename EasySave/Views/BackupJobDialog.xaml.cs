@@ -16,12 +16,17 @@ namespace EasySave.Views
         private string _name;
         private string _sourcePath;
         private string _targetPath;
+        private string _description;
         private bool _isCompleteType = true;
         private bool _isDifferentialType;
         private string _validationMessage;
+        private DateTime _createdAt;
+        private DateTime? _lastBackupTime;
 
         public BackupJobDialog()
         {
+            _createdAt = DateTime.Now;
+            _lastBackupTime = null;
             InitializeComponent();
             DataContext = this;
         }
@@ -31,8 +36,11 @@ namespace EasySave.Views
             JobName  = job.JobName ;
             SourcePath = job.SourcePath;
             TargetPath = job.TargetPath;
+            Description = job.Description;
             IsCompleteType = job.Type == BackupType.Complete;
             IsDifferentialType = job.Type == BackupType.Differential;
+            _createdAt = job.CreatedAt;
+            _lastBackupTime = job.LastBackupTime;
         }
 
         public string JobName 
@@ -76,6 +84,16 @@ namespace EasySave.Views
             }
         }
 
+        public string Description
+        {
+            get => _description;
+            set
+            {
+                _description = value;
+                OnPropertyChanged();
+            }
+        }
+
         public bool IsDifferentialType
         {
             get => _isDifferentialType;
@@ -106,6 +124,9 @@ namespace EasySave.Views
                     JobName = JobName ,
                     SourcePath = SourcePath,
                     TargetPath = TargetPath,
+                    Description = Description,
+                    CreatedAt = _createdAt,
+                    LastBackupTime = _lastBackupTime,
                     Type = IsCompleteType ? BackupType.Complete : BackupType.Differential
                 };
             }

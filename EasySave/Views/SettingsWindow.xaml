@@ -1,23 +1,27 @@
-<Window x:Class="EasySave.Views.SettingsWindow"
+﻿<Window x:Class="EasySave.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:EasySave.Views"
         xmlns:easyLog="clr-namespace:EasyLog;assembly=EasyLog"
         mc:Ignorable="d"
-        Title="{Binding WindowTitle}" Height="600" Width="600"
+        Title="{Binding WindowTitle}"
+        Height="700"
+        Width="720"
+        Background="#F6F7F5"
         WindowStartupLocation="CenterOwner">
     <Window.Resources>
         <Style TargetType="TextBlock" x:Key="SectionHeaderStyle">
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Margin" Value="0,15,0,5"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Margin" Value="0,18,0,8"/>
         </Style>
     </Window.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="15">
+        <Grid Margin="20">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -36,114 +40,105 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="240"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- General Settings Section -->
-            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" 
-                       Text="{Binding GeneralSettingsHeader}" 
+            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="{Binding GeneralSettingsHeader}"
                        Style="{StaticResource SectionHeaderStyle}"/>
 
-            <!-- Business Software -->
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding BusinessSoftwareLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BusinessSoftwareName}" Margin="0,0,10,10"/>
-            <Button Grid.Row="1" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseBusinessSoftwareButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding LanguageLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                      SelectedValue="{Binding SelectedLanguageCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      SelectedValuePath="Tag"
+                      Margin="0,0,0,10"
+                      MinHeight="30">
+                <ComboBoxItem Tag="en" Content="{Binding EnglishLanguageText}"/>
+                <ComboBoxItem Tag="fr" Content="{Binding FrenchLanguageText}"/>
+            </ComboBox>
 
-            <!-- CryptoSoft Path -->
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding CryptoSoftPathLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding CryptoSoftPath}" Margin="0,0,10,10"/>
-            <Button Grid.Row="2" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseCryptoSoftButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding BusinessSoftwareLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding BusinessSoftwareName}" Margin="0,0,10,10"/>
+            <Button Grid.Row="2" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseBusinessSoftwareButton_Click" Padding="10,0" Margin="0,0,0,10"/>
 
-            <!-- Log Format -->
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding LogFormatLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding CryptoSoftPathLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding CryptoSoftPath}" Margin="0,0,10,10"/>
+            <Button Grid.Row="3" Grid.Column="2" Content="{Binding BrowseButtonText}" Click="BrowseCryptoSoftButton_Click" Padding="10,0" Margin="0,0,0,10"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding LogFormatLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <StackPanel Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,10">
                 <RadioButton Content="JSON" IsChecked="{Binding LogFormat, Mode=TwoWay, Converter={StaticResource StringToBoolConverter}, ConverterParameter=JSON}" Margin="0,0,20,0"/>
                 <RadioButton Content="XML" IsChecked="{Binding LogFormat, Mode=TwoWay, Converter={StaticResource StringToBoolConverter}, ConverterParameter=XML}"/>
                 <TextBlock Foreground="Red" Margin="20,0,0,0" VerticalAlignment="Center" Text="{Binding RestartRequiredText}"/>
             </StackPanel>
 
-            <!-- Parallel Backup Settings Section -->
-            <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
-                       Text="{Binding ParallelBackupSettingsHeader}" 
+            <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="{Binding ParallelBackupSettingsHeader}"
                        Style="{StaticResource SectionHeaderStyle}"/>
 
-            <!-- Max Parallel Jobs -->
-            <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding MaxParallelJobsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <StackPanel Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
-                <Slider Minimum="1" Maximum="10" 
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding MaxParallelJobsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <StackPanel Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
+                <Slider Minimum="1" Maximum="10"
                         Value="{Binding MaxParallelJobs}"
                         IsSnapToTickEnabled="True"
                         TickFrequency="1"/>
-                <TextBlock Text="{Binding MaxParallelJobs}"
-                           HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding MaxParallelJobs}" HorizontalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Large File Threshold -->
-            <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding LargeFileThresholdLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
-                     Text="{Binding LargeFileThresholdDisplay, UpdateSourceTrigger=PropertyChanged}" 
-                     ToolTip="Enter size threshold for large files (e.g. 10MB, 1GB)"
+            <TextBlock Grid.Row="7" Grid.Column="0" Text="{Binding LargeFileThresholdLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2"
+                     Text="{Binding LargeFileThresholdDisplay, UpdateSourceTrigger=PropertyChanged}"
                      Margin="0,0,0,10"/>
 
-            <!-- Priority Extensions -->
-            <TextBlock Grid.Row="7" Grid.Column="0" Text="{Binding PriorityExtensionsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" 
-                     Text="{Binding PriorityExtensionsString}" 
-                     ToolTip="Enter file extensions to prioritize, separated by semicolons (e.g. .exe;.dll;.sys)"
+            <TextBlock Grid.Row="8" Grid.Column="0" Text="{Binding PriorityExtensionsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="2"
+                     Text="{Binding PriorityExtensionsString}"
                      Margin="0,0,0,10"/>
 
-            <!-- Encryption Settings Section -->
-            <TextBlock Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" 
-                       Text="{Binding EncryptionSettingsHeader}" 
+            <TextBlock Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="{Binding EncryptionSettingsHeader}"
                        Style="{StaticResource SectionHeaderStyle}"/>
 
-            <!-- Encryption Extensions -->
-            <TextBlock Grid.Row="9" Grid.Column="0" Text="{Binding EncryptExtensionsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="9" Grid.Column="1" Grid.ColumnSpan="2" 
-                     Text="{Binding EncryptionExtensionsString}" 
-                     ToolTip="Enter file extensions to encrypt, separated by semicolons (e.g. .txt;.doc;.pdf)"
+            <TextBlock Grid.Row="10" Grid.Column="0" Text="{Binding EncryptExtensionsLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="2"
+                     Text="{Binding EncryptionExtensionsString}"
                      Margin="0,0,0,10"/>
 
-            <!-- Log Centralization Section -->
-            <TextBlock Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="3" 
-                       Text="{Binding LogCentralizationHeader}" 
+            <TextBlock Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="{Binding LogCentralizationHeader}"
                        Style="{StaticResource SectionHeaderStyle}"/>
 
-            <!-- Enable Log Centralization -->
-            <TextBlock Grid.Row="11" Grid.Column="0" Text="{Binding EnableCentralizationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <CheckBox Grid.Row="11" Grid.Column="1" Grid.ColumnSpan="2"
+            <TextBlock Grid.Row="12" Grid.Column="0" Text="{Binding EnableCentralizationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <CheckBox Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2"
                       IsChecked="{Binding LogCentralization.IsEnabled}"
                       VerticalAlignment="Center"
                       Margin="0,0,0,10"/>
 
-            <!-- Log Server URL -->
-            <TextBlock Grid.Row="12" Grid.Column="0" Text="{Binding LogServerUrlLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2"
+            <TextBlock Grid.Row="13" Grid.Column="0" Text="{Binding LogServerUrlLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2"
                      Text="{Binding LogCentralization.ServerUrl}"
                      IsEnabled="{Binding LogCentralization.IsEnabled}"
                      Margin="0,0,0,10"/>
 
-            <!-- Log Destination -->
-            <TextBlock Grid.Row="13" Grid.Column="0" Text="{Binding LogDestinationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <StackPanel Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
-                <RadioButton Content="{Binding LocalOnlyText}" 
+            <TextBlock Grid.Row="14" Grid.Column="0" Text="{Binding LogDestinationLabel}" VerticalAlignment="Top" Margin="0,0,10,10"/>
+            <StackPanel Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
+                <RadioButton Content="{Binding LocalOnlyText}"
                              IsChecked="{Binding LogCentralization.LogDestination, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static easyLog:LogDestination.Local}}"
                              IsEnabled="{Binding LogCentralization.IsEnabled}"
                              Margin="0,0,0,5"/>
-                <RadioButton Content="{Binding RemoteOnlyText}" 
+                <RadioButton Content="{Binding RemoteOnlyText}"
                              IsChecked="{Binding LogCentralization.LogDestination, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static easyLog:LogDestination.Remote}}"
                              IsEnabled="{Binding LogCentralization.IsEnabled}"
                              Margin="0,0,0,5"/>
-                <RadioButton Content="{Binding BothLocalRemoteText}" 
+                <RadioButton Content="{Binding BothLocalRemoteText}"
                              IsChecked="{Binding LogCentralization.LogDestination, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static easyLog:LogDestination.Both}}"
                              IsEnabled="{Binding LogCentralization.IsEnabled}"
                              Margin="0,0,0,5"/>
             </StackPanel>
 
-            <!-- Help Text -->
-            <StackPanel Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
+            <StackPanel Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0">
                 <TextBlock FontWeight="Bold" Text="{Binding NotesLabel}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding BusinessSoftwareNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding MaxParallelJobsNote}"/>
@@ -154,8 +149,7 @@
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding ChangesNote}"/>
             </StackPanel>
 
-            <!-- Close Button -->
-            <Button Grid.Row="15" Grid.Column="2" Content="{Binding CloseButtonText}" Click="CloseButton_Click" Width="80" Margin="0,10,0,0"/>
+            <Button Grid.Row="16" Grid.Column="2" Content="{Binding CloseButtonText}" Click="CloseButton_Click" Width="100" Margin="0,12,0,0"/>
         </Grid>
     </ScrollViewer>
 </Window>

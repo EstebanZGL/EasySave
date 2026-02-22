@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using EasySave.ViewModels;
 
 namespace EasySave.Views
@@ -8,10 +9,21 @@ namespace EasySave.Views
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly MainViewModel _viewModel;
+
         public MainWindow(MainViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            _viewModel = viewModel;
+            DataContext = _viewModel;
+        }
+
+        private void BackupJobsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BackupJobsListView.SelectedItem is BackupJobViewModel selectedJob)
+            {
+                _viewModel.SelectedBackupJob = selectedJob;
+            }
         }
     }
 }

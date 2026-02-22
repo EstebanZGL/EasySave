@@ -1,4 +1,4 @@
-using EasyLog;
+﻿using EasyLog;
 using EasySave.Models;
 using EasySave.Services;
 using System;
@@ -234,7 +234,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        // Propriétés de traduction
+        // PropriÃ©tÃ©s de traduction
         public string WindowTitle => GetTranslation("menu_settings");
         public string GeneralSettingsHeader => GetTranslation("general_settings");
         public string BusinessSoftwareLabel => GetTranslation("business_software");
@@ -264,6 +264,29 @@ namespace EasySave.ViewModels
         public string ChangesNote => GetTranslation("settings_changes_note");
         public string CloseButtonText => GetTranslation("close");
         public string BrowseButtonText => GetTranslation("browse");
+        public string LanguageLabel => GetTranslation("language");
+        public string EnglishLanguageText => GetTranslation("language_english");
+        public string FrenchLanguageText => GetTranslation("language_french");
+
+        public string SelectedLanguageCode
+        {
+            get => _translationService?.CurrentLanguage ?? "en";
+            set
+            {
+                if (_translationService == null || string.IsNullOrWhiteSpace(value))
+                    return;
+
+                string normalized = value.Trim().ToLowerInvariant();
+                if (normalized != "en" && normalized != "fr")
+                    return;
+
+                if (_translationService.CurrentLanguage != normalized)
+                {
+                    _translationService.SetLanguage(normalized);
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// Checks if the configured business software is currently running using multiple detection methods
@@ -603,7 +626,7 @@ namespace EasySave.ViewModels
         {
             if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
             {
-                // Mettre à jour toutes les propriétés de traduction
+                // Mettre Ã  jour toutes les propriÃ©tÃ©s de traduction
                 OnPropertyChanged(nameof(WindowTitle));
                 OnPropertyChanged(nameof(GeneralSettingsHeader));
                 OnPropertyChanged(nameof(BusinessSoftwareLabel));
@@ -633,6 +656,10 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(ChangesNote));
                 OnPropertyChanged(nameof(CloseButtonText));
                 OnPropertyChanged(nameof(BrowseButtonText));
+                OnPropertyChanged(nameof(LanguageLabel));
+                OnPropertyChanged(nameof(EnglishLanguageText));
+                OnPropertyChanged(nameof(FrenchLanguageText));
+                OnPropertyChanged(nameof(SelectedLanguageCode));
             }
         }
 
@@ -653,3 +680,4 @@ namespace EasySave.ViewModels
         }
     }
 }
+

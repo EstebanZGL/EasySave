@@ -11,7 +11,9 @@ namespace EasySave.Models
         private string _name;
         private string _sourcePath;
         private string _targetPath;
+        private string _description;
         private BackupType _type;
+        private DateTime _createdAt;
         private DateTime? _lastBackupTime;
         private bool _isSelected;
 
@@ -74,6 +76,20 @@ namespace EasySave.Models
             }
         }
 
+        // Job description
+        public string Description
+        {
+            get => _description;
+            set
+            {
+                if (_description != value)
+                {
+                    _description = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         // Type of backup (Complete or Differential)
         public BackupType Type
         {
@@ -84,6 +100,21 @@ namespace EasySave.Models
                 {
                     _type = value;
                     OnPropertyChanged();
+                }
+            }
+        }
+
+        // Creation date of the job
+        public DateTime CreatedAt
+        {
+            get => _createdAt;
+            set
+            {
+                if (_createdAt != value)
+                {
+                    _createdAt = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CreatedAtDisplay));
                 }
             }
         }
@@ -116,6 +147,9 @@ namespace EasySave.Models
             }
         }
 
+        // Formatted display of creation time
+        public string CreatedAtDisplay => _createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
         // Selection state for UI (not serialized to JSON)
         [JsonIgnore]
         public bool IsSelected
@@ -137,13 +171,17 @@ namespace EasySave.Models
             _name = name;
             _sourcePath = sourcePath;
             _targetPath = targetPath;
+            _description = string.Empty;
             _type = type;
+            _createdAt = DateTime.Now;
             _isSelected = false;
         }
 
         // Default constructor for serialization
         public BackupJob() 
         {
+            _description = string.Empty;
+            _createdAt = DateTime.Now;
             _isSelected = false;
         }
 

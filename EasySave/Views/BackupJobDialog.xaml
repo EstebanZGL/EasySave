@@ -5,10 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EasySave.Views"
         mc:Ignorable="d"
-        Title="Backup Job" Height="350" Width="500" 
+        Title="Backup Job" Height="420" Width="500" 
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -43,15 +44,25 @@
             <RadioButton Content="Differential" IsChecked="{Binding IsDifferentialType}"/>
         </StackPanel>
 
+        <!-- Description -->
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Description:" VerticalAlignment="Top" Margin="0,0,10,10"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding Description}"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 Height="70"
+                 Margin="0,0,0,10"/>
+
         <!-- Validation Message -->
-        <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
+        <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" 
                    Text="{Binding ValidationMessage}" 
                    Foreground="Red" 
                    TextWrapping="Wrap"
                    VerticalAlignment="Center"/>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Save" Click="SaveButton_Click" Width="80" Margin="0,0,10,0"/>
             <Button Content="Cancel" Click="CancelButton_Click" Width="80"/>
         </StackPanel>
