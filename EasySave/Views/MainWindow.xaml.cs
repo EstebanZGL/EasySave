@@ -14,6 +14,8 @@ namespace EasySave.Views
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
+        private readonly TranslationService _translationService;
+        private readonly ParallelBackupService _backupService;
         private const string CopyGlyph = "\uE8C8";
         private const string CheckGlyph = "\uE73E";
         private const double CompactWidthThreshold = 1080;
@@ -23,12 +25,15 @@ namespace EasySave.Views
         private const double MicroWidthThreshold = 700;
         private const double MicroHeightThreshold = 470;
 
-        public MainWindow(MainViewModel viewModel)
+        public MainWindow(MainViewModel viewModel, TranslationService translationService, ParallelBackupService backupService)
         {
             InitializeComponent();
             _viewModel = viewModel;
+            _translationService = translationService;
+            _backupService = backupService;
             DataContext = _viewModel;
             ApplyResponsiveLayout();
+            Closing += MainWindow_Closing;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -258,19 +263,6 @@ namespace EasySave.Views
             button.Content = CheckGlyph;
             await Task.Delay(2000);
             button.Content = CopyGlyph;
-        private readonly TranslationService _translationService;
-        private readonly ParallelBackupService _backupService;
-
-        public MainWindow(MainViewModel viewModel, TranslationService translationService, ParallelBackupService backupService)
-        {
-            InitializeComponent();
-            _viewModel = viewModel;
-            _translationService = translationService;
-            _backupService = backupService;
-            DataContext = viewModel;
-            
-            // Ajouter un gestionnaire d'événement pour la fermeture de la fenêtre
-            Closing += MainWindow_Closing;
         }
 
         /// <summary>
@@ -309,3 +301,4 @@ namespace EasySave.Views
         }
     }
 }
+

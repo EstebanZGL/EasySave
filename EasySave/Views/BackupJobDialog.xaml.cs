@@ -21,6 +21,8 @@ namespace EasySave.Views
         private bool _isCompleteType = true;
         private bool _isDifferentialType;
         private string _validationMessage;
+        private DateTime _createdAt;
+        private DateTime? _lastBackupTime;
         private bool _useDefaultTargetPath = true; // Par défaut, utiliser le chemin par défaut
         private readonly TranslationService _translationService;
 
@@ -165,13 +167,13 @@ namespace EasySave.Views
         {
             get
             {
-                string finalTargetPath = UseDefaultTargetPath ? GetDefaultTargetPath(JobName) : TargetPath;
+                string finalTargetPath = ResolveTargetPath();
                 
                 return new BackupJob
                 {
                     JobName = JobName,
                     SourcePath = SourcePath,
-                    TargetPath = TargetPath,
+                    TargetPath = finalTargetPath,
                     Description = Description,
                     CreatedAt = _createdAt,
                     LastBackupTime = _lastBackupTime,
@@ -216,7 +218,15 @@ namespace EasySave.Views
             
             return Path.Combine(basePath, safeName);
         }
+        private string ResolveTargetPath()
+        {
+            if (!string.IsNullOrWhiteSpace(TargetPath))
+            {
+                return TargetPath.Trim();
+            }
 
+            return GetDefaultTargetPath(JobName);
+        }
         private void BrowseSourceButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new System.Windows.Forms.FolderBrowserDialog();
@@ -272,7 +282,7 @@ namespace EasySave.Views
                 return false;
             }
 
-            string finalTargetPath = UseDefaultTargetPath ? GetDefaultTargetPath(JobName) : TargetPath;
+            string finalTargetPath = ResolveTargetPath();
 
             if (string.IsNullOrWhiteSpace(finalTargetPath))
             {
@@ -280,13 +290,15 @@ namespace EasySave.Views
                 return false;
             }
 
-            // Create target directory if it doesn't exist
             try
             {
                 if (!Directory.Exists(finalTargetPath))
                 {
                     Directory.CreateDirectory(finalTargetPath);
                 }
+
+                // Persist the resolved target path when user leaves TargetPath empty.
+                TargetPath = finalTargetPath;
             }
             catch (Exception ex)
             {
@@ -310,3 +322,7 @@ namespace EasySave.Views
         }
     }
 }
+
+
+
+
