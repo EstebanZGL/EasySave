@@ -1,4 +1,4 @@
-using EasyLog;
+﻿using EasyLog;
 using EasySave.Models;
 using EasySave.Services;
 using System;
@@ -32,6 +32,11 @@ namespace EasySave.ViewModels
         private LogCentralizationSettings _logCentralizationSettings = new LogCentralizationSettings();
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        // Constructeur sans paramètre pour faciliter les tests
+        public SettingsViewModel() : this(null)
+        {
+        }
 
         public SettingsViewModel(TranslationService translationService = null)
         {
@@ -99,8 +104,9 @@ namespace EasySave.ViewModels
             return true;
         }
 
-        // Propriété pour la compatibilité avec les tests unitaires (CryptoServiceTests)
-        public string[] ExtensionsToEncrypt
+        // Property needed for compatibility with CryptoServiceTests
+        // Rendre cette propriété virtuelle pour permettre le mocking
+        public virtual string[] ExtensionsToEncrypt
         {
             get => _encryptionExtensions?.ToArray() ?? Array.Empty<string>();
             set
@@ -183,20 +189,42 @@ namespace EasySave.ViewModels
                 {
                     _largeFileThreshold = Math.Max(1024, value);
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdMB));
                     SaveSettings();
                 }
             }
         }
 
-        public string LargeFileThresholdDisplay
+        // Nouvelle propriété pour afficher et définir la taille en MB uniquement
+        public int LargeFileThresholdMB
         {
-            get => FormatFileSize(_largeFileThreshold);
+            get => (int)(_largeFileThreshold / (1024 * 1024));
             set
             {
-                if (TryParseFileSize(value, out long size))
+                // Convertir MB en bytes
+                long newThreshold = value * 1024L * 1024L;
+                if (_largeFileThreshold != newThreshold)
                 {
-                    LargeFileThreshold = size;
+                    _largeFileThreshold = newThreshold;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdDisplay));
+                    SaveSettings();
+                }
+            }
+        }
+
+        // Propriété pour l'affichage uniquement (pour la rétrocompatibilité)
+        public string LargeFileThresholdDisplay
+        {
+            get => $"{LargeFileThresholdMB} MB";
+            set
+            {
+                // Extraire uniquement la partie numérique
+                string numericPart = new string(value.TakeWhile(c => char.IsDigit(c)).ToArray());
+                
+                if (int.TryParse(numericPart, out int mbValue))
+                {
+                    LargeFileThresholdMB = mbValue;
                 }
             }
         }
@@ -282,10 +310,35 @@ namespace EasySave.ViewModels
         public string ChangesNote => GetTranslation("settings_changes_note");
         public string CloseButtonText => GetTranslation("close");
         public string BrowseButtonText => GetTranslation("browse");
+        public string LanguageLabel => GetTranslation("language");
+        public string EnglishLanguageText => GetTranslation("language_english");
+        public string FrenchLanguageText => GetTranslation("language_french");
 
-        // --- Méthodes Logiques ---
+        public string SelectedLanguageCode
+        {
+            get => _translationService?.CurrentLanguage ?? "en";
+            set
+            {
+                if (_translationService == null || string.IsNullOrWhiteSpace(value))
+                    return;
 
-        public bool IsBusinessSoftwareRunning()
+                string normalized = value.Trim().ToLowerInvariant();
+                if (normalized != "en" && normalized != "fr")
+                    return;
+
+                if (_translationService.CurrentLanguage != normalized)
+                {
+                    _translationService.SetLanguage(normalized);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if the configured business software is currently running using multiple detection methods
+        /// </summary>
+        /// <returns>True if the business software is running, false otherwise</returns>
+        public virtual bool IsBusinessSoftwareRunning()
         {
             if (string.IsNullOrEmpty(_businessSoftwareName))
                 return false;
@@ -302,7 +355,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        public bool ShouldEncryptFile(string filePath)
+        public virtual bool ShouldEncryptFile(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || _encryptionExtensions == null || _encryptionExtensions.Count == 0)
                 return false;
@@ -314,7 +367,7 @@ namespace EasySave.ViewModels
             return EncryptionExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        public bool IsPriorityFile(string filePath)
+        public virtual bool IsPriorityFile(string filePath)
         {
             if (string.IsNullOrEmpty(filePath) || _priorityExtensions == null || _priorityExtensions.Count == 0)
                 return false;
@@ -326,9 +379,7 @@ namespace EasySave.ViewModels
             return PriorityExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        // --- Persistance ---
-
-        private void LoadSettings()
+        protected virtual void LoadSettings()
         {
             if (File.Exists(_settingsFilePath))
             {
@@ -360,7 +411,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveSettings()
+        protected virtual void SaveSettings()
         {
             try
             {
@@ -387,7 +438,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void LoadLogFormat()
+        protected virtual void LoadLogFormat()
         {
             try
             {
@@ -407,7 +458,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveLogFormat()
+        protected virtual void SaveLogFormat()
         {
             try
             {
@@ -486,7 +537,7 @@ namespace EasySave.ViewModels
         {
             if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
             {
-                // Mettre à jour toutes les propriétés de traduction
+                // Mettre Ã  jour toutes les propriÃ©tÃ©s de traduction
                 OnPropertyChanged(nameof(WindowTitle));
                 OnPropertyChanged(nameof(GeneralSettingsHeader));
                 OnPropertyChanged(nameof(BusinessSoftwareLabel));
@@ -518,6 +569,10 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(ChangesNote));
                 OnPropertyChanged(nameof(CloseButtonText));
                 OnPropertyChanged(nameof(BrowseButtonText));
+                OnPropertyChanged(nameof(LanguageLabel));
+                OnPropertyChanged(nameof(EnglishLanguageText));
+                OnPropertyChanged(nameof(FrenchLanguageText));
+                OnPropertyChanged(nameof(SelectedLanguageCode));
             }
         }
 
@@ -540,3 +595,4 @@ namespace EasySave.ViewModels
         }
     }
 }
+

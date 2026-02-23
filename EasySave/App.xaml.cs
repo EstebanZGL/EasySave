@@ -96,7 +96,14 @@ namespace EasySave
             services.AddSingleton<MainViewModel>();
             
             // Register Views
-            services.AddTransient<MainWindow>();
+            // Modifier l'enregistrement de MainWindow pour utiliser une factory qui injecte les services nécessaires
+            services.AddTransient<MainWindow>(provider => {
+                var viewModel = provider.GetRequiredService<MainViewModel>();
+                var translationService = provider.GetRequiredService<TranslationService>();
+                var parallelBackupService = provider.GetRequiredService<ParallelBackupService>();
+                
+                return new MainWindow(viewModel, translationService, parallelBackupService);
+            });
             services.AddTransient<BackupJobDialog>();
             services.AddTransient<SettingsWindow>();
         }

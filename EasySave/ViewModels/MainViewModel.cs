@@ -170,7 +170,9 @@ namespace EasySave.ViewModels
         public string SourcePathLabel => _translationService.GetTranslation("source_path");
         public string TargetPathLabel => _translationService.GetTranslation("target_path");
         public string TypeLabel => _translationService.GetTranslation("type");
+        public string DescriptionLabel => _translationService.GetTranslation("description");
         public string LastBackupLabel => _translationService.GetTranslation("last_backup");
+        public string CreatedLabel => _translationService.GetTranslation("created");
         public string BackupJobDetailsHeader => _translationService.GetTranslation("backup_job_details");
         public string JobStatusLabel => _translationService.GetTranslation("job_status");
         public string NotRunningText => _translationService.GetTranslation("not_running");
@@ -183,6 +185,10 @@ namespace EasySave.ViewModels
         public string PauseButtonText => _translationService.GetTranslation("pause");
         public string ResumeButtonText => _translationService.GetTranslation("resume");
         public string StopButtonText => _translationService.GetTranslation("stop");
+        
+        // Propriétés pour les titres de colonnes
+        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
+        public string ProgressLabel => _translationService.GetTranslation("progress");
         
         /// <summary>
         /// Loads backup jobs from the repository
@@ -216,6 +222,10 @@ namespace EasySave.ViewModels
         {
             if (e.PropertyName == nameof(BackupJobViewModel.IsSelected))
             {
+                if (sender is BackupJobViewModel changedJob && changedJob.IsSelected)
+                {
+                    SelectedBackupJob = changedJob;
+                }
                 UpdateHasSelectedJobs();
             }
         }
@@ -263,6 +273,7 @@ namespace EasySave.ViewModels
                     // Update the view model
                     SelectedBackupJob.SourcePath = updatedJob.SourcePath;
                     SelectedBackupJob.TargetPath = updatedJob.TargetPath;
+                    SelectedBackupJob.Description = updatedJob.Description;
                     SelectedBackupJob.Type = updatedJob.Type;
                 }
                 else
@@ -639,7 +650,9 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(SourcePathLabel));
                 OnPropertyChanged(nameof(TargetPathLabel));
                 OnPropertyChanged(nameof(TypeLabel));
+                OnPropertyChanged(nameof(DescriptionLabel));
                 OnPropertyChanged(nameof(LastBackupLabel));
+                OnPropertyChanged(nameof(CreatedLabel));
                 OnPropertyChanged(nameof(BackupJobDetailsHeader));
                 OnPropertyChanged(nameof(JobStatusLabel));
                 OnPropertyChanged(nameof(NotRunningText));
@@ -652,6 +665,8 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(PauseButtonText));
                 OnPropertyChanged(nameof(ResumeButtonText));
                 OnPropertyChanged(nameof(StopButtonText));
+                OnPropertyChanged(nameof(CurrentFileLabel));
+                OnPropertyChanged(nameof(ProgressLabel));
             }
         }
 

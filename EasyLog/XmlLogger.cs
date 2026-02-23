@@ -94,7 +94,8 @@ namespace EasyLog
                 TargetPath = targetPath,
                 FileSize = fileSize,
                 TransferTime = transferTime,
-                EncryptionTime = 0 // Default to 0 for non-encrypted transfers
+                EncryptionTime = 0, // Default to 0 for non-encrypted transfers
+                OperationType = "FileTransfer"
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -113,7 +114,8 @@ namespace EasyLog
                 TargetPath = targetPath,
                 FileSize = fileSize,
                 TransferTime = transferTime,
-                EncryptionTime = encryptionTime
+                EncryptionTime = encryptionTime,
+                OperationType = "EncryptedFileTransfer"
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -230,8 +232,19 @@ namespace EasyLog
         /// </summary>
         public async Task LogDirectoryCreationAsync(string backupName, string directoryPath)
         {
-            // Implement this method as needed
-            await Task.CompletedTask;
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = backupName,
+                SourcePath = directoryPath,
+                TargetPath = string.Empty,
+                FileSize = 0,
+                TransferTime = 0,
+                EncryptionTime = 0,
+                OperationType = "DirectoryCreation"
+            };
+
+            await WriteLogEntryAsync(logEntry);
         }
         
         /// <summary>
@@ -239,8 +252,19 @@ namespace EasyLog
         /// </summary>
         public async Task LogDirectoryDeletionAsync(string backupName, string directoryPath)
         {
-            // Implement this method as needed
-            await Task.CompletedTask;
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = backupName,
+                SourcePath = directoryPath,
+                TargetPath = string.Empty,
+                FileSize = 0,
+                TransferTime = 0,
+                EncryptionTime = 0,
+                OperationType = "DirectoryDeletion"
+            };
+
+            await WriteLogEntryAsync(logEntry);
         }
         
         /// <summary>
@@ -248,8 +272,19 @@ namespace EasyLog
         /// </summary>
         public async Task LogApplicationEventAsync(string eventType, string message, string? details = null)
         {
-            // Implement this method as needed
-            await Task.CompletedTask;
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = eventType,
+                SourcePath = message,
+                TargetPath = details ?? string.Empty,
+                FileSize = 0,
+                TransferTime = 0,
+                EncryptionTime = 0,
+                OperationType = "ApplicationEvent"
+            };
+
+            await WriteLogEntryAsync(logEntry);
         }
         
         /// <summary>
@@ -257,8 +292,19 @@ namespace EasyLog
         /// </summary>
         public async Task LogJobManagementAsync(string operationType, string jobName, string? details = null)
         {
-            // Implement this method as needed
-            await Task.CompletedTask;
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = jobName,
+                SourcePath = operationType,
+                TargetPath = details ?? string.Empty,
+                FileSize = 0,
+                TransferTime = 0,
+                EncryptionTime = 0,
+                OperationType = "JobManagement"
+            };
+
+            await WriteLogEntryAsync(logEntry);
         }
     }
 }
