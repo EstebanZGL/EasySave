@@ -140,7 +140,8 @@ namespace EasySave.Services
             OnBackupJobStatusChanged(job.JobName, STATUS_RUNNING, 0, string.Empty);
             
             // Start the backup job in a background task
-            _ = Task.Run(async () =>
+            #pragma warning disable CS4014 // L'appel n'est pas attendu, l'exécution de la méthode actuelle continue avant la fin de l'appel
+            Task.Run(async () =>
             {
                 try
                 {
@@ -209,8 +210,8 @@ namespace EasySave.Services
                     // Raise the status changed event
                     OnBackupJobStatusChanged(job.JobName, errorStatus, state.Progress, string.Empty);
                     
-                    // Log the error
-                    _logger.LogError($"Backup job '{job.JobName}' failed: {ex.Message}");
+                    // Log the error - Utiliser la signature correcte avec 2 paramètres
+                    await _logger.LogApplicationEventAsync("Error", $"Backup job '{job.JobName}' failed: {ex.Message}");
                     
                     // Clear the last processed file
                     _lastProcessedFiles.TryRemove(job.JobName, out _);
@@ -228,6 +229,7 @@ namespace EasySave.Services
                     }
                 }
             });
+            #pragma warning restore CS4014
         }
         
         /// <summary>
@@ -640,7 +642,7 @@ namespace EasySave.Services
                                 }
                                 
                                 // Log the file copy
-                                _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                                await _logger.LogEncryptedTransferAsync(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
                                 
                                 // Libérer le sémaphore
                                 _largeFileSemaphore.Release();
@@ -664,7 +666,7 @@ namespace EasySave.Services
                                 }
                                 
                                 // Log the file copy
-                                _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                                await _logger.LogEncryptedTransferAsync(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
                             }
                         }
                         catch (Exception ex)
@@ -683,8 +685,8 @@ namespace EasySave.Services
                                 }
                             }
                             
-                            // Journaliser l'erreur
-                            _logger.LogError($"Error copying file {file.FullName} to {targetPath}: {ex.Message}");
+                            // Journaliser l'erreur - Utiliser la signature correcte avec 2 paramètres
+                            await _logger.LogApplicationEventAsync("Error", $"Error copying file {file.FullName} to {targetPath}: {ex.Message}");
                             
                             // Relancer l'exception pour qu'elle soit gérée par le bloc try/catch englobant
                             throw;
@@ -711,8 +713,9 @@ namespace EasySave.Services
                     OnBackupJobStatusChanged(job.JobName, state.Status, state.Progress, state.CurrentFile);
                 }
                 
-                // Log completion
-                _logger.LogBackupComplete(job.JobName, job.SourcePath, job.TargetPath, state.TotalFiles, state.TotalSize);
+                // Log completion - Utiliser la signature correcte avec 2 paramètres
+                await _logger.LogApplicationEventAsync("BackupComplete", 
+                    $"Job {job.JobName} completed successfully. Files: {state.TotalFiles}, Size: {state.TotalSize} bytes");
             }
             catch (Exception ex)
             {

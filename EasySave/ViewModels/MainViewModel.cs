@@ -184,6 +184,10 @@ namespace EasySave.ViewModels
         public string ResumeButtonText => _translationService.GetTranslation("resume");
         public string StopButtonText => _translationService.GetTranslation("stop");
         
+        // Propriétés pour les titres de colonnes
+        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
+        public string ProgressLabel => _translationService.GetTranslation("progress");
+        
         /// <summary>
         /// Loads backup jobs from the repository
         /// </summary>
@@ -652,6 +656,8 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(PauseButtonText));
                 OnPropertyChanged(nameof(ResumeButtonText));
                 OnPropertyChanged(nameof(StopButtonText));
+                OnPropertyChanged(nameof(CurrentFileLabel));
+                OnPropertyChanged(nameof(ProgressLabel));
             }
         }
 

@@ -16,7 +16,7 @@ namespace EasySave.Services
     public class BusinessSoftwareMonitor : IDisposable
     {
         private readonly SettingsViewModel _settingsViewModel;
-        private readonly object _backupService; // Can be BackupService or ParallelBackupService
+        private readonly object _backupService; // Can be IBackupService or ParallelBackupService
         private readonly IEncryptionLogger _logger;
         private CancellationTokenSource _cancellationTokenSource;
         private bool _isMonitoring;
@@ -49,12 +49,12 @@ namespace EasySave.Services
         }
         
         /// <summary>
-        /// Creates a new instance of the BusinessSoftwareMonitor with BackupService
+        /// Creates a new instance of the BusinessSoftwareMonitor with IBackupService
         /// </summary>
         /// <param name="settingsViewModel">The settings view model</param>
         /// <param name="backupService">The backup service</param>
         /// <param name="logger">The logger</param>
-        public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, BackupService backupService, IEncryptionLogger logger)
+        public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, IBackupService backupService, IEncryptionLogger logger)
         {
             _settingsViewModel = settingsViewModel;
             _backupService = backupService;
@@ -232,7 +232,7 @@ namespace EasySave.Services
                         }
                     }
                 }
-                else if (_backupService is BackupService service)
+                else if (_backupService is IBackupService service)
                 {
                     service.PauseBackupJob();
                     Debug.WriteLine("Paused backup job in BackupService");
@@ -270,7 +270,7 @@ namespace EasySave.Services
                         Debug.WriteLine($"Resumed job: {jobName}");
                     }
                 }
-                else if (_backupService is BackupService service)
+                else if (_backupService is IBackupService service)
                 {
                     service.ResumeBackupJob();
                     Debug.WriteLine("Resumed backup job in BackupService");

@@ -15,7 +15,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            var backupServiceMock = new Mock<BackupService>();
+            var backupServiceMock = new Mock<IBackupService>();
             var loggerMock = new Mock<IEncryptionLogger>();
             
             var monitor = new BusinessSoftwareMonitor(
@@ -35,7 +35,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            var backupServiceMock = new Mock<BackupService>();
+            var backupServiceMock = new Mock<IBackupService>();
             var loggerMock = new Mock<IEncryptionLogger>();
             
             var monitor = new BusinessSoftwareMonitor(
@@ -56,7 +56,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            var backupServiceMock = new Mock<BackupService>();
+            var backupServiceMock = new Mock<IBackupService>();
             var loggerMock = new Mock<IEncryptionLogger>();
             
             var monitor = new BusinessSoftwareMonitor(
@@ -77,7 +77,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            var backupServiceMock = new Mock<BackupService>();
+            var backupServiceMock = new Mock<IBackupService>();
             var loggerMock = new Mock<IEncryptionLogger>();
             
             var monitor = new BusinessSoftwareMonitor(

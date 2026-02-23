@@ -380,3 +380,4 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 20/02/2026 : Implémentation d'une vérification à la fermeture de l'application lorsque des sauvegardes sont en cours
 - 20/02/2026 : Ajout d'un message d'avertissement bilingue (français/anglais) informant l'utilisateur que les sauvegardes en cours seront perdues
 - 20/02/2026 : Création d'une boîte de dialogue de confirmation permettant à l'utilisateur de confirmer ou d'annuler la fermeture de l'application
+- 21/02/2026 : Correction du workflow GitHub Actions (configuration du nom de la solution et nettoyage des étapes de packaging)
