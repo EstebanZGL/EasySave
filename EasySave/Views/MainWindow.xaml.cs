@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
+using System.Threading.Tasks;
 using EasySave.ViewModels;
 
 namespace EasySave.Views
@@ -10,6 +12,8 @@ namespace EasySave.Views
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
+        private const string CopyGlyph = "\uE8C8";
+        private const string CheckGlyph = "\uE73E";
         private const double CompactWidthThreshold = 1080;
         private const double CompactHeightThreshold = 640;
         private const double UltraCompactWidthThreshold = 920;
@@ -25,16 +29,13 @@ namespace EasySave.Views
             ApplyResponsiveLayout();
         }
 
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            RecalculateBackupJobsColumnsDeferred();
+        }
+
         private void BackupJobsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            foreach (var item in e.RemovedItems)
-            {
-                if (item is BackupJobViewModel vm)
-                {
-                    vm.IsSelected = false;
-                }
-            }
-
             foreach (var item in e.AddedItems)
             {
                 if (item is BackupJobViewModel vm)
@@ -52,6 +53,28 @@ namespace EasySave.Views
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             ApplyResponsiveLayout();
+            RecalculateBackupJobsColumnsDeferred();
+        }
+
+        private void BackupJobsListView_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RecalculateBackupJobsColumnsDeferred();
+        }
+
+        private async void CopySourcePathButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CopyToClipboard(_viewModel.SelectedBackupJob?.SourcePath))
+            {
+                await ShowCopyFeedbackAsync(sender as System.Windows.Controls.Button);
+            }
+        }
+
+        private async void CopyTargetPathButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CopyToClipboard(_viewModel.SelectedBackupJob?.TargetPath))
+            {
+                await ShowCopyFeedbackAsync(sender as System.Windows.Controls.Button);
+            }
         }
 
         private void ApplyResponsiveLayout()
@@ -98,7 +121,7 @@ namespace EasySave.Views
 
                 CreateJobButton.MinWidth = 230;
                 CreateJobButton.Height = 46;
-                CreatePlusText.FontSize = 19;
+                CreatePlusText.FontSize = 16;
                 CreateLabelText.FontSize = 14;
 
                 SettingsButton.Width = 44;
@@ -124,7 +147,7 @@ namespace EasySave.Views
 
                 CreateJobButton.MinWidth = 290;
                 CreateJobButton.Height = 56;
-                CreatePlusText.FontSize = 24;
+                CreatePlusText.FontSize = 18;
                 CreateLabelText.FontSize = 18;
 
                 SettingsButton.Width = 50;
@@ -143,35 +166,96 @@ namespace EasySave.Views
 
         private void ApplyBackupJobsColumnsSize(bool isMicroCompact, bool isUltraCompact)
         {
-            double totalWidth = BackupJobsListView.ActualWidth - 24;
-            if (totalWidth < 220)
+            if (BackupJobsListView.ActualWidth <= 0)
             {
-                totalWidth = 220;
+                return;
             }
 
             double selectWidth = isMicroCompact ? 26 : 34;
             SelectColumn.Width = selectWidth;
-            double dataWidth = totalWidth - selectWidth;
-            if (dataWidth < 180)
+
+            // Reserve space for list chrome so columns always fit in viewport.
+            double viewportWidth = BackupJobsListView.ActualWidth - SystemParameters.VerticalScrollBarWidth - 18;
+            if (viewportWidth < 220)
             {
-                dataWidth = 180;
+                viewportWidth = 220;
+            }
+
+            double dataWidth = viewportWidth - selectWidth;
+            if (dataWidth < 170)
+            {
+                dataWidth = 170;
+            }
+
+            double minNameWidth = isMicroCompact ? 72 : isUltraCompact ? 96 : 120;
+            double minLastBackupWidth = isMicroCompact ? 92 : isUltraCompact ? 118 : 150;
+            double lastBackupRatio = isMicroCompact ? 0.58 : isUltraCompact ? 0.56 : 0.54;
+            double preferredLastBackupWidth = dataWidth * lastBackupRatio;
+            double lastBackupWidth = Math.Max(minLastBackupWidth, preferredLastBackupWidth);
+            lastBackupWidth = Math.Min(lastBackupWidth, dataWidth - minNameWidth);
+
+            if (lastBackupWidth < minLastBackupWidth)
+            {
+                lastBackupWidth = minLastBackupWidth;
+            }
+
+            double nameWidth = dataWidth - lastBackupWidth;
+            if (nameWidth < minNameWidth)
+            {
+                nameWidth = minNameWidth;
+                lastBackupWidth = Math.Max(minLastBackupWidth, dataWidth - nameWidth);
             }
 
             if (isMicroCompact)
             {
-                NameColumn.Width = dataWidth * 0.42;
-                LastBackupColumn.Width = dataWidth * 0.58;
+                NameColumn.Width = Math.Max(minNameWidth, Math.Floor(nameWidth));
+                LastBackupColumn.Width = Math.Max(minLastBackupWidth, Math.Floor(lastBackupWidth));
             }
             else if (isUltraCompact)
             {
-                NameColumn.Width = dataWidth * 0.44;
-                LastBackupColumn.Width = dataWidth * 0.56;
+                NameColumn.Width = Math.Max(minNameWidth, Math.Floor(nameWidth));
+                LastBackupColumn.Width = Math.Max(minLastBackupWidth, Math.Floor(lastBackupWidth));
             }
             else
             {
-                NameColumn.Width = dataWidth * 0.46;
-                LastBackupColumn.Width = dataWidth * 0.54;
+                NameColumn.Width = Math.Max(minNameWidth, Math.Floor(nameWidth));
+                LastBackupColumn.Width = Math.Max(minLastBackupWidth, Math.Floor(lastBackupWidth));
             }
+        }
+
+        private void RecalculateBackupJobsColumnsDeferred()
+        {
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new Action(() =>
+                {
+                    bool isUltraCompact = ActualWidth < UltraCompactWidthThreshold || ActualHeight < UltraCompactHeightThreshold;
+                    bool isMicroCompact = ActualWidth < MicroWidthThreshold || ActualHeight < MicroHeightThreshold;
+                    ApplyBackupJobsColumnsSize(isMicroCompact, isUltraCompact);
+                }));
+        }
+
+        private static bool CopyToClipboard(string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                System.Windows.Clipboard.SetText(value);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static async Task ShowCopyFeedbackAsync(System.Windows.Controls.Button? button)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.Content = CheckGlyph;
+            await Task.Delay(2000);
+            button.Content = CopyGlyph;
         }
     }
 }
