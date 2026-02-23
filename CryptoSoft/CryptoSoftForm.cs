@@ -13,19 +13,19 @@ namespace CryptoSoft
     /// </summary>
     public class CryptoSoftForm : Form
     {
-        private TextBox txtSourcePath;
-        private TextBox txtTargetPath;
-        private Button btnBrowseSource;
-        private Button btnBrowseTarget;
-        private Button btnEncrypt;
-        private Button btnDecrypt;
-        private Label lblStatus;
-        private ProgressBar progressBar;
-        private Label lblProgress;
-        private Label lblPathType;
-        private Label lblPassword;
-        private TextBox txtPassword;
-        private Button btnSavePassword;
+        private TextBox txtSourcePath = null!;
+        private TextBox txtTargetPath = null!;
+        private Button btnBrowseSource = null!;
+        private Button btnBrowseTarget = null!;
+        private Button btnEncrypt = null!;
+        private Button btnDecrypt = null!;
+        private Label lblStatus = null!;
+        private ProgressBar progressBar = null!;
+        private Label lblProgress = null!;
+        private Label lblPathType = null!;
+        private Label lblPassword = null!;
+        private TextBox txtPassword = null!;
+        private Button btnSavePassword = null!;
 
         // Compteurs pour le traitement par lot
         private int totalFiles = 0;
@@ -35,8 +35,8 @@ namespace CryptoSoft
         private bool isSourceFolder = false;
 
         // Constantes pour les suffixes
-        private const string SUFFIX_ENCRYPTED = "_chiffre";
-        private const string SUFFIX_DECRYPTED = "_dechiffre";
+        private const string SUFFIX_ENCRYPTED = "_encrypted";
+        private const string SUFFIX_DECRYPTED = "_decrypted";
 
         public CryptoSoftForm()
         {
@@ -48,7 +48,7 @@ namespace CryptoSoft
             this.Icon = SystemIcons.Shield; // Utilise une icône de bouclier pour symboliser la sécurité
             
             // Charger le mot de passe actuel (déchiffré)
-            txtPassword.Text = Program.LoadEncryptionKey();
+            this.txtPassword.Text = Program.LoadEncryptionKey();
         }
 
         private void InitializeComponent()
@@ -129,7 +129,8 @@ namespace CryptoSoft
             txtPassword = new TextBox
             {
                 Location = new Point(120, 110),
-                Width = 280
+                Width = 280,
+                UseSystemPasswordChar = true
             };
             this.Controls.Add(txtPassword);
 
@@ -192,7 +193,7 @@ namespace CryptoSoft
             this.Controls.Add(progressBar);
         }
 
-        private void BtnSavePassword_Click(object sender, EventArgs e)
+        private void BtnSavePassword_Click(object? sender, EventArgs e)
         {
             string newPassword = txtPassword.Text.Trim();
             
@@ -212,7 +213,7 @@ namespace CryptoSoft
         /// Détecte automatiquement si le chemin source est un fichier ou un dossier
         /// et met à jour l'interface en conséquence
         /// </summary>
-        private void TxtSourcePath_TextChanged(object sender, EventArgs e)
+        private void TxtSourcePath_TextChanged(object? sender, EventArgs e)
         {
             string path = txtSourcePath.Text.Trim();
             
@@ -277,7 +278,7 @@ namespace CryptoSoft
             }
         }
 
-        private void BtnBrowseSource_Click(object sender, EventArgs e)
+        private void BtnBrowseSource_Click(object? sender, EventArgs e)
         {
             // Dialogue pour sélectionner un fichier ou un dossier
             using OpenFileDialog fileDialog = new OpenFileDialog
@@ -308,7 +309,7 @@ namespace CryptoSoft
             }
         }
 
-        private void BtnBrowseTarget_Click(object sender, EventArgs e)
+        private void BtnBrowseTarget_Click(object? sender, EventArgs e)
         {
             if (isSourceFolder)
             {
@@ -340,13 +341,13 @@ namespace CryptoSoft
             }
         }
 
-        private async void BtnEncrypt_Click(object sender, EventArgs e)
+        private async void BtnEncrypt_Click(object? sender, EventArgs e)
         {
             // Force le mode chiffrement
             await ProcessPathAsync(true);
         }
 
-        private async void BtnDecrypt_Click(object sender, EventArgs e)
+        private async void BtnDecrypt_Click(object? sender, EventArgs e)
         {
             // Force le mode déchiffrement
             await ProcessPathAsync(false);
@@ -382,6 +383,7 @@ namespace CryptoSoft
         {
             string sourcePath = txtSourcePath.Text.Trim();
             string targetPath = txtTargetPath.Text.Trim();
+            string password = txtPassword.Text;
 
             if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(targetPath))
             {
@@ -419,7 +421,7 @@ namespace CryptoSoft
                 if (isSourceFolder)
                 {
                     // Traitement de dossier
-                    await ProcessFolderAsync(sourcePath, targetPath, isEncrypt);
+                    await ProcessFolderAsync(sourcePath, targetPath, isEncrypt, password);
                 }
                 else
                 {
@@ -436,7 +438,7 @@ namespace CryptoSoft
                     
                     await Task.Run(() =>
                     {
-                        Program.EncryptFile(sourcePath, targetPath);
+                        Program.EncryptFile(sourcePath, targetPath, password);
                     });
                     
                     lblStatus.Text = isEncrypt ? "Chiffrement terminé." : "Déchiffrement terminé.";
@@ -462,7 +464,7 @@ namespace CryptoSoft
         /// <summary>
         /// Traite un dossier entier de manière récursive
         /// </summary>
-        private async Task ProcessFolderAsync(string sourceFolder, string targetFolder, bool isEncrypt)
+        private async Task ProcessFolderAsync(string sourceFolder, string targetFolder, bool isEncrypt, string password)
         {
             // Créer le dossier cible s'il n'existe pas
             if (!Directory.Exists(targetFolder))
@@ -484,7 +486,7 @@ namespace CryptoSoft
             lblStatus.Text = isEncrypt ? "Chiffrement du dossier en cours..." : "Déchiffrement du dossier en cours...";
             
             // Traiter tous les fichiers de manière récursive
-            await ProcessFilesRecursivelyAsync(sourceFolder, targetFolder, isEncrypt);
+            await ProcessFilesRecursivelyAsync(sourceFolder, targetFolder, isEncrypt, password);
             
             lblStatus.Text = isEncrypt ? "Chiffrement du dossier terminé." : "Déchiffrement du dossier terminé.";
             MessageBox.Show($"Traitement terminé ! {processedFiles} fichiers traités.", 
@@ -516,7 +518,7 @@ namespace CryptoSoft
         /// <summary>
         /// Traite tous les fichiers d'un dossier et de ses sous-dossiers
         /// </summary>
-        private async Task ProcessFilesRecursivelyAsync(string sourceFolder, string targetFolder, bool isEncrypt)
+        private async Task ProcessFilesRecursivelyAsync(string sourceFolder, string targetFolder, bool isEncrypt, string password)
         {
             try
             {
@@ -552,7 +554,7 @@ namespace CryptoSoft
                     // Traiter le fichier
                     await Task.Run(() =>
                     {
-                        Program.EncryptFile(sourceFile, targetFile);
+                        Program.EncryptFile(sourceFile, targetFile, password);
                     });
                     
                     // Incrémenter le compteur de fichiers traités
@@ -575,7 +577,7 @@ namespace CryptoSoft
                     }
                     
                     // Traiter le sous-dossier récursivement
-                    await ProcessFilesRecursivelyAsync(sourceSubDir, targetSubDir, isEncrypt);
+                    await ProcessFilesRecursivelyAsync(sourceSubDir, targetSubDir, isEncrypt, password);
                 }
             }
             catch (Exception ex)

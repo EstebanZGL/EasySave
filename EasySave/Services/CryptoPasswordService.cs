@@ -11,7 +11,7 @@ namespace EasySave.Services
     public class CryptoPasswordService
     {
         // Fichier contenant la clé de chiffrement hashée (même chemin que CryptoSoft)
-        private const string KeyFilePath = "cryptosoft_key.dat";
+        private static readonly string KeyFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cryptosoft_key.dat");
         
         // Mot de passe par défaut à utiliser si aucun fichier n'existe
         private const string DefaultPassword = "EasySave2026";
@@ -52,9 +52,10 @@ namespace EasySave.Services
                     return DefaultPassword;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, retourner le mot de passe par défaut
+                System.Diagnostics.Debug.WriteLine($"[CryptoPasswordService] Error getting password: {ex.Message}");
                 return DefaultPassword;
             }
         }
@@ -72,8 +73,9 @@ namespace EasySave.Services
                 File.WriteAllText(KeyFilePath, encryptedPassword);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[CryptoPasswordService] Error setting password: {ex.Message}");
                 return false;
             }
         }
@@ -110,9 +112,10 @@ namespace EasySave.Services
                     return $"{hash}:{encryptedPassword}";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, retourner une chaîne vide
+                System.Diagnostics.Debug.WriteLine($"[CryptoPasswordService] Error encrypting password: {ex.Message}");
                 return string.Empty;
             }
         }
@@ -137,9 +140,10 @@ namespace EasySave.Services
                 // Déchiffrer le mot de passe
                 return SimpleDecrypt(encryptedPassword, SymmetricKey);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, retourner le mot de passe par défaut
+                System.Diagnostics.Debug.WriteLine($"[CryptoPasswordService] Error decrypting password: {ex.Message}");
                 return DefaultPassword;
             }
         }

@@ -16,7 +16,7 @@ namespace CryptoSoft
     public class Program
     {
         // Fichier contenant la clé de chiffrement hashée
-        private const string KeyFilePath = "cryptosoft_key.dat";
+        private static readonly string KeyFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cryptosoft_key.dat");
         
         // Clé secrète utilisée pour le hachage symétrique (partagée avec EasySave)
         private static readonly byte[] SymmetricKey = new byte[] 
@@ -36,7 +36,7 @@ namespace CryptoSoft
         private const int ErrorMutexTimeout = 5;
 
         // Name of the mutex to ensure single instance
-        private const string MutexName = "Global\\CryptoSoft_SingleInstance_Mutex";
+        private const string MutexName = "Local\\CryptoSoft_SingleInstance_Mutex";
         
         // Timeout for acquiring the mutex (in milliseconds)
         private const int MutexTimeout = 30000; // 30 seconds
@@ -50,7 +50,7 @@ namespace CryptoSoft
         {
             try
             {
-                // Try to create or open the named mutex
+                // Try to create or open the named mutex (Local to session to avoid permission issues)
                 _mutex = new Mutex(false, MutexName, out _mutexCreated);
                 
                 // Check if another instance is already running
@@ -97,12 +97,14 @@ namespace CryptoSoft
             }
             catch (Exception ex)
             {
-                if (args.Length == 0)
+                // Global error handler to prevent silent crashes
+                if (args.Length == 0 || !Console.IsOutputRedirected)
                 {
-                    MessageBox.Show($"Unexpected error: {ex.Message}", "CryptoSoft Error", 
+                    MessageBox.Show($"Critical error starting CryptoSoft:\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}", "CryptoSoft Fatal Error", 
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                else
+                
+                if (args.Length > 0)
                 {
                     Console.Error.WriteLine($"Error: {ex.Message}");
                 }
@@ -165,7 +167,8 @@ namespace CryptoSoft
         /// </summary>
         /// <param name="sourceFile">Source file path</param>
         /// <param name="targetFile">Target file path</param>
-        public static void EncryptFile(string sourceFile, string targetFile)
+        /// <param name="password">Optional password to use (uses saved key if null)</param>
+        public static void EncryptFile(string sourceFile, string targetFile, string? password = null)
         {
             string? targetDirectory = Path.GetDirectoryName(targetFile);
             if (!string.IsNullOrEmpty(targetDirectory) && !Directory.Exists(targetDirectory))
@@ -174,7 +177,7 @@ namespace CryptoSoft
             }
 
             // Obtenir la clé de chiffrement à partir du fichier
-            byte[] encryptionKey = GetEncryptionKeyFromPassword(LoadEncryptionKey());
+            byte[] encryptionKey = GetEncryptionKeyFromPassword(password ?? LoadEncryptionKey());
 
             using FileStream sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read);
             using FileStream targetStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write);
@@ -213,9 +216,10 @@ namespace CryptoSoft
                     return DefaultPassword;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, utiliser la clé par défaut
+                Console.Error.WriteLine($"Error loading encryption key: {ex.Message}. Using default.");
                 return DefaultPassword;
             }
         }
@@ -284,9 +288,10 @@ namespace CryptoSoft
                     return $"{hash}:{encryptedPassword}";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, retourner une chaîne vide
+                Console.Error.WriteLine($"Error during password encryption: {ex.Message}");
                 return string.Empty;
             }
         }
@@ -311,9 +316,10 @@ namespace CryptoSoft
                 // Déchiffrer le mot de passe
                 return SimpleDecrypt(encryptedPassword, SymmetricKey);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // En cas d'erreur, retourner le mot de passe par défaut
+                Console.Error.WriteLine($"Error decrypting password data: {ex.Message}. Using default.");
                 return DefaultPassword;
             }
         }

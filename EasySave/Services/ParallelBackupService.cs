@@ -540,23 +540,39 @@ namespace EasySave.Services
                                 await _largeFileSemaphore.WaitAsync(cancellationToken);
                             }
                             
-                            // Copy the file
-                            var stopwatch = Stopwatch.StartNew();
-                            File.Copy(file.FullName, targetPath, true);
-                            stopwatch.Stop();
-                            
-                            // Check if the file should be encrypted
+                            long transferTime = 0;
                             long encryptionTime = 0;
+
+                            // Check if the file should be encrypted
                             if (_settingsViewModel.ShouldEncryptFile(file.FullName))
                             {
                                 var encryptStopwatch = Stopwatch.StartNew();
-                                await _cryptoService.EncryptFileAsync(targetPath);
+                                // Encrypt directly from source to target
+                                encryptionTime = await _cryptoService.EncryptFileAsync(file.FullName, targetPath);
                                 encryptStopwatch.Stop();
-                                encryptionTime = encryptStopwatch.ElapsedMilliseconds;
+                                transferTime = encryptStopwatch.ElapsedMilliseconds;
+
+                                // Fallback if encryption failed (encryptionTime is -1 on error)
+                                if (encryptionTime < 0)
+                                {
+                                    var stopwatch = Stopwatch.StartNew();
+                                    File.Copy(file.FullName, targetPath, true);
+                                    stopwatch.Stop();
+                                    transferTime = stopwatch.ElapsedMilliseconds;
+                                    // encryptionTime remains -1 to indicate error in logs
+                                }
+                            }
+                            else
+                            {
+                                // Standard copy
+                                var stopwatch = Stopwatch.StartNew();
+                                File.Copy(file.FullName, targetPath, true);
+                                stopwatch.Stop();
+                                transferTime = stopwatch.ElapsedMilliseconds;
                             }
                             
                             // Log the file copy
-                            _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, stopwatch.ElapsedMilliseconds, encryptionTime);
+                            await _logger.LogFileTransfer(job.JobName, file.FullName, targetPath, file.Length, transferTime, encryptionTime);
                         }
                         finally
                         {
@@ -589,7 +605,7 @@ namespace EasySave.Services
                 }
                 
                 // Log completion
-                _logger.LogBackupComplete(job.JobName, job.SourcePath, job.TargetPath, state.TotalFiles, state.TotalSize);
+                await _logger.LogBackupComplete(job.JobName, job.SourcePath, job.TargetPath, state.TotalFiles, state.TotalSize);
             }
             catch (Exception ex)
             {
