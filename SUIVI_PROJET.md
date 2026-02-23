@@ -408,3 +408,5 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 21/02/2026 : Déplacement du dossier de sortie de 'output' vers 'bin\output' pour corriger l'arborescence de génération.
 - 21/02/2026 : Correction définitive du chemin de sortie : retour à 'output' à la racine du projet pour regrouper tous les exécutables et dépendances au même endroit.
 - 21/02/2026 : Suppression du fichier Directory.Build.props suite aux retours utilisateur (trop de fichiers générés). Retour à la configuration par projet.
+- 21/02/2026 : Résolution de l'erreur de build MSB4024 (fichier Directory.Build.props vide restant) par suppression manuelle.
+- 21/02/2026 : Correction du chemin de sortie dans CryptoSoft.csproj (..\output) pour aligner la génération avec EasySave dans le dossier racine.
