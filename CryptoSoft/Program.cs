@@ -48,9 +48,6 @@ namespace CryptoSoft
         [STAThread]
         public static int Main(string[] args)
         {
-            bool mutexCreated = false;
-            // Initialiser le mutex à une valeur non nulle
-            Mutex? mutex = null;
 
             try
             {
