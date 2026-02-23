@@ -9,23 +9,29 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Timers;
 
 namespace EasySave.ViewModels
 {
     public class SettingsViewModel : INotifyPropertyChanged
     {
-        private string _businessSoftwareName;
-        private List<string> _encryptionExtensions;
-        private string _cryptoSoftPath;
-        private int _maxParallelJobs;
-        private string _logFormat;
-        private long _largeFileThreshold;
-        private List<string> _priorityExtensions;
-        private LogCentralizationSettings _logCentralizationSettings;
+        // Services
         private readonly TranslationService _translationService;
+        private readonly string _settingsFilePath;
+        private readonly CryptoPasswordService _cryptoPasswordService;
+        
+        // Champs privés (Backing fields)
+        private string _language = "en";
+        private string _logFormat = "json";
+        private string _businessSoftwareName = "";
+        private string _cryptoSoftPath = "";
+        private List<string> _encryptionExtensions = new List<string>();
+        private List<string> _priorityExtensions = new List<string>();
+        private long _largeFileThreshold = 1048576; // 1MB par défaut
+        private int _maxParallelJobs = 5;
+        private string _encryptionKey = "";
+        private LogCentralizationSettings _logCentralizationSettings = new LogCentralizationSettings();
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         // Constructeur sans paramètre pour faciliter les tests
         public SettingsViewModel() : this(null)
@@ -35,67 +41,74 @@ namespace EasySave.ViewModels
         public SettingsViewModel(TranslationService translationService = null)
         {
             _translationService = translationService;
+            _settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            _cryptoPasswordService = new CryptoPasswordService();
             
-            // Default values
-            _businessSoftwareName = "calc.exe";  // Default to Calculator for demo
+            // Valeurs par défaut
+            _businessSoftwareName = "calc.exe";
             _encryptionExtensions = new List<string> { ".txt", ".doc", ".pdf" };
             _priorityExtensions = new List<string> { ".exe", ".dll", ".sys" };
             _cryptoSoftPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CryptoSoft.exe");
             _maxParallelJobs = 5;
-            _logFormat = "JSON"; // Default log format
-            _largeFileThreshold = 1024 * 1024; // 1MB default
-            _logCentralizationSettings = new LogCentralizationSettings();
+            _logFormat = "JSON";
+            _largeFileThreshold = 1048576; // 1MB
             
+            // Chargement des paramètres
             LoadSettings();
-            LoadLogFormat(); // Load log format from separate file
+            LoadLogFormat();
             
-            // Debug: Print the current business software name
-            Debug.WriteLine($"Business software name set to: {_businessSoftwareName}");
+            // CHARGEMENT CRITIQUE : On lit la clé depuis le fichier partagé au démarrage
+            _encryptionKey = _cryptoPasswordService.GetPassword();
             
-            // Subscribe to translation changes if service is available
+            // Abonnement aux traductions
             if (_translationService != null)
             {
                 _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
             }
         }
 
-        public string BusinessSoftwareName
+        // --- Propriétés Publiques ---
+
+        public string EncryptionKey
         {
-            get => _businessSoftwareName;
+            get => _encryptionKey;
             set
             {
-                if (_businessSoftwareName != value)
+                if (_encryptionKey != value)
                 {
-                    _businessSoftwareName = value;
+                    _encryptionKey = value;
                     OnPropertyChanged();
-                    SaveSettings();
+                    OnPropertyChanged(nameof(CryptoPassword)); // Notifier aussi l'alias pour la vue
                     
-                    // Debug: Print when business software name changes
-                    Debug.WriteLine($"Business software name changed to: {_businessSoftwareName}");
+                    // SAUVEGARDE CRITIQUE : On écrit immédiatement dans le fichier partagé
+                    bool success = _cryptoPasswordService.SetPassword(value);
+                    if (!success)
+                    {
+                        Debug.WriteLine("Erreur critique : Impossible de sauvegarder la clé partagée !");
+                    }
                 }
             }
         }
 
-        public List<string> EncryptionExtensions
+        // --- Membres de compatibilité pour SettingsWindow.xaml.cs ---
+
+        public string CryptoPassword
         {
-            get => _encryptionExtensions;
-            set
-            {
-                if (_encryptionExtensions != value)
-                {
-                    _encryptionExtensions = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(ExtensionsToEncrypt)); // Update the string[] property too
-                    SaveSettings();
-                }
-            }
+            get => EncryptionKey;
+            set => EncryptionKey = value;
+        }
+
+        public bool ChangeCryptoPassword(string newPassword)
+        {
+            EncryptionKey = newPassword;
+            return true;
         }
 
         // Property needed for compatibility with CryptoServiceTests
         // Rendre cette propriété virtuelle pour permettre le mocking
         public virtual string[] ExtensionsToEncrypt
         {
-            get => _encryptionExtensions?.ToArray();
+            get => _encryptionExtensions?.ToArray() ?? Array.Empty<string>();
             set
             {
                 if (value != null)
@@ -109,32 +122,36 @@ namespace EasySave.ViewModels
             }
         }
 
-        public List<string> PriorityExtensions
+        public string Language
         {
-            get => _priorityExtensions;
+            get => _language;
+            set { if (_language != value) { _language = value; OnPropertyChanged(); SaveSettings(); } }
+        }
+
+        public string LogFormat
+        {
+            get => _logFormat;
             set
             {
-                if (_priorityExtensions != value)
+                if (_logFormat != value)
                 {
-                    _priorityExtensions = value;
+                    _logFormat = value;
                     OnPropertyChanged();
-                    SaveSettings();
+                    SaveLogFormat();
                 }
             }
+        }
+
+        public string BusinessSoftwareName
+        {
+            get => _businessSoftwareName;
+            set { if (_businessSoftwareName != value) { _businessSoftwareName = value; OnPropertyChanged(); SaveSettings(); } }
         }
 
         public string CryptoSoftPath
         {
             get => _cryptoSoftPath;
-            set
-            {
-                if (_cryptoSoftPath != value)
-                {
-                    _cryptoSoftPath = value;
-                    OnPropertyChanged();
-                    SaveSettings();
-                }
-            }
+            set { if (_cryptoSoftPath != value) { _cryptoSoftPath = value; OnPropertyChanged(); SaveSettings(); } }
         }
 
         public int MaxParallelJobs
@@ -144,11 +161,23 @@ namespace EasySave.ViewModels
             {
                 if (_maxParallelJobs != value)
                 {
-                    _maxParallelJobs = Math.Max(1, value); // Ensure at least 1 job
+                    _maxParallelJobs = Math.Max(1, value);
                     OnPropertyChanged();
                     SaveSettings();
                 }
             }
+        }
+
+        public List<string> EncryptionExtensions
+        {
+            get => _encryptionExtensions;
+            set { if (_encryptionExtensions != value) { _encryptionExtensions = value; OnPropertyChanged(); SaveSettings(); } }
+        }
+        
+        public List<string> PriorityExtensions
+        {
+            get => _priorityExtensions;
+            set { if (_priorityExtensions != value) { _priorityExtensions = value; OnPropertyChanged(); SaveSettings(); } }
         }
 
         public long LargeFileThreshold
@@ -158,7 +187,7 @@ namespace EasySave.ViewModels
             {
                 if (_largeFileThreshold != value)
                 {
-                    _largeFileThreshold = value;
+                    _largeFileThreshold = Math.Max(1024, value);
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(LargeFileThresholdMB));
                     SaveSettings();
@@ -196,20 +225,6 @@ namespace EasySave.ViewModels
                 if (int.TryParse(numericPart, out int mbValue))
                 {
                     LargeFileThresholdMB = mbValue;
-                }
-            }
-        }
-
-        public string LogFormat
-        {
-            get => _logFormat;
-            set
-            {
-                if (_logFormat != value)
-                {
-                    _logFormat = value;
-                    OnPropertyChanged();
-                    SaveLogFormat();
                 }
             }
         }
@@ -262,7 +277,8 @@ namespace EasySave.ViewModels
             }
         }
 
-        // PropriÃ©tÃ©s de traduction
+        // --- Propriétés de Traduction ---
+
         public string WindowTitle => GetTranslation("menu_settings");
         public string GeneralSettingsHeader => GetTranslation("general_settings");
         public string BusinessSoftwareLabel => GetTranslation("business_software");
@@ -275,6 +291,7 @@ namespace EasySave.ViewModels
         public string PriorityExtensionsLabel => GetTranslation("priority_extensions");
         public string EncryptionSettingsHeader => GetTranslation("encryption_settings");
         public string EncryptExtensionsLabel => GetTranslation("encrypt_extensions");
+        public string CryptoPasswordLabel => GetTranslation("encryption_key");
         public string LogCentralizationHeader => GetTranslation("log_centralization_settings");
         public string EnableCentralizationLabel => GetTranslation("enable_centralization");
         public string LogServerUrlLabel => GetTranslation("log_server_url");
@@ -288,6 +305,7 @@ namespace EasySave.ViewModels
         public string LargeFileThresholdNote => GetTranslation("large_file_threshold_note");
         public string PriorityExtensionsNote => GetTranslation("priority_extensions_note");
         public string EncryptExtensionsNote => GetTranslation("settings_encrypt_note");
+        public string CryptoPasswordNote => GetTranslation("settings_key_note");
         public string LogCentralizationNote => GetTranslation("log_centralization_note");
         public string ChangesNote => GetTranslation("settings_changes_note");
         public string CloseButtonText => GetTranslation("close");
@@ -322,203 +340,74 @@ namespace EasySave.ViewModels
         /// <returns>True if the business software is running, false otherwise</returns>
         public virtual bool IsBusinessSoftwareRunning()
         {
-            if (string.IsNullOrWhiteSpace(BusinessSoftwareName))
-            {
-                Debug.WriteLine("Business software name is empty, returning false");
+            if (string.IsNullOrEmpty(_businessSoftwareName))
                 return false;
-            }
 
             try
             {
                 string processNameToFind = Path.GetFileNameWithoutExtension(BusinessSoftwareName).ToLowerInvariant();
-                Debug.WriteLine($"Looking for business software: {processNameToFind}");
-
-                // Method 1: Simple process name check (most reliable but limited)
-                try
-                {
-                    var processesByName = Process.GetProcessesByName(processNameToFind);
-                    if (processesByName.Length > 0)
-                    {
-                        Debug.WriteLine($"Found {processesByName.Length} processes with name '{processNameToFind}'");
-                        return true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error in method 1: {ex.Message}");
-                }
-
-                // Method 2: Check for Calculator specifically (special case handling)
-                if (processNameToFind.Equals("calc", StringComparison.OrdinalIgnoreCase) || 
-                    processNameToFind.Equals("calculator", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Modern Windows Calculator (Windows 10/11)
-                    var calculatorProcesses = Process.GetProcessesByName("CalculatorApp");
-                    if (calculatorProcesses.Length > 0)
-                    {
-                        Debug.WriteLine("Found modern Calculator (CalculatorApp)");
-                        return true;
-                    }
-
-                    // Check if Calculator is hosted in ApplicationFrameHost
-                    try
-                    {
-                        foreach (var process in Process.GetProcessesByName("ApplicationFrameHost"))
-                        {
-                            try
-                            {
-                                // This is a heuristic - if Calculator is open, its window title often contains "Calculator"
-                                if (process.MainWindowTitle.Contains("Calculator", StringComparison.OrdinalIgnoreCase) ||
-                                    process.MainWindowTitle.Contains("Calculatrice", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    Debug.WriteLine("Found Calculator running in ApplicationFrameHost");
-                                    return true;
-                                }
-                            }
-                            catch
-                            {
-                                // Ignore access errors
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error checking ApplicationFrameHost: {ex.Message}");
-                    }
-                }
-
-                // Method 3: Check all processes and their window titles
-                try
-                {
-                    foreach (var process in Process.GetProcesses())
-                    {
-                        try
-                        {
-                            // Check if the process name contains our target
-                            if (process.ProcessName.ToLowerInvariant().Contains(processNameToFind))
-                            {
-                                Debug.WriteLine($"Found process with matching name: {process.ProcessName}");
-                                return true;
-                            }
-
-                            // Check window title (can be useful for hosted apps like UWP apps)
-                            if (!string.IsNullOrEmpty(process.MainWindowTitle) && 
-                                process.MainWindowTitle.ToLowerInvariant().Contains(processNameToFind))
-                            {
-                                Debug.WriteLine($"Found process with matching window title: {process.MainWindowTitle}");
-                                return true;
-                            }
-                        }
-                        catch
-                        {
-                            // Ignore access errors for individual processes
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error checking all processes: {ex.Message}");
-                }
-
-                // Method 4: Use PowerShell as a last resort
-                try
-                {
-                    using (Process process = new Process())
-                    {
-                        process.StartInfo.FileName = "powershell.exe";
-                        process.StartInfo.Arguments = $"-Command \"Get-Process | Where-Object {{ $_.ProcessName -like '*{processNameToFind}*' }} | Measure-Object | Select-Object -ExpandProperty Count\"";
-                        process.StartInfo.UseShellExecute = false;
-                        process.StartInfo.RedirectStandardOutput = true;
-                        process.StartInfo.CreateNoWindow = true;
-                        
-                        process.Start();
-                        string output = process.StandardOutput.ReadToEnd();
-                        process.WaitForExit();
-                        
-                        if (int.TryParse(output.Trim(), out int count) && count > 0)
-                        {
-                            Debug.WriteLine($"Found {count} matching processes via PowerShell");
-                            return true;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error in PowerShell method: {ex.Message}");
-                }
-
-                Debug.WriteLine("Business software is NOT running (checked all methods)");
-                return false;
+                Process[] processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(_businessSoftwareName));
+                return processes.Length > 0;
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine($"Error in IsBusinessSoftwareRunning: {ex.Message}");
-                return false; // In case of error, assume it's not running
+                return false;
             }
         }
 
         public virtual bool ShouldEncryptFile(string filePath)
         {
-            if (EncryptionExtensions == null || EncryptionExtensions.Count == 0)
+            if (string.IsNullOrEmpty(filePath) || _encryptionExtensions == null || _encryptionExtensions.Count == 0)
                 return false;
 
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension))
+                return false;
+                
             return EncryptionExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
         public virtual bool IsPriorityFile(string filePath)
         {
-            if (PriorityExtensions == null || PriorityExtensions.Count == 0)
+            if (string.IsNullOrEmpty(filePath) || _priorityExtensions == null || _priorityExtensions.Count == 0)
                 return false;
 
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension))
+                return false;
+                
             return PriorityExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
         protected virtual void LoadSettings()
         {
-            try
+            if (File.Exists(_settingsFilePath))
             {
-                string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-                Debug.WriteLine($"Loading settings from: {settingsPath}");
-                
-                if (File.Exists(settingsPath))
+                try
                 {
-                    string json = File.ReadAllText(settingsPath);
-                    var settings = JsonSerializer.Deserialize<SettingsData>(json);
-                    
+                    string json = File.ReadAllText(_settingsFilePath);
+                    var settings = JsonSerializer.Deserialize<SettingsModel>(json);
                     if (settings != null)
                     {
-                        BusinessSoftwareName = settings.BusinessSoftwareName;
-                        EncryptionExtensions = settings.EncryptionExtensions ?? new List<string> { ".txt", ".doc", ".pdf" };
-                        PriorityExtensions = settings.PriorityExtensions ?? new List<string> { ".exe", ".dll", ".sys" };
-                        CryptoSoftPath = settings.CryptoSoftPath;
-                        MaxParallelJobs = settings.MaxParallelJobs;
-                        LargeFileThreshold = settings.LargeFileThreshold > 0 ? settings.LargeFileThreshold : 1024 * 1024;
+                        _language = settings.Language ?? "en";
+                        _logFormat = settings.LogFormat ?? "json";
+                        _businessSoftwareName = settings.BusinessSoftwareName ?? "";
+                        _cryptoSoftPath = settings.CryptoSoftPath ?? _cryptoSoftPath;
+                        _encryptionExtensions = settings.EncryptionExtensions ?? new List<string>();
+                        _priorityExtensions = settings.PriorityExtensions ?? new List<string>();
+                        _largeFileThreshold = settings.LargeFileThreshold > 0 ? settings.LargeFileThreshold : 1048576;
+                        _maxParallelJobs = settings.MaxParallelJobs > 0 ? settings.MaxParallelJobs : 5;
                         
                         if (settings.LogCentralization != null)
                         {
-                            _logCentralizationSettings.IsEnabled = settings.LogCentralization.IsEnabled;
-                            _logCentralizationSettings.LogDestination = settings.LogCentralization.LogDestination;
-                            _logCentralizationSettings.ServerUrl = settings.LogCentralization.ServerUrl;
+                            _logCentralizationSettings = settings.LogCentralization;
                         }
-                        
-                        Debug.WriteLine($"Loaded settings: BusinessSoftwareName={BusinessSoftwareName}");
-                    }
-                    else
-                    {
-                        Debug.WriteLine("Settings were null after deserialization");
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Debug.WriteLine("Settings file does not exist, using defaults");
+                    Debug.WriteLine($"Error loading settings: {ex.Message}");
                 }
-            }
-            catch (Exception ex)
-            {
-                // Log error but continue with default settings
-                Debug.WriteLine($"Error loading settings: {ex.Message}");
             }
         }
 
@@ -526,31 +415,25 @@ namespace EasySave.ViewModels
         {
             try
             {
-                string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-                var settings = new SettingsData
+                var settings = new SettingsModel
                 {
-                    BusinessSoftwareName = BusinessSoftwareName,
-                    EncryptionExtensions = EncryptionExtensions,
-                    PriorityExtensions = PriorityExtensions,
-                    CryptoSoftPath = CryptoSoftPath,
-                    MaxParallelJobs = MaxParallelJobs,
-                    LargeFileThreshold = LargeFileThreshold,
-                    LogCentralization = new LogCentralizationSettings
-                    {
-                        IsEnabled = _logCentralizationSettings.IsEnabled,
-                        LogDestination = _logCentralizationSettings.LogDestination,
-                        ServerUrl = _logCentralizationSettings.ServerUrl
-                    }
+                    Language = _language,
+                    LogFormat = _logFormat,
+                    BusinessSoftwareName = _businessSoftwareName,
+                    CryptoSoftPath = _cryptoSoftPath,
+                    EncryptionExtensions = _encryptionExtensions,
+                    PriorityExtensions = _priorityExtensions,
+                    LargeFileThreshold = _largeFileThreshold,
+                    MaxParallelJobs = _maxParallelJobs,
+                    LogCentralization = _logCentralizationSettings
                 };
                 
-                string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(settingsPath, json);
-                
-                Debug.WriteLine($"Settings saved: BusinessSoftwareName={BusinessSoftwareName}");
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string json = JsonSerializer.Serialize(settings, options);
+                File.WriteAllText(_settingsFilePath, json);
             }
             catch (Exception ex)
             {
-                // Log error
                 Debug.WriteLine($"Error saving settings: {ex.Message}");
             }
         }
@@ -571,7 +454,6 @@ namespace EasySave.ViewModels
             }
             catch (Exception ex)
             {
-                // Log error but continue with default format
                 Debug.WriteLine($"Error loading log format: {ex.Message}");
             }
         }
@@ -585,8 +467,64 @@ namespace EasySave.ViewModels
             }
             catch (Exception ex)
             {
-                // Log error
                 Debug.WriteLine($"Error saving log format: {ex.Message}");
+            }
+        }
+
+        // --- Helpers ---
+
+        private string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = bytes;
+            int order = 0;
+            
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            
+            return $"{len:0.##} {sizes[order]}";
+        }
+
+        private bool TryParseFileSize(string input, out long bytes)
+        {
+            bytes = 0;
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+                
+            input = input.Trim().ToUpperInvariant();
+            
+            // Extract the numeric part and the unit
+            string numericPart = new string(input.TakeWhile(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
+            string unit = input.Substring(numericPart.Length).Trim();
+            
+            if (!double.TryParse(numericPart.Replace(',', '.'), out double value))
+                return false;
+                
+            // Convert to bytes based on the unit
+            switch (unit)
+            {
+                case "B":
+                    bytes = (long)value;
+                    return true;
+                case "KB":
+                    bytes = (long)(value * 1024);
+                    return true;
+                case "MB":
+                    bytes = (long)(value * 1024 * 1024);
+                    return true;
+                case "GB":
+                    bytes = (long)(value * 1024 * 1024 * 1024);
+                    return true;
+                case "TB":
+                    bytes = (long)(value * 1024 * 1024 * 1024 * 1024);
+                    return true;
+                default:
+                    // If no unit is specified, assume bytes
+                    bytes = (long)value;
+                    return true;
             }
         }
 
@@ -612,6 +550,7 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(PriorityExtensionsLabel));
                 OnPropertyChanged(nameof(EncryptionSettingsHeader));
                 OnPropertyChanged(nameof(EncryptExtensionsLabel));
+                OnPropertyChanged(nameof(CryptoPasswordLabel));
                 OnPropertyChanged(nameof(LogCentralizationHeader));
                 OnPropertyChanged(nameof(EnableCentralizationLabel));
                 OnPropertyChanged(nameof(LogServerUrlLabel));
@@ -625,6 +564,7 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(LargeFileThresholdNote));
                 OnPropertyChanged(nameof(PriorityExtensionsNote));
                 OnPropertyChanged(nameof(EncryptExtensionsNote));
+                OnPropertyChanged(nameof(CryptoPasswordNote));
                 OnPropertyChanged(nameof(LogCentralizationNote));
                 OnPropertyChanged(nameof(ChangesNote));
                 OnPropertyChanged(nameof(CloseButtonText));
@@ -641,14 +581,16 @@ namespace EasySave.ViewModels
             return _translationService?.GetTranslation(key) ?? key;
         }
 
-        private class SettingsData
+        private class SettingsModel
         {
-            public string BusinessSoftwareName { get; set; }
-            public List<string> EncryptionExtensions { get; set; }
-            public List<string> PriorityExtensions { get; set; }
-            public string CryptoSoftPath { get; set; }
-            public int MaxParallelJobs { get; set; }
+            public string? Language { get; set; }
+            public string? LogFormat { get; set; }
+            public string? BusinessSoftwareName { get; set; }
+            public string? CryptoSoftPath { get; set; }
+            public List<string>? EncryptionExtensions { get; set; }
+            public List<string>? PriorityExtensions { get; set; }
             public long LargeFileThreshold { get; set; }
+            public int MaxParallelJobs { get; set; }
             public LogCentralizationSettings LogCentralization { get; set; }
         }
     }

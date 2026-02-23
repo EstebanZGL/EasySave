@@ -4,7 +4,7 @@
 Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évoluant de la version 1.0 (Console) à la version 3.0 (Graphique, Parallèle, Docker).
 - **Client :** ProSoft (Usage interne et revente).
 - **Prix unitaire :** 200 €HT
-- **Contrat de maintenance annuel :** 12% prix d'achat (5/7 8-17h, mises à jour incluses)
+- **Contrat de maintenance annuel :** 12% prix d'achat (5/7 8-17h, mises à jour incluses, tacite reconduction, indice SYNTEC).
 - **Contrainte Critique :** Code, commentaires et logs 100% en ANGLAIS.
 - **Architecture :** Modulaire, maintenable, pas de duplication de code.
 
@@ -236,17 +236,17 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 
 #### Développement Core
 - [x] Implémentation des sauvegardes en parallèle
-  - [x] Système de threading
+  - [x] Système de threading / Tâches
   - [x] Gestion des ressources partagées
 - [ ] Gestion des fichiers prioritaires
-  - [ ] Système de priorité par extension
-  - [ ] File d'attente intelligente
-- [ ] Limitation de bande passante
-  - [ ] Détection des fichiers volumineux
-  - [ ] Gestion des transferts simultanés
+  - [ ] Configuration des extensions prioritaires dans les paramètres
+  - [ ] Implémentation de la règle stricte : Aucun transfert non-prioritaire si un fichier prioritaire est en attente (Globalement)
+- [ ] Limitation de bande passante (Fichiers Volumineux)
+  - [ ] Configuration du seuil de taille (n Ko)
+  - [ ] Implémentation de la règle : Interdiction de transférer simultanément deux fichiers > n Ko
 - [ ] CryptoSoft Mono-instance
-  - [ ] Implémentation du système de mutex
-  - [ ] File d'attente pour cryptage
+  - [x] Implémentation du système de mutex (SemaphoreSlim)
+  - [x] File d'attente globale pour l'accès au processus de chiffrement
 - [x] Réimplémentation du mode CLI
   - [x] Création du projet EasySaveCLI
   - [x] Support des fonctionnalités de la v2.0 (cryptage, logiciel métier)
@@ -254,6 +254,13 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Implémentation du point d'entrée (Program.cs) avec injection de dépendances
   - [x] Compilation réussie et génération de l'exécutable EasySaveCLI.exe
   - [x] Configuration des projets pour générer tous les exécutables dans un dossier commun
+- [ ] Centralisation des Logs (Docker)
+  - [ ] Développement du service de réception des logs (Console ou API)
+  - [ ] Containerisation Docker du service
+  - [ ] Implémentation des 3 modes de logging dans EasySave :
+    - [ ] Local uniquement
+    - [ ] Distant (Docker) uniquement
+    - [ ] Local + Distant
 
 #### Interface Utilisateur
 - [x] Contrôles Play/Pause/Stop pour chaque travail
@@ -263,6 +270,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
   - [x] Option de confirmation pour l'utilisateur
 - [ ] Interface de configuration des priorités
 - [ ] Interface de configuration de la bande passante
+- [ ] Interface de configuration de la centralisation des logs
 
 #### Documentation
 - [ ] Mise à jour de la documentation utilisateur
@@ -272,6 +280,7 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 - [ ] Revue de code
 - [ ] Optimisation des performances
 - [ ] Tests de régression
+- [ ] Étude pour la v4.0 (Optimisation, bénéfice client)
 - [ ] Préparation du livrable
 - [ ] Préparation de la présentation finale
 
@@ -299,6 +308,11 @@ Emplacement : dossier racine du répertoire d'exécution.
 - **language.txt** : Stocke la préférence de langue (fr/en)
 - **logformat.txt** : Stocke le format de log préféré (JSON/XML)
 - **settings.json** : Stocke les paramètres utilisateur (logiciel métier, extensions à crypter, chemin de CryptoSoft)
+
+### 4. Centralisation des Logs (v3.0)
+- **Protocole :** TCP/IP (Sockets) ou HTTP (API REST)
+- **Format :** JSON unique centralisé
+- **Modes :** Local, Distant, Hybride
 
 ## Calendrier
 - **Livrable 1 (Version 1.0)** : ✅ Complété
@@ -377,6 +391,28 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 18/02/2026 : Utilisation des constantes de JobStatus pour une meilleure cohérence des statuts
 - 18/02/2026 : Ajout d'un mécanisme de stockage du dernier fichier traité pour améliorer la reprise des travaux
 - 18/02/2026 : Amélioration du système de debugging avec plus de messages dans le journal de débogage
+- 21/02/2026 : Analyse du fonctionnement de CryptoSoft et identification des contraintes pour la v3.0 (Mono-instance, gestion file d'attente)
+- 21/02/2026 : Analyse approfondie de l'architecture CryptoSoft (Exécutable indépendant, appel via Process.Start, configuration via settings.json)
+- 21/02/2026 : Mise à jour du suivi avec l'énoncé complet v3.0 (Règles de priorité strictes, Limitation fichiers volumineux, Docker)
+- 21/02/2026 : Implémentation de la gestion Mono-instance de CryptoSoft via SemaphoreSlim dans CryptoService
+- 21/02/2026 : Revue technique et validation de la logique de chiffrement (Thread-safety confirmé via Semaphore statique)
+- 21/02/2026 : Implémentation du code source de CryptoSoft (Algorithme XOR symétrique, gestion des buffers, Mutex nommé pour mono-instance)
+- 21/02/2026 : Modification de CryptoSoft pour utiliser une clé de chiffrement configurable stockée dans un fichier obfusqué (encryption_key.bin)
+- 21/02/2026 : Diagnostic d'erreur de compilation dans ParallelBackupService (Appel incorrect à CryptoService.EncryptFileAsync, argument manquant)
+- 21/02/2026 : Demande d'accès aux fichiers sources (ParallelBackupService.cs et CryptoSoftForm.cs) pour application des correctifs
+- 21/02/2026 : Correction de ParallelBackupService.cs (Logique de chiffrement corrigée avec fallback) et nettoyage des warnings dans CryptoSoftForm.cs
+- 21/02/2026 : Analyse et validation du nouveau code CryptoSoft v4.0 (GUI + Gestion de clé sécurisée) et réintégration de l'optimisation de sauvegarde.
+- 21/02/2026 : Amélioration CryptoSoft : Masquage de la clé dans l'interface, harmonisation des noms de dossiers (anglais) et utilisation dynamique de la clé saisie.
+- 21/02/2026 : Correction du problème de synchronisation de la clé de chiffrement entre EasySave et CryptoSoft en utilisant des chemins absolus pour le fichier de clé.
+- 21/02/2026 : Diagnostic et résolution des erreurs de build (fichiers verrouillés) et nettoyage des avertissements de nullabilité du compilateur.
+- 21/02/2026 : Refactorisation de la gestion de la clé de chiffrement pour éliminer le code dupliqué et obsolète, assurant une source de vérité unique pour la synchronisation.
+- 21/02/2026 : Diagnostic final et correction de la synchronisation de la clé en améliorant la gestion des erreurs et en identifiant le chaînon manquant dans le ViewModel.
+- 21/02/2026 : Création du fichier Directory.Build.props pour centraliser la sortie de compilation dans le dossier 'output' et garantir la présence de toutes les dépendances.
+- 21/02/2026 : Déplacement du dossier de sortie de 'output' vers 'bin\output' pour corriger l'arborescence de génération.
+- 21/02/2026 : Correction définitive du chemin de sortie : retour à 'output' à la racine du projet pour regrouper tous les exécutables et dépendances au même endroit.
+- 21/02/2026 : Suppression du fichier Directory.Build.props suite aux retours utilisateur (trop de fichiers générés). Retour à la configuration par projet.
+- 21/02/2026 : Résolution de l'erreur de build MSB4024 (fichier Directory.Build.props vide restant) par suppression manuelle.
+- 21/02/2026 : Correction du chemin de sortie dans CryptoSoft.csproj (..\output) pour aligner la génération avec EasySave dans le dossier racine.
 - 20/02/2026 : Implémentation d'une vérification à la fermeture de l'application lorsque des sauvegardes sont en cours
 - 20/02/2026 : Ajout d'un message d'avertissement bilingue (français/anglais) informant l'utilisateur que les sauvegardes en cours seront perdues
 - 20/02/2026 : Création d'une boîte de dialogue de confirmation permettant à l'utilisateur de confirmer ou d'annuler la fermeture de l'application
