@@ -42,5 +42,10 @@ namespace EasyLog
         /// Encryption time in milliseconds (0 if not encrypted, negative if error)
         /// </summary>
         public long EncryptionTime { get; set; }
+        
+        /// <summary>
+        /// Type of operation (FileTransfer, DirectoryCreation, DirectoryDeletion, ApplicationEvent, JobManagement, etc.)
+        /// </summary>
+        public string OperationType { get; set; } = string.Empty;
     }
 }

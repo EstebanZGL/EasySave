@@ -15,7 +15,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            settingsViewModelMock.Setup(s => s.ExtensionsToEncrypt).Returns(new[] { ".txt", ".docx", ".pdf" });
+            settingsViewModelMock.Setup(s => s.ShouldEncryptFile(It.Is<string>(path => path.EndsWith(".txt")))).Returns(true);
             
             var cryptoService = new CryptoService(settingsViewModelMock.Object);
             
@@ -31,7 +31,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            settingsViewModelMock.Setup(s => s.ExtensionsToEncrypt).Returns(new[] { ".txt", ".docx", ".pdf" });
+            settingsViewModelMock.Setup(s => s.ShouldEncryptFile(It.Is<string>(path => path.EndsWith(".jpg")))).Returns(false);
             
             var cryptoService = new CryptoService(settingsViewModelMock.Object);
             
@@ -47,7 +47,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            settingsViewModelMock.Setup(s => s.ExtensionsToEncrypt).Returns(Array.Empty<string>());
+            settingsViewModelMock.Setup(s => s.ShouldEncryptFile(It.IsAny<string>())).Returns(false);
             
             var cryptoService = new CryptoService(settingsViewModelMock.Object);
             
@@ -63,7 +63,7 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            settingsViewModelMock.Setup(s => s.ExtensionsToEncrypt).Returns((string[])null);
+            settingsViewModelMock.Setup(s => s.ShouldEncryptFile(It.IsAny<string>())).Returns(false);
             
             var cryptoService = new CryptoService(settingsViewModelMock.Object);
             
@@ -79,12 +79,12 @@ namespace EasySave.Tests.Services
         {
             // Arrange
             var settingsViewModelMock = new Mock<SettingsViewModel>();
-            settingsViewModelMock.Setup(s => s.ExtensionsToEncrypt).Returns(new[] { ".txt", ".docx", ".pdf" });
+            settingsViewModelMock.Setup(s => s.ShouldEncryptFile(It.IsAny<string>())).Returns(false);
             
             var cryptoService = new CryptoService(settingsViewModelMock.Object);
             
             // Act
-            bool shouldEncrypt = cryptoService.ShouldEncrypt(null);
+            bool shouldEncrypt = cryptoService.ShouldEncrypt(string.Empty);
             
             // Assert
             Assert.False(shouldEncrypt);

@@ -258,6 +258,9 @@ Développement d'un logiciel de sauvegarde robuste pour la Suite ProSoft, évolu
 #### Interface Utilisateur
 - [x] Contrôles Play/Pause/Stop pour chaque travail
 - [x] Affichage en temps réel de la progression
+- [x] Vérification à la fermeture si des sauvegardes sont en cours
+  - [x] Message d'avertissement en français et en anglais
+  - [x] Option de confirmation pour l'utilisateur
 - [ ] Interface de configuration des priorités
 - [ ] Interface de configuration de la bande passante
 
@@ -374,3 +377,7 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 18/02/2026 : Utilisation des constantes de JobStatus pour une meilleure cohérence des statuts
 - 18/02/2026 : Ajout d'un mécanisme de stockage du dernier fichier traité pour améliorer la reprise des travaux
 - 18/02/2026 : Amélioration du système de debugging avec plus de messages dans le journal de débogage
+- 20/02/2026 : Implémentation d'une vérification à la fermeture de l'application lorsque des sauvegardes sont en cours
+- 20/02/2026 : Ajout d'un message d'avertissement bilingue (français/anglais) informant l'utilisateur que les sauvegardes en cours seront perdues
+- 20/02/2026 : Création d'une boîte de dialogue de confirmation permettant à l'utilisateur de confirmer ou d'annuler la fermeture de l'application
+- 21/02/2026 : Correction du workflow GitHub Actions (configuration du nom de la solution et nettoyage des étapes de packaging)

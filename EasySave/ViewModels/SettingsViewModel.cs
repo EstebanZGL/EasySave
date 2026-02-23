@@ -27,6 +27,11 @@ namespace EasySave.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Constructeur sans paramètre pour faciliter les tests
+        public SettingsViewModel() : this(null)
+        {
+        }
+
         public SettingsViewModel(TranslationService translationService = null)
         {
             _translationService = translationService;
@@ -87,7 +92,8 @@ namespace EasySave.ViewModels
         }
 
         // Property needed for compatibility with CryptoServiceTests
-        public string[] ExtensionsToEncrypt
+        // Rendre cette propriété virtuelle pour permettre le mocking
+        public virtual string[] ExtensionsToEncrypt
         {
             get => _encryptionExtensions?.ToArray();
             set
@@ -152,22 +158,44 @@ namespace EasySave.ViewModels
             {
                 if (_largeFileThreshold != value)
                 {
-                    _largeFileThreshold = Math.Max(1024, value); // Ensure at least 1KB
+                    _largeFileThreshold = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdMB));
                     SaveSettings();
                 }
             }
         }
 
-        public string LargeFileThresholdDisplay
+        // Nouvelle propriété pour afficher et définir la taille en MB uniquement
+        public int LargeFileThresholdMB
         {
-            get => FormatFileSize(_largeFileThreshold);
+            get => (int)(_largeFileThreshold / (1024 * 1024));
             set
             {
-                if (TryParseFileSize(value, out long size))
+                // Convertir MB en bytes
+                long newThreshold = value * 1024L * 1024L;
+                if (_largeFileThreshold != newThreshold)
                 {
-                    LargeFileThreshold = size;
+                    _largeFileThreshold = newThreshold;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(LargeFileThresholdDisplay));
+                    SaveSettings();
+                }
+            }
+        }
+
+        // Propriété pour l'affichage uniquement (pour la rétrocompatibilité)
+        public string LargeFileThresholdDisplay
+        {
+            get => $"{LargeFileThresholdMB} MB";
+            set
+            {
+                // Extraire uniquement la partie numérique
+                string numericPart = new string(value.TakeWhile(c => char.IsDigit(c)).ToArray());
+                
+                if (int.TryParse(numericPart, out int mbValue))
+                {
+                    LargeFileThresholdMB = mbValue;
                 }
             }
         }
@@ -292,7 +320,7 @@ namespace EasySave.ViewModels
         /// Checks if the configured business software is currently running using multiple detection methods
         /// </summary>
         /// <returns>True if the business software is running, false otherwise</returns>
-        public bool IsBusinessSoftwareRunning()
+        public virtual bool IsBusinessSoftwareRunning()
         {
             if (string.IsNullOrWhiteSpace(BusinessSoftwareName))
             {
@@ -429,7 +457,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        public bool ShouldEncryptFile(string filePath)
+        public virtual bool ShouldEncryptFile(string filePath)
         {
             if (EncryptionExtensions == null || EncryptionExtensions.Count == 0)
                 return false;
@@ -438,7 +466,7 @@ namespace EasySave.ViewModels
             return EncryptionExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        public bool IsPriorityFile(string filePath)
+        public virtual bool IsPriorityFile(string filePath)
         {
             if (PriorityExtensions == null || PriorityExtensions.Count == 0)
                 return false;
@@ -447,7 +475,7 @@ namespace EasySave.ViewModels
             return PriorityExtensions.Any(e => string.Equals(e, extension, StringComparison.OrdinalIgnoreCase));
         }
 
-        private void LoadSettings()
+        protected virtual void LoadSettings()
         {
             try
             {
@@ -494,7 +522,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveSettings()
+        protected virtual void SaveSettings()
         {
             try
             {
@@ -527,7 +555,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void LoadLogFormat()
+        protected virtual void LoadLogFormat()
         {
             try
             {
@@ -548,7 +576,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        private void SaveLogFormat()
+        protected virtual void SaveLogFormat()
         {
             try
             {
@@ -559,61 +587,6 @@ namespace EasySave.ViewModels
             {
                 // Log error
                 Debug.WriteLine($"Error saving log format: {ex.Message}");
-            }
-        }
-
-        private string FormatFileSize(long bytes)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            double len = bytes;
-            int order = 0;
-            
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            
-            return $"{len:0.##} {sizes[order]}";
-        }
-
-        private bool TryParseFileSize(string input, out long bytes)
-        {
-            bytes = 0;
-            if (string.IsNullOrWhiteSpace(input))
-                return false;
-                
-            input = input.Trim().ToUpperInvariant();
-            
-            // Extract the numeric part and the unit
-            string numericPart = new string(input.TakeWhile(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
-            string unit = input.Substring(numericPart.Length).Trim();
-            
-            if (!double.TryParse(numericPart.Replace(',', '.'), out double value))
-                return false;
-                
-            // Convert to bytes based on the unit
-            switch (unit)
-            {
-                case "B":
-                    bytes = (long)value;
-                    return true;
-                case "KB":
-                    bytes = (long)(value * 1024);
-                    return true;
-                case "MB":
-                    bytes = (long)(value * 1024 * 1024);
-                    return true;
-                case "GB":
-                    bytes = (long)(value * 1024 * 1024 * 1024);
-                    return true;
-                case "TB":
-                    bytes = (long)(value * 1024 * 1024 * 1024 * 1024);
-                    return true;
-                default:
-                    // If no unit is specified, assume bytes
-                    bytes = (long)value;
-                    return true;
             }
         }
 

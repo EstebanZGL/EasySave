@@ -182,15 +182,13 @@ namespace EasySave.ViewModels
         public string ActiveJobsHeader => _translationService.GetTranslation("job_status");
         public string CreateButtonText => _translationService.GetTranslation("menu_create");
         public string ExecuteSelectedJobsText => _translationService.GetTranslation("execute_selected");
-        
-        // Propriétés de traduction pour les en-têtes des colonnes dans la liste des travaux actifs
-        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
-        public string ProgressLabel => _translationService.GetTranslation("progress");
-        
-        // Utiliser les traductions pour les boutons de contrôle des travaux
         public string PauseButtonText => _translationService.GetTranslation("pause");
         public string ResumeButtonText => _translationService.GetTranslation("resume");
         public string StopButtonText => _translationService.GetTranslation("stop");
+        
+        // Propriétés pour les titres de colonnes
+        public string CurrentFileLabel => _translationService.GetTranslation("current_file");
+        public string ProgressLabel => _translationService.GetTranslation("progress");
         
         /// <summary>
         /// Loads backup jobs from the repository
@@ -324,6 +322,9 @@ namespace EasySave.ViewModels
                 
                 // Update the last backup time
                 SelectedBackupJob.LastBackupTime = DateTime.Now;
+                
+                // Persister la date de dernière sauvegarde dans le repository
+                UpdateLastBackupTime(job.JobName, DateTime.Now);
             }
             catch (Exception ex)
             {
@@ -349,6 +350,9 @@ namespace EasySave.ViewModels
                     
                     // Update the last backup time
                     jobViewModel.LastBackupTime = DateTime.Now;
+                    
+                    // Persister la date de dernière sauvegarde dans le repository
+                    UpdateLastBackupTime(job.JobName, DateTime.Now);
                 }
             }
             catch (Exception ex)
@@ -492,8 +496,8 @@ namespace EasySave.ViewModels
                 
                 if (jobViewModel == null)
                 {
-                    // Create a new view model for this job with the translation service
-                    jobViewModel = new ActiveBackupJobViewModel(_translationService)
+                    // Create a new view model for this job
+                    jobViewModel = new ActiveBackupJobViewModel
                     {
                         JobName = e.JobName,
                         Status = normalizedStatus,
@@ -550,8 +554,39 @@ namespace EasySave.ViewModels
                 if (job != null && normalizedStatus == JobStatus.Completed)
                 {
                     job.LastBackupTime = DateTime.Now;
+                    
+                    // Persister la date de dernière sauvegarde dans le repository
+                    UpdateLastBackupTime(e.JobName, DateTime.Now);
                 }
             });
+        }
+
+        /// <summary>
+        /// Met à jour la date de dernière sauvegarde dans le repository
+        /// </summary>
+        /// <param name="jobName">Nom du travail de sauvegarde</param>
+        /// <param name="lastBackupTime">Date de dernière sauvegarde</param>
+        private void UpdateLastBackupTime(string jobName, DateTime lastBackupTime)
+        {
+            try
+            {
+                // Récupérer le job du repository
+                var job = _backupJobRepository.GetBackupJob(jobName);
+                if (job != null)
+                {
+                    // Mettre à jour la date de dernière sauvegarde
+                    job.LastBackupTime = lastBackupTime;
+                    
+                    // Sauvegarder les modifications dans le repository
+                    _backupJobRepository.UpdateBackupJobLastBackupTime(jobName, lastBackupTime);
+                    
+                    Debug.WriteLine($"Last backup time for job {jobName} updated to {lastBackupTime} and persisted");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating last backup time: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -593,7 +628,7 @@ namespace EasySave.ViewModels
             {
                 IsBusinessSoftwareRunning = isRunning;
                 StatusMessage = isRunning 
-                    ? _translationService.GetTranslation("business_software_running")
+                    ? "Business software is running. Backups are paused."
                     : string.Empty;
             });
         }
@@ -632,12 +667,6 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(StopButtonText));
                 OnPropertyChanged(nameof(CurrentFileLabel));
                 OnPropertyChanged(nameof(ProgressLabel));
-                
-                // Mettre à jour le message de statut si le logiciel métier est en cours d'exécution
-                if (IsBusinessSoftwareRunning)
-                {
-                    StatusMessage = _translationService.GetTranslation("business_software_running");
-                }
             }
         }
 
