@@ -67,6 +67,22 @@ namespace EasySave.ViewModels
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets the description
+        /// </summary>
+        public string Description
+        {
+            get => _backupJob.Description;
+            set
+            {
+                if (_backupJob.Description != value)
+                {
+                    _backupJob.Description = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         
         /// <summary>
         /// Gets or sets the backup type
@@ -104,6 +120,16 @@ namespace EasySave.ViewModels
         /// Gets the last backup time as a formatted string
         /// </summary>
         public string LastBackupTimeDisplay => LastBackupTime.HasValue ? LastBackupTime.Value.ToString("g") : "Never";
+
+        /// <summary>
+        /// Gets the creation date
+        /// </summary>
+        public DateTime CreatedAt => _backupJob.CreatedAt;
+
+        /// <summary>
+        /// Gets the creation date as formatted string
+        /// </summary>
+        public string CreatedAtDisplay => _backupJob.CreatedAtDisplay;
         
         /// <summary>
         /// Gets or sets whether the job is selected
