@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:EasySave.Views"
         xmlns:easyLog="clr-namespace:EasyLog;assembly=EasyLog"
         mc:Ignorable="d"
-        Title="{Binding WindowTitle}" Height="600" Width="600"
+        Title="{Binding WindowTitle}" Height="650" Width="600"
         WindowStartupLocation="CenterOwner">
     <Window.Resources>
         <Style TargetType="TextBlock" x:Key="SectionHeaderStyle">
@@ -18,6 +18,9 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="15">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -106,28 +109,38 @@
                      ToolTip="Enter file extensions to encrypt, separated by semicolons (e.g. .txt;.doc;.pdf)"
                      Margin="0,0,0,10"/>
 
+            <!-- Mot de passe de cryptage -->
+            <TextBlock Grid.Row="10" Grid.Column="0" Text="{Binding CryptoPasswordLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="10" Grid.Column="1" 
+                     Text="{Binding CryptoPassword, UpdateSourceTrigger=PropertyChanged}" 
+                     Margin="0,0,10,10"/>
+            <Button Grid.Row="10" Grid.Column="2" Content="{Binding ChangeCryptoPasswordButtonText}" 
+                    Click="ChangeCryptoPasswordButton_Click" 
+                    Padding="10,0" 
+                    Margin="0,0,0,10"/>
+
             <!-- Log Centralization Section -->
-            <TextBlock Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="3" 
+            <TextBlock Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="3" 
                        Text="{Binding LogCentralizationHeader}" 
                        Style="{StaticResource SectionHeaderStyle}"/>
 
             <!-- Enable Log Centralization -->
-            <TextBlock Grid.Row="11" Grid.Column="0" Text="{Binding EnableCentralizationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <CheckBox Grid.Row="11" Grid.Column="1" Grid.ColumnSpan="2"
+            <TextBlock Grid.Row="12" Grid.Column="0" Text="{Binding EnableCentralizationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <CheckBox Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2"
                       IsChecked="{Binding LogCentralization.IsEnabled}"
                       VerticalAlignment="Center"
                       Margin="0,0,0,10"/>
 
             <!-- Log Server URL -->
-            <TextBlock Grid.Row="12" Grid.Column="0" Text="{Binding LogServerUrlLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <TextBox Grid.Row="12" Grid.Column="1" Grid.ColumnSpan="2"
+            <TextBlock Grid.Row="13" Grid.Column="0" Text="{Binding LogServerUrlLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBox Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2"
                      Text="{Binding LogCentralization.ServerUrl}"
                      IsEnabled="{Binding LogCentralization.IsEnabled}"
                      Margin="0,0,0,10"/>
 
             <!-- Log Destination -->
-            <TextBlock Grid.Row="13" Grid.Column="0" Text="{Binding LogDestinationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
-            <StackPanel Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
+            <TextBlock Grid.Row="14" Grid.Column="0" Text="{Binding LogDestinationLabel}" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <StackPanel Grid.Row="14" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Vertical" Margin="0,0,0,10">
                 <RadioButton Content="{Binding LocalOnlyText}" 
                              IsChecked="{Binding LogCentralization.LogDestination, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static easyLog:LogDestination.Local}}"
                              IsEnabled="{Binding LogCentralization.IsEnabled}"
@@ -143,19 +156,20 @@
             </StackPanel>
 
             <!-- Help Text -->
-            <StackPanel Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
+            <StackPanel Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
                 <TextBlock FontWeight="Bold" Text="{Binding NotesLabel}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding BusinessSoftwareNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding MaxParallelJobsNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding LargeFileThresholdNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding PriorityExtensionsNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding EncryptExtensionsNote}"/>
+                <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding CryptoPasswordNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding LogCentralizationNote}"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding ChangesNote}"/>
             </StackPanel>
 
             <!-- Close Button -->
-            <Button Grid.Row="15" Grid.Column="2" Content="{Binding CloseButtonText}" Click="CloseButton_Click" Width="80" Margin="0,10,0,0"/>
+            <Button Grid.Row="16" Grid.Column="2" Content="{Binding CloseButtonText}" Click="CloseButton_Click" Width="80" Margin="0,10,0,0"/>
         </Grid>
     </ScrollViewer>
 </Window>

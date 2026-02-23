@@ -23,6 +23,9 @@ namespace CryptoSoft
         private ProgressBar progressBar;
         private Label lblProgress;
         private Label lblPathType;
+        private Label lblPassword;
+        private TextBox txtPassword;
+        private Button btnSavePassword;
 
         // Compteurs pour le traitement par lot
         private int totalFiles = 0;
@@ -43,12 +46,15 @@ namespace CryptoSoft
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Icon = SystemIcons.Shield; // Utilise une icône de bouclier pour symboliser la sécurité
+            
+            // Charger le mot de passe actuel (déchiffré)
+            txtPassword.Text = Program.LoadEncryptionKey();
         }
 
         private void InitializeComponent()
         {
             // Form size
-            this.ClientSize = new Size(500, 240);
+            this.ClientSize = new Size(500, 280);
 
             // Source path controls
             Label lblSource = new Label
@@ -111,11 +117,36 @@ namespace CryptoSoft
             btnBrowseTarget.Click += BtnBrowseTarget_Click;
             this.Controls.Add(btnBrowseTarget);
 
+            // Password controls
+            lblPassword = new Label
+            {
+                Text = "Mot de passe:",
+                Location = new Point(10, 110),
+                AutoSize = true
+            };
+            this.Controls.Add(lblPassword);
+
+            txtPassword = new TextBox
+            {
+                Location = new Point(120, 110),
+                Width = 280
+            };
+            this.Controls.Add(txtPassword);
+
+            btnSavePassword = new Button
+            {
+                Text = "Enregistrer",
+                Location = new Point(410, 108),
+                Width = 80
+            };
+            btnSavePassword.Click += BtnSavePassword_Click;
+            this.Controls.Add(btnSavePassword);
+
             // Action buttons
             btnEncrypt = new Button
             {
                 Text = "Chiffrer",
-                Location = new Point(120, 110),
+                Location = new Point(120, 150),
                 Width = 120,
                 Height = 30
             };
@@ -125,7 +156,7 @@ namespace CryptoSoft
             btnDecrypt = new Button
             {
                 Text = "Déchiffrer",
-                Location = new Point(260, 110),
+                Location = new Point(260, 150),
                 Width = 120,
                 Height = 30
             };
@@ -136,7 +167,7 @@ namespace CryptoSoft
             lblStatus = new Label
             {
                 Text = "Prêt",
-                Location = new Point(10, 160),
+                Location = new Point(10, 200),
                 AutoSize = true
             };
             this.Controls.Add(lblStatus);
@@ -145,7 +176,7 @@ namespace CryptoSoft
             lblProgress = new Label
             {
                 Text = "",
-                Location = new Point(10, 180),
+                Location = new Point(10, 220),
                 AutoSize = true
             };
             this.Controls.Add(lblProgress);
@@ -153,12 +184,28 @@ namespace CryptoSoft
             // Progress bar
             progressBar = new ProgressBar
             {
-                Location = new Point(120, 160),
+                Location = new Point(120, 200),
                 Width = 370,
                 Height = 20,
                 Visible = false
             };
             this.Controls.Add(progressBar);
+        }
+
+        private void BtnSavePassword_Click(object sender, EventArgs e)
+        {
+            string newPassword = txtPassword.Text.Trim();
+            
+            if (string.IsNullOrEmpty(newPassword))
+            {
+                MessageBox.Show("Le mot de passe ne peut pas être vide.", "Erreur", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            
+            Program.SaveEncryptionKey(newPassword);
+            MessageBox.Show("Mot de passe enregistré avec succès.", "Succès", 
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -556,6 +603,8 @@ namespace CryptoSoft
             btnBrowseTarget.Enabled = enabled;
             btnEncrypt.Enabled = enabled;
             btnDecrypt.Enabled = enabled;
+            txtPassword.Enabled = enabled;
+            btnSavePassword.Enabled = enabled;
         }
     }
 }

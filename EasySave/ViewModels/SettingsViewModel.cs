@@ -24,12 +24,15 @@ namespace EasySave.ViewModels
         private List<string> _priorityExtensions;
         private LogCentralizationSettings _logCentralizationSettings;
         private readonly TranslationService _translationService;
+        private readonly CryptoPasswordService _cryptoPasswordService;
+        private string _cryptoPassword;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public SettingsViewModel(TranslationService translationService = null)
         {
             _translationService = translationService;
+            _cryptoPasswordService = new CryptoPasswordService();
             
             // Default values
             _businessSoftwareName = "calc.exe";  // Default to Calculator for demo
@@ -40,6 +43,9 @@ namespace EasySave.ViewModels
             _logFormat = "JSON"; // Default log format
             _largeFileThreshold = 1024 * 1024; // 1MB default
             _logCentralizationSettings = new LogCentralizationSettings();
+            
+            // Charger le mot de passe actuel (déchiffré)
+            _cryptoPassword = _cryptoPasswordService.GetPassword();
             
             LoadSettings();
             LoadLogFormat(); // Load log format from separate file
@@ -234,6 +240,39 @@ namespace EasySave.ViewModels
             }
         }
 
+        // Propriété pour le mot de passe de cryptage
+        public string CryptoPassword
+        {
+            get => _cryptoPassword;
+            set
+            {
+                if (_cryptoPassword != value)
+                {
+                    _cryptoPassword = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Change le mot de passe de cryptage
+        /// </summary>
+        /// <param name="newPassword">Le nouveau mot de passe</param>
+        /// <returns>True si le changement a réussi, sinon False</returns>
+        public bool ChangeCryptoPassword(string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword))
+                return false;
+
+            bool result = _cryptoPasswordService.SetPassword(newPassword);
+            if (result)
+            {
+                _cryptoPassword = newPassword;
+                OnPropertyChanged(nameof(CryptoPassword));
+            }
+            return result;
+        }
+
         // Propriétés de traduction
         public string WindowTitle => GetTranslation("menu_settings");
         public string GeneralSettingsHeader => GetTranslation("general_settings");
@@ -247,6 +286,8 @@ namespace EasySave.ViewModels
         public string PriorityExtensionsLabel => GetTranslation("priority_extensions");
         public string EncryptionSettingsHeader => GetTranslation("encryption_settings");
         public string EncryptExtensionsLabel => GetTranslation("encrypt_extensions");
+        public string CryptoPasswordLabel => GetTranslation("crypto_password");
+        public string ChangeCryptoPasswordButtonText => GetTranslation("change_crypto_password");
         public string LogCentralizationHeader => GetTranslation("log_centralization_settings");
         public string EnableCentralizationLabel => GetTranslation("enable_centralization");
         public string LogServerUrlLabel => GetTranslation("log_server_url");
@@ -260,6 +301,7 @@ namespace EasySave.ViewModels
         public string LargeFileThresholdNote => GetTranslation("large_file_threshold_note");
         public string PriorityExtensionsNote => GetTranslation("priority_extensions_note");
         public string EncryptExtensionsNote => GetTranslation("settings_encrypt_note");
+        public string CryptoPasswordNote => GetTranslation("crypto_password_note");
         public string LogCentralizationNote => GetTranslation("log_centralization_note");
         public string ChangesNote => GetTranslation("settings_changes_note");
         public string CloseButtonText => GetTranslation("close");
@@ -616,6 +658,8 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(PriorityExtensionsLabel));
                 OnPropertyChanged(nameof(EncryptionSettingsHeader));
                 OnPropertyChanged(nameof(EncryptExtensionsLabel));
+                OnPropertyChanged(nameof(CryptoPasswordLabel));
+                OnPropertyChanged(nameof(ChangeCryptoPasswordButtonText));
                 OnPropertyChanged(nameof(LogCentralizationHeader));
                 OnPropertyChanged(nameof(EnableCentralizationLabel));
                 OnPropertyChanged(nameof(LogServerUrlLabel));
@@ -629,6 +673,7 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(LargeFileThresholdNote));
                 OnPropertyChanged(nameof(PriorityExtensionsNote));
                 OnPropertyChanged(nameof(EncryptExtensionsNote));
+                OnPropertyChanged(nameof(CryptoPasswordNote));
                 OnPropertyChanged(nameof(LogCentralizationNote));
                 OnPropertyChanged(nameof(ChangesNote));
                 OnPropertyChanged(nameof(CloseButtonText));
