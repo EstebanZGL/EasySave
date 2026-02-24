@@ -65,8 +65,7 @@ namespace EasySave
                     logFormat.ToLower(), 
                     null, // No specific file path, use default
                     logCentralizationSettings.ServerUrl,
-                    logCentralizationSettings.LogDestination,
-                    logCentralizationSettings.UserName); // Utiliser le nom d'utilisateur personnalisé
+                    logCentralizationSettings.LogDestination);
             }
             else
             {

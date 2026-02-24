@@ -227,14 +227,14 @@ namespace EasyLog
         }
 
         // Creates a remote logger with encryption support
-        public static IEncryptionLogger CreateRemoteLogger(string serverUrl, string format = "json", string? logDirectory = null, string? userName = null)
+        public static IEncryptionLogger CreateRemoteLogger(string serverUrl, string format = "json", string? logDirectory = null)
         {
             // Create a fallback logger based on the specified format
             var fallbackLogger = format.ToLower() == "xml" 
                 ? CreateEncryptionXmlLogger(logDirectory) 
                 : CreateEncryptionJsonLogger(logDirectory);
                 
-            return new RemoteLogger(serverUrl, fallbackLogger, userName);
+            return new RemoteLogger(serverUrl, fallbackLogger);
         }
 
         // Creates a logger based on the specified format
@@ -255,7 +255,7 @@ namespace EasyLog
         
         // Creates a logger with encryption support based on the specified format and log destination
         public static IEncryptionLogger CreateEncryptionLogger(string format = "json", string? logDirectory = null, 
-            string? serverUrl = null, LogDestination logDestination = LogDestination.Local, string? userName = null)
+            string? serverUrl = null, LogDestination logDestination = LogDestination.Local)
         {
             // Create the appropriate logger based on the destination
             switch (logDestination)
@@ -263,7 +263,7 @@ namespace EasyLog
                 case LogDestination.Remote:
                     if (string.IsNullOrEmpty(serverUrl))
                         throw new ArgumentException("Server URL is required for remote logging", nameof(serverUrl));
-                    return CreateRemoteLogger(serverUrl, format, logDirectory, userName);
+                    return CreateRemoteLogger(serverUrl, format, logDirectory);
                     
                 case LogDestination.Both:
                     if (string.IsNullOrEmpty(serverUrl))
@@ -275,7 +275,7 @@ namespace EasyLog
                         : CreateEncryptionJsonLogger(logDirectory);
                         
                     // Create a remote logger with the local logger as fallback
-                    return new RemoteLogger(serverUrl, localLogger, userName);
+                    return new RemoteLogger(serverUrl, localLogger);
                     
                 case LogDestination.Local:
                 default:

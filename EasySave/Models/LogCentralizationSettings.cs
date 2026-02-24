@@ -14,7 +14,6 @@ namespace EasySave.Models
         private LogDestination _logDestination = LogDestination.Local;
         private string _serverUrl = "http://localhost:5000";
         private bool _isEnabled = false;
-        private string _userName = Environment.UserName;
 
         /// <summary>
         /// Gets or sets the log destination (Local, Remote, or Both)
@@ -59,22 +58,6 @@ namespace EasySave.Models
                 if (_isEnabled != value)
                 {
                     _isEnabled = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the custom username to use for log centralization
-        /// </summary>
-        public string UserName
-        {
-            get => _userName;
-            set
-            {
-                if (_userName != value)
-                {
-                    _userName = value;
                     OnPropertyChanged();
                 }
             }

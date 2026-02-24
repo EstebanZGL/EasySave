@@ -23,24 +23,20 @@ namespace EasyLog
         /// </summary>
         /// <param name="serverUrl">The URL of the log server</param>
         /// <param name="fallbackLogger">A fallback logger to use if the server is unavailable</param>
-        /// <param name="userName">Custom username to use for logs (if null, uses Environment.UserName)</param>
-        public RemoteLogger(string serverUrl, IEncryptionLogger fallbackLogger, string userName = null)
+        public RemoteLogger(string serverUrl, IEncryptionLogger fallbackLogger)
         {
             _serverUrl = serverUrl?.TrimEnd('/') ?? throw new ArgumentNullException(nameof(serverUrl));
             _fallbackLogger = fallbackLogger ?? throw new ArgumentNullException(nameof(fallbackLogger));
             
             _httpClient = new HttpClient();
             _machineName = Environment.MachineName;
-            _userName = string.IsNullOrWhiteSpace(userName) ? Environment.UserName : userName;
+            _userName = Environment.UserName;
             
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = true
             };
-
-            // Register user connection when logger is created
-            RegisterUserConnectionAsync().ConfigureAwait(false);
         }
         
         /// <summary>
@@ -210,34 +206,6 @@ namespace EasyLog
             catch (Exception ex)
             {
                 throw new Exception($"Failed to send log to server: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Registers user connection with the server
-        /// </summary>
-        private async Task RegisterUserConnectionAsync()
-        {
-            try
-            {
-                var connectionInfo = new
-                {
-                    MachineName = _machineName,
-                    UserName = _userName,
-                    ConnectedAt = DateTime.Now
-                };
-
-                var response = await _httpClient.PostAsJsonAsync($"{_serverUrl}/api/users/connect", connectionInfo);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Console.Error.WriteLine($"Failed to register user connection: {errorContent}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Error registering user connection: {ex.Message}");
             }
         }
     }
