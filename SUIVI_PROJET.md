@@ -1,3 +1,13 @@
+# Prompt
+
+Analyse tout les fichiers du projet, surtout les documentations et le fichier suivi projet
+
+Je veux que tu aies une vision complète du projet afin que l'on puisse travailler
+
+Quand on codera, ce sera toi qui devra écrire les fichiers pour moi avec le builtin_write. Aussi, suis/met à jour toujours le fichier suivi_projet
+
+J'utilise visual studio pour compiler et vscode pour coder
+
 # 📝 Suivi du Projet EasySave (ProSoft)
 
 ## 📌 Vision Globale
