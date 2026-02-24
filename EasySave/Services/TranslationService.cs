@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -161,6 +161,7 @@ namespace EasySave.Services
             translations["en_enable_centralization"] = "Enable Centralization:";
             translations["en_log_server_url"] = "Log Server URL:";
             translations["en_log_destination"] = "Log Destination:";
+            translations["en_username_label"] = "Username:";
             translations["en_local_only"] = "Local Only";
             translations["en_remote_only"] = "Remote Only";
             translations["en_both_local_remote"] = "Both Local and Remote";
@@ -170,6 +171,7 @@ namespace EasySave.Services
             translations["en_large_file_threshold_note"] = "- Large File Threshold: Files larger than this size cannot be transferred simultaneously";
             translations["en_priority_extensions_note"] = "- Priority Extensions: File types that will be processed before any other files";
             translations["en_log_centralization_note"] = "- Log Centralization: Configure where log files are stored (local, remote server, or both)";
+            translations["en_username_note"] = "- Username: Custom username to identify this client in the centralized logs";
             
             // Ajout des traductions pour la barre d'avancement
             translations["en_current_file"] = "Current File:";
@@ -241,7 +243,7 @@ namespace EasySave.Services
             translations["fr_resume"] = "Reprendre";
             translations["fr_stop"] = "Arrêter";
             translations["fr_priority_extensions"] = "Extensions prioritaires:";
-            translations["fr_large_file_threshold"] = "Seuil fichier volumineux (octets):";
+            translations["fr_large_file_threshold"] = "Seuil fichier volumineux (Mégaoctets):";
             translations["fr_business_software_running"] = "Le logiciel métier est en cours d'exécution. Les sauvegardes sont en pause.";
 
             // Settings sections
@@ -254,6 +256,7 @@ namespace EasySave.Services
             translations["fr_enable_centralization"] = "Activer la centralisation:";
             translations["fr_log_server_url"] = "URL du serveur de logs:";
             translations["fr_log_destination"] = "Destination des logs:";
+            translations["fr_username_label"] = "Nom d'utilisateur:";
             translations["fr_local_only"] = "Local uniquement";
             translations["fr_remote_only"] = "Distant uniquement";
             translations["fr_both_local_remote"] = "Local et distant";
@@ -263,6 +266,7 @@ namespace EasySave.Services
             translations["fr_large_file_threshold_note"] = "- Seuil fichier volumineux: les fichiers plus grands que cette taille ne peuvent pas être transférés simultanément";
             translations["fr_priority_extensions_note"] = "- Extensions prioritaires: types de fichiers traités avant tous les autres fichiers";
             translations["fr_log_centralization_note"] = "- Centralisation des logs: configurer où les fichiers de log sont stockés (local, serveur distant, ou les deux)";
+            translations["fr_username_note"] = "- Nom d'utilisateur: Nom personnalisé pour identifier ce client dans les logs centralisés";
 
             // Progress bar
             translations["fr_current_file"] = "Fichier actuel:";
@@ -314,4 +318,3 @@ namespace EasySave.Services
         }
     }
 }
-

@@ -1,4 +1,4 @@
-﻿<Window x:Class="EasySave.Views.SettingsWindow"
+<Window x:Class="EasySave.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -266,6 +266,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding EnableCentralizationLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
@@ -278,8 +279,15 @@
                                      Style="{StaticResource InputBoxStyle}"
                                      Margin="0,0,0,10"/>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding LogDestinationLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Top"/>
-                            <StackPanel Grid.Row="2" Grid.Column="1">
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding UserNameLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1"
+                                     Text="{Binding LogCentralizationUserName}"
+                                     IsEnabled="{Binding LogCentralization.IsEnabled}"
+                                     Style="{StaticResource InputBoxStyle}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding LogDestinationLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Top"/>
+                            <StackPanel Grid.Row="3" Grid.Column="1">
                                 <RadioButton Content="{Binding LocalOnlyText}"
                                              IsChecked="{Binding LogCentralization.LogDestination, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static easyLog:LogDestination.Local}}"
                                              IsEnabled="{Binding LogCentralization.IsEnabled}"
@@ -304,6 +312,7 @@
                         <TextBlock TextWrapping="Wrap" Margin="0,3,0,0" Text="{Binding PriorityExtensionsNote}"/>
                         <TextBlock TextWrapping="Wrap" Margin="0,3,0,0" Text="{Binding EncryptExtensionsNote}"/>
                         <TextBlock TextWrapping="Wrap" Margin="0,3,0,0" Text="{Binding LogCentralizationNote}"/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,3,0,0" Text="{Binding UserNameNote}"/>
                         <TextBlock TextWrapping="Wrap" Margin="0,3,0,0" Text="{Binding ChangesNote}"/>
                     </StackPanel>
                 </Border>

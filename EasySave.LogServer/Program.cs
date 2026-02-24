@@ -22,6 +22,9 @@ builder.Services.AddSwaggerGen(c =>
 string logDirectory = builder.Configuration["LogSettings:Directory"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
 builder.Services.AddSingleton(new LogStorageService(logDirectory));
 
+// Add user connection service
+builder.Services.AddSingleton<UserConnectionService>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -55,5 +58,6 @@ if (!Directory.Exists(logDirectory))
 
 Console.WriteLine($"EasySave Log Server v3.0");
 Console.WriteLine($"Log files will be stored in: {logDirectory}");
+Console.WriteLine($"User tracking is enabled");
 
 app.Run();

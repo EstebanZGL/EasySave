@@ -1,4 +1,4 @@
-﻿using EasyLog;
+using EasyLog;
 using EasySave.Models;
 using EasySave.Services;
 using System;
@@ -243,6 +243,21 @@ namespace EasySave.ViewModels
             }
         }
 
+        // Propriété pour accéder directement au nom d'utilisateur de la centralisation
+        public string LogCentralizationUserName
+        {
+            get => _logCentralizationSettings.UserName;
+            set
+            {
+                if (_logCentralizationSettings.UserName != value)
+                {
+                    _logCentralizationSettings.UserName = value;
+                    OnPropertyChanged();
+                    SaveSettings();
+                }
+            }
+        }
+
         public string EncryptionExtensionsString
         {
             get => string.Join(";", _encryptionExtensions);
@@ -296,6 +311,7 @@ namespace EasySave.ViewModels
         public string EnableCentralizationLabel => GetTranslation("enable_centralization");
         public string LogServerUrlLabel => GetTranslation("log_server_url");
         public string LogDestinationLabel => GetTranslation("log_destination");
+        public string UserNameLabel => GetTranslation("username_label");
         public string LocalOnlyText => GetTranslation("local_only");
         public string RemoteOnlyText => GetTranslation("remote_only");
         public string BothLocalRemoteText => GetTranslation("both_local_remote");
@@ -307,6 +323,7 @@ namespace EasySave.ViewModels
         public string EncryptExtensionsNote => GetTranslation("settings_encrypt_note");
         public string CryptoPasswordNote => GetTranslation("settings_key_note");
         public string LogCentralizationNote => GetTranslation("log_centralization_note");
+        public string UserNameNote => GetTranslation("username_note");
         public string ChangesNote => GetTranslation("settings_changes_note");
         public string CloseButtonText => GetTranslation("close");
         public string BrowseButtonText => GetTranslation("browse");
@@ -537,7 +554,7 @@ namespace EasySave.ViewModels
         {
             if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
             {
-                // Mettre Ã  jour toutes les propriÃ©tÃ©s de traduction
+                // Mettre à jour toutes les propriétés de traduction
                 OnPropertyChanged(nameof(WindowTitle));
                 OnPropertyChanged(nameof(GeneralSettingsHeader));
                 OnPropertyChanged(nameof(BusinessSoftwareLabel));
@@ -555,6 +572,7 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(EnableCentralizationLabel));
                 OnPropertyChanged(nameof(LogServerUrlLabel));
                 OnPropertyChanged(nameof(LogDestinationLabel));
+                OnPropertyChanged(nameof(UserNameLabel));
                 OnPropertyChanged(nameof(LocalOnlyText));
                 OnPropertyChanged(nameof(RemoteOnlyText));
                 OnPropertyChanged(nameof(BothLocalRemoteText));
@@ -566,6 +584,7 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(EncryptExtensionsNote));
                 OnPropertyChanged(nameof(CryptoPasswordNote));
                 OnPropertyChanged(nameof(LogCentralizationNote));
+                OnPropertyChanged(nameof(UserNameNote));
                 OnPropertyChanged(nameof(ChangesNote));
                 OnPropertyChanged(nameof(CloseButtonText));
                 OnPropertyChanged(nameof(BrowseButtonText));
@@ -595,4 +614,3 @@ namespace EasySave.ViewModels
         }
     }
 }
-
