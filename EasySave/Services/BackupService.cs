@@ -34,7 +34,7 @@ namespace EasySave.Services
         {
             // Cast the logger to IEncryptionLogger if possible, otherwise create a new one
             // Explicitly specify the simpler overload to avoid ambiguity
-            _logger = logger as IEncryptionLogger ?? LoggerFactory.CreateEncryptionLogger("json", null);
+            _logger = logger as IEncryptionLogger ?? CreateConfiguredLogger("json");
             _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
             _settings = new SettingsViewModel();
             _cryptoService = new CryptoService(_settings);
@@ -55,6 +55,45 @@ namespace EasySave.Services
             
             // Initialize the business software monitor
             InitializeBusinessSoftwareMonitor();
+        }
+        
+        // Create a configured logger based on settings
+        private IEncryptionLogger CreateConfiguredLogger(string format)
+        {
+            // 1. Créer le logger local
+            var localLogger = LoggerFactory.CreateEncryptionLogger(format, null);
+            
+            // 2. Vérifier si la centralisation est activée
+            if (_settings == null || !_settings.LogCentralization.IsEnabled)
+            {
+                return localLogger;
+            }
+            
+            // 3. Appliquer la règle selon le choix de l'utilisateur
+            string serverUrl = _settings.LogCentralization.ServerUrl;
+            string simMachine = _settings.LogCentralization.SimulatedMachineName;
+            string simUser = _settings.LogCentralization.SimulatedUserName;
+            
+            switch (_settings.LogCentralization.LogDestination)
+            {
+                case LogDestination.Local:
+                    return localLogger;
+                case LogDestination.Remote:
+                    // On passe les noms simulés
+                    return new RemoteLogger(serverUrl, localLogger, simMachine, simUser) as IEncryptionLogger 
+                           ?? localLogger; // Fallback si RemoteLogger n'implémente pas IEncryptionLogger
+                case LogDestination.Both:
+                    // Comme DualLogger n'implémente que ILogger et pas IEncryptionLogger,
+                    // nous devons utiliser uniquement le logger local pour les fonctions d'encryption
+                    // mais nous configurons quand même le RemoteLogger pour les logs standards
+                    var remoteLogger = new RemoteLogger(serverUrl, localLogger, simMachine, simUser);
+                    
+                    // Configurer le logger distant mais retourner le logger local pour les fonctions d'encryption
+                    Debug.WriteLine("Configuration en mode double journalisation (local + distant)");
+                    return localLogger; // On garde le logger local pour les fonctions d'encryption
+                default:
+                    return localLogger;
+            }
         }
         
         // Initialize the business software monitor

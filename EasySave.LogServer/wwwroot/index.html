@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>EasySave - Serveur de Logs Centralisé</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .header { background: #2c3e50; color: white; padding: 15px; border-radius: 5px; }
+        .status { float: right; background: #27ae60; padding: 5px 10px; border-radius: 3px; font-weight: bold; }
+        .controls { margin: 20px 0; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        button { padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="status" id="server-status">Vérification...</div>
+        <h2>🌐 Console Centralisée EasySave</h2>
+    </div>
+
+    <div class="controls">
+        <label for="log-date">Sélectionner une date : </label>
+        <input type="date" id="log-date">
+        <button onclick="loadLogs()">Charger les logs</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Heure</th>
+                <th>Machine</th>
+                <th>Utilisateur</th>
+                <th>Travail de Sauvegarde</th>
+                <th>Taille (Octets)</th>
+                <th>Temps (ms)</th>
+            </tr>
+        </thead>
+        <tbody id="log-table-body">
+            <tr><td colspan="6" style="text-align: center;">Veuillez charger les logs...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Mettre la date d'aujourd'hui par défaut
+        document.getElementById('log-date').valueAsDate = new Date();
+
+        // Vérifier l'état du serveur
+        fetch('/api/logs/health')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('server-status').innerText = data.status === 'Healthy' ? '🟢 En ligne' : '🔴 Hors ligne';
+            })
+            .catch(() => document.getElementById('server-status').innerText = '🔴 Hors ligne');
+
+        // Charger les logs
+        function loadLogs() {
+            const date = document.getElementById('log-date').value;
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Chargement...</td></tr>';
+
+            fetch(`/api/logs/date/${date}`)
+                .then(res => {
+                    if (!res.ok) throw new Error("Aucun log trouvé");
+                    return res.json();
+                })
+                .then(logs => {
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Aucun log pour cette date.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    // Inverser pour avoir les plus récents en haut
+                    logs.reverse().forEach(log => {
+                        const time = new Date(log.timestamp).toLocaleTimeString();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${time}</td>
+                                <td><strong>${log.machineName}</strong></td>
+                                <td>${log.userName}</td>
+                                <td>${log.backupName}</td>
+                                <td>${log.fileSize}</td>
+                                <td>${log.transferTime} ms</td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(err => {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Erreur ou aucun log trouvé pour cette date.</td></tr>`;
+                });
+        }
+
+        // Charger automatiquement au démarrage
+        loadLogs();
+    </script>
+</body>
+</html>

@@ -42,6 +42,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "EasySave Log Server API v1"));
 }
 
+
+// Activer l'affichage des pages web statiques (HTML, CSS, JS)
+app.UseDefaultFiles();
+app.UseStaticFiles();
 //app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthorization();
