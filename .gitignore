@@ -6,13 +6,20 @@
 # User-specific files
 *.rsuser
 *.suo
+## Visual Studio ##
+.vs/
 *.user
 *.userosscache
 *.sln.docstates
 *.env
+*.suo
+*.cache
+*.ide
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+## Visual Studio Code ##
+.vscode/
 
 # Mono auto generated files
 mono_crash.*
@@ -29,6 +36,8 @@ x86/
 [Aa][Rr][Mm]64/
 [Aa][Rr][Mm]64[Ee][Cc]/
 bld/
+## Build Results ##
+[Bb]in/
 [Oo]bj/
 [Oo]ut/
 [Ll]og/
@@ -41,33 +50,49 @@ bld/
 #!**/[Bb]in/*.refresh
 
 # Custom output directory
+## Custom Output Directory (EasySave specific) ##
 output/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
+## Runtime Data & Configuration (EasySave specific) ##
+# Logs folder
+Logs/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/
+# State file (Real-time progress)
+state.json
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 *.trx
+# User Settings (Local paths, preferences)
+settings.json
 
 # NUnit
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+# User Preferences
+language.txt
+logformat.txt
 
 # Approval Tests result files
 *.received.*
+# Security
+encryption_key.bin
 
 # Build Results of an ATL Project
 [Dd]ebugPS/
 [Rr]eleasePS/
 dlldata.c
+## OS Generated Files ##
+.DS_Store
+Thumbs.db
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
@@ -203,6 +228,8 @@ publish/
 *.azurePubxml
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
+## Publish ##
+*.publish.xml
 *.pubxml
 *.publishproj
 
@@ -212,6 +239,7 @@ publish/
 PublishScripts/
 
 # NuGet Packages
+## NuGet ##
 *.nupkg
 # NuGet Symbol Packages
 *.snupkg
@@ -228,10 +256,15 @@ PublishScripts/
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
+## Test Results ##
+TestResults/
 
 # Microsoft Azure Emulator
 ecf/
 rcf/
+## CryptoSoft ##
+# If CryptoSoft generates specific temp files
+*.tmp
 
 # Windows Store app package directories and files
 AppPackages/
@@ -414,3 +447,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+## Backup files ##
+*.bak
