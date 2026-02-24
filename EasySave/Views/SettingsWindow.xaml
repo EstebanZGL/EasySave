@@ -61,6 +61,26 @@
             </Setter>
         </Style>
 
+        <Style TargetType="PasswordBox" x:Key="InputPasswordStyle">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Background" Value="#D0DFD6"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border CornerRadius="13"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="4,0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="ComboBox" x:Key="InputComboStyle">
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="MinHeight" Value="30"/>
@@ -192,10 +212,44 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{Binding EncryptExtensionsLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1"
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding EncryptExtensionsLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1"
                                      Text="{Binding EncryptionExtensionsString}"
-                                     Style="{StaticResource InputBoxStyle}"/>
+                                     Style="{StaticResource InputBoxStyle}"
+                                     Margin="0,0,0,10"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CryptoPasswordLabel}" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="1" Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Button Grid.Column="0"
+                                        x:Name="ToggleEncryptionKeyVisibilityButton"
+                                        Width="34"
+                                        Margin="0,0,8,0"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Click="ToggleEncryptionKeyVisibilityButton_Click"
+                                        ToolTip="Afficher / masquer la clé">
+                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE890;"/>
+                                </Button>
+
+                                <Grid Grid.Column="1">
+                                    <PasswordBox x:Name="EncryptionKeyPasswordBox"
+                                                 PasswordChanged="EncryptionKeyPasswordBox_PasswordChanged"
+                                                 Style="{StaticResource InputPasswordStyle}"/>
+                                    <TextBox x:Name="EncryptionKeyTextBox"
+                                             Visibility="Collapsed"
+                                             TextChanged="EncryptionKeyTextBox_TextChanged"
+                                             Style="{StaticResource InputBoxStyle}"/>
+                                </Grid>
+                            </Grid>
                         </Grid>
                     </StackPanel>
                 </Border>

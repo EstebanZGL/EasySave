@@ -10,12 +10,72 @@ namespace EasySave.Views
     public partial class SettingsWindow : Window
     {
         private readonly SettingsViewModel _viewModel;
+        private bool _isEncryptionKeyVisible;
+        private bool _isSyncingEncryptionKeyControls;
 
         public SettingsWindow(SettingsViewModel viewModel)
         {
             InitializeComponent();
             _viewModel = viewModel;
             DataContext = _viewModel;
+            Loaded += SettingsWindow_Loaded;
+        }
+
+        private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            string currentKey = _viewModel.CryptoPassword ?? string.Empty;
+            EncryptionKeyPasswordBox.Password = currentKey;
+            EncryptionKeyTextBox.Text = currentKey;
+            UpdateEncryptionKeyVisibility();
+        }
+
+        private void EncryptionKeyPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (_isSyncingEncryptionKeyControls)
+            {
+                return;
+            }
+
+            if (sender is System.Windows.Controls.PasswordBox passwordBox)
+            {
+                string newValue = passwordBox.Password ?? string.Empty;
+                _isSyncingEncryptionKeyControls = true;
+                EncryptionKeyTextBox.Text = newValue;
+                _isSyncingEncryptionKeyControls = false;
+                _viewModel.CryptoPassword = newValue;
+            }
+        }
+
+        private void EncryptionKeyTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_isSyncingEncryptionKeyControls)
+            {
+                return;
+            }
+
+            if (sender is System.Windows.Controls.TextBox textBox)
+            {
+                string newValue = textBox.Text ?? string.Empty;
+                _isSyncingEncryptionKeyControls = true;
+                EncryptionKeyPasswordBox.Password = newValue;
+                _isSyncingEncryptionKeyControls = false;
+                _viewModel.CryptoPassword = newValue;
+            }
+        }
+
+        private void ToggleEncryptionKeyVisibilityButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isEncryptionKeyVisible = !_isEncryptionKeyVisible;
+            UpdateEncryptionKeyVisibility();
+        }
+
+        private void UpdateEncryptionKeyVisibility()
+        {
+            EncryptionKeyPasswordBox.Visibility = _isEncryptionKeyVisible ? Visibility.Collapsed : Visibility.Visible;
+            EncryptionKeyTextBox.Visibility = _isEncryptionKeyVisible ? Visibility.Visible : Visibility.Collapsed;
+            ToggleEncryptionKeyVisibilityButton.ToolTip = _isEncryptionKeyVisible
+                ? "Masquer la clé"
+                : "Afficher la clé";
         }
 
         private void BrowseBusinessSoftwareButton_Click(object sender, RoutedEventArgs e)
