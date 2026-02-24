@@ -63,7 +63,7 @@
             const tbody = document.getElementById('log-table-body');
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Chargement...</td></tr>';
 
-            fetch(`/api/logs/date/${date}`)
+            fetch(`/api/logs/date/${date}?t=${new Date().getTime()}`)
                 .then(res => {
                     if (!res.ok) throw new Error("Aucun log trouvé");
                     return res.json();

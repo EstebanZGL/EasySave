@@ -95,7 +95,9 @@ namespace EasyLog
                 FileSize = fileSize,
                 TransferTime = transferTime,
                 EncryptionTime = 0, // Default to 0 for non-encrypted transfers
-                OperationType = "FileTransfer"
+                OperationType = "FileTransfer",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -115,7 +117,9 @@ namespace EasyLog
                 FileSize = fileSize,
                 TransferTime = transferTime,
                 EncryptionTime = encryptionTime,
-                OperationType = "EncryptedFileTransfer"
+                OperationType = "EncryptedFileTransfer",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -241,7 +245,9 @@ namespace EasyLog
                 FileSize = 0,
                 TransferTime = 0,
                 EncryptionTime = 0,
-                OperationType = "DirectoryCreation"
+                OperationType = "DirectoryCreation",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -261,7 +267,9 @@ namespace EasyLog
                 FileSize = 0,
                 TransferTime = 0,
                 EncryptionTime = 0,
-                OperationType = "DirectoryDeletion"
+                OperationType = "DirectoryDeletion",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -281,7 +289,9 @@ namespace EasyLog
                 FileSize = 0,
                 TransferTime = 0,
                 EncryptionTime = 0,
-                OperationType = "ApplicationEvent"
+                OperationType = "ApplicationEvent",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -301,7 +311,9 @@ namespace EasyLog
                 FileSize = 0,
                 TransferTime = 0,
                 EncryptionTime = 0,
-                OperationType = "JobManagement"
+                OperationType = "JobManagement",
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);

@@ -89,18 +89,52 @@ namespace EasySave.LogServer.Services
         /// </summary>
         /// <param name="date">The date to get logs for</param>
         /// <returns>A list of log entries</returns>
+        /// <summary>
+        /// Gets all log entries for a specific date
+        /// </summary>
         public List<LogEntry> GetLogEntriesForDate(DateTime date)
         {
             string dateKey = date.ToString("yyyy-MM-dd");
-            
+            string jsonFilePath = GetJsonLogFilePath(dateKey);
+
+            // 1. On lit directement le fichier pour avoir les dernières modifications du PC
+            if (File.Exists(jsonFilePath))
+            {
+                try
+                {
+                    // FileShare.ReadWrite permet de lire même si l'application WPF écrit dedans en même temps
+                    using (var stream = new FileStream(jsonFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var reader = new StreamReader(stream))
+                    {
+                        string jsonContent = reader.ReadToEnd();
+                        var logs = JsonSerializer.Deserialize<List<LogEntry>>(jsonContent, _jsonOptions);
+                        
+                        if (logs != null)
+                        {
+                            // On met à jour la RAM par précaution
+                            lock (_logLock)
+                            {
+                                _dailyLogs[dateKey] = logs;
+                            }
+                            return logs;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Erreur de lecture en direct: {ex.Message}");
+                }
+            }
+
+            // 2. Si le fichier n'existe pas ou est illisible, on regarde ce qu'on a en mémoire
             lock (_logLock)
             {
                 if (_dailyLogs.TryGetValue(dateKey, out var logs))
                 {
-                    return logs.ToList(); // Return a copy to avoid concurrency issues
+                    return logs.ToList(); 
                 }
             }
-            
+
             return new List<LogEntry>();
         }
 

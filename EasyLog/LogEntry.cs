@@ -47,5 +47,15 @@ namespace EasyLog
         /// Type of operation (FileTransfer, DirectoryCreation, DirectoryDeletion, ApplicationEvent, JobManagement, etc.)
         /// </summary>
         public string OperationType { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Name of the machine where the log was generated
+        /// </summary>
+        public string MachineName { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Name of the user who executed the operation
+        /// </summary>
+        public string UserName { get; set; } = string.Empty;
     }
 }
