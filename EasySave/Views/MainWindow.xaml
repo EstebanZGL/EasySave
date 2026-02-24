@@ -123,20 +123,24 @@
                     </Border>
                     <Button x:Name="CreateJobButton" Command="{Binding CreateBackupJobCommand}" Style="{StaticResource PrimaryButtonStyle}" MinWidth="290" Height="56">
                         <StackPanel Orientation="Horizontal">
-                            <Border Width="26"
-                                    Height="26"
-                                    CornerRadius="13"
+                            <Border Width="30"
+                                    Height="30"
+                                    CornerRadius="15"
                                     Background="#3B694A"
                                     Margin="0,0,8,0"
                                     VerticalAlignment="Center">
                                 <TextBlock x:Name="CreatePlusText"
                                            Text="+"
-                                           FontSize="20"
-                                           FontWeight="Bold"
+                                           FontSize="24"
+                                           FontWeight="Black"
                                            Foreground="White"
-                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
                                            VerticalAlignment="Center"
-                                           TextAlignment="Center"/>
+                                           HorizontalAlignment="Center"
+                                           RenderTransformOrigin="0.5,0.5"
+                                           Width="30"
+                                           LineHeight="30"
+                                           Margin="0,-1,0,0"/>
                             </Border>
                             <TextBlock x:Name="CreateLabelText" Text="{Binding CreateButtonText}" FontSize="18"/>
                         </StackPanel>
@@ -245,10 +249,24 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding BackupJobDetailsHeader}" FontSize="26" FontWeight="Bold" Margin="8,4,8,6"/>
-                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,8,4">
-                        <TextBlock Text="{Binding CreatedLabel}" FontSize="16" Margin="0,0,8,0"/>
-                        <TextBox Text="{Binding SelectedBackupJob.CreatedAtDisplay, Mode=OneWay}" Style="{StaticResource ReadOnlyDataBoxStyle}" Width="170" FontSize="14"/>
-                    </StackPanel>
+                    <Grid Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,8,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="170"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding CreatedLabel}"
+                                   FontSize="16"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding SelectedBackupJob.CreatedAtDisplay, Mode=OneWay}"
+                                 Style="{StaticResource ReadOnlyDataBoxStyle}"
+                                 Height="40"
+                                 FontSize="14"
+                                 VerticalContentAlignment="Center"
+                                 VerticalAlignment="Center"/>
+                    </Grid>
 
                     <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="8,8,8,0">
                         <Grid.ColumnDefinitions>
