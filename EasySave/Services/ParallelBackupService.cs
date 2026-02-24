@@ -31,6 +31,8 @@ namespace EasySave.Services
         
         // Dictionnaire pour stocker le dernier fichier traité pour chaque travail (pour la reprise)
         private readonly ConcurrentDictionary<string, string> _lastProcessedFiles = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, int> _jobPendingPriorityTransfers = new ConcurrentDictionary<string, int>();
+        private int _globalPendingPriorityTransfers;
         
         // Sémaphore pour les fichiers volumineux - limité à 1 fichier volumineux à la fois
         private readonly SemaphoreSlim _largeFileSemaphore;
@@ -218,6 +220,8 @@ namespace EasySave.Services
                 }
                 finally
                 {
+                    ReleaseRemainingPriorityTransfers(job.JobName);
+
                     // Clean up
                     _activeJobs.TryRemove(job.JobName, out _);
                     _jobPauseStates.TryRemove(job.JobName, out _);
@@ -480,6 +484,7 @@ namespace EasySave.Services
                     .ToList();
                 
                 var sortedFiles = priorityFiles.Concat(normalFiles).ToList();
+                RegisterPriorityTransfersForJob(job, priorityFiles);
                 
                 // Check if we have a last processed file to resume from
                 string lastProcessedFile;
@@ -572,20 +577,16 @@ namespace EasySave.Services
                         Directory.CreateDirectory(targetDir);
                     }
                     
-                    // Determine if we need to copy the file based on job type
-                    bool shouldCopy = job.Type == BackupType.Complete;
-                    
-                    if (job.Type == BackupType.Differential)
-                    {
-                        // For differential backup, only copy if the file doesn't exist or has been modified
-                        if (!File.Exists(targetPath) || file.LastWriteTime > File.GetLastWriteTime(targetPath))
-                        {
-                            shouldCopy = true;
-                        }
-                    }
+                    bool isPriorityFile = _priorityExtensions.Contains(file.Extension.ToLowerInvariant());
+                    bool shouldCopy = ShouldCopyFile(job, file, targetPath);
                     
                     if (shouldCopy)
                     {
+                        if (!isPriorityFile)
+                        {
+                            await WaitForPriorityBarrierAsync(job.JobName, cancellationToken);
+                        }
+
                         // Check if this is a large file
                         bool isLargeFile = file.Length > _largeFileThreshold;
                         
@@ -691,6 +692,13 @@ namespace EasySave.Services
                             // Relancer l'exception pour qu'elle soit gérée par le bloc try/catch englobant
                             throw;
                         }
+                        finally
+                        {
+                            if (isPriorityFile)
+                            {
+                                MarkPriorityTransferCompleted(job.JobName);
+                            }
+                        }
                     }
                     
                     // Update progress
@@ -724,6 +732,65 @@ namespace EasySave.Services
             }
         }
         
+        private bool ShouldCopyFile(BackupJob job, FileInfo file, string targetPath)
+        {
+            if (job.Type == BackupType.Complete)
+            {
+                return true;
+            }
+
+            // Differential backup: copy only new or modified files.
+            return !File.Exists(targetPath) || file.LastWriteTime > File.GetLastWriteTime(targetPath);
+        }
+
+        private void RegisterPriorityTransfersForJob(BackupJob job, List<FileInfo> priorityFiles)
+        {
+            int transferablePriorityCount = 0;
+            foreach (var file in priorityFiles)
+            {
+                string relativePath = file.FullName.Substring(job.SourcePath.Length).TrimStart('\\', '/');
+                string targetPath = Path.Combine(job.TargetPath, relativePath);
+                if (ShouldCopyFile(job, file, targetPath))
+                {
+                    transferablePriorityCount++;
+                }
+            }
+
+            _jobPendingPriorityTransfers[job.JobName] = transferablePriorityCount;
+            if (transferablePriorityCount > 0)
+            {
+                Interlocked.Add(ref _globalPendingPriorityTransfers, transferablePriorityCount);
+            }
+        }
+
+        private void MarkPriorityTransferCompleted(string jobName)
+        {
+            if (!_jobPendingPriorityTransfers.TryGetValue(jobName, out var remaining) || remaining <= 0)
+            {
+                return;
+            }
+
+            _jobPendingPriorityTransfers[jobName] = remaining - 1;
+            Interlocked.Decrement(ref _globalPendingPriorityTransfers);
+        }
+
+        private async Task WaitForPriorityBarrierAsync(string jobName, CancellationToken cancellationToken)
+        {
+            while (Volatile.Read(ref _globalPendingPriorityTransfers) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(100, cancellationToken);
+            }
+        }
+
+        private void ReleaseRemainingPriorityTransfers(string jobName)
+        {
+            if (_jobPendingPriorityTransfers.TryRemove(jobName, out int remaining) && remaining > 0)
+            {
+                Interlocked.Add(ref _globalPendingPriorityTransfers, -remaining);
+            }
+        }
+
         /// <summary>
         /// Raises the BackupJobStatusChanged event
         /// </summary>
