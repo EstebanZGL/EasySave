@@ -15,6 +15,7 @@ namespace EasySave.Services
     {
         private readonly string _filePath;
         private readonly List<BackupJob> _backupJobs;
+        private readonly object _fileLock = new object();
         
         /// <summary>
         /// Creates a new instance of the BackupJobRepository class
@@ -32,7 +33,10 @@ namespace EasySave.Services
         /// <returns>A list of all backup jobs</returns>
         public List<BackupJob> GetAllBackupJobs()
         {
-            return _backupJobs.ToList();
+            lock (_fileLock)
+            {
+                return _backupJobs.ToList();
+            }
         }
         
         /// <summary>
@@ -42,7 +46,10 @@ namespace EasySave.Services
         /// <returns>The backup job, or null if not found</returns>
         public BackupJob GetBackupJob(string jobName)
         {
-            return _backupJobs.FirstOrDefault(j => j.JobName == jobName);
+            lock (_fileLock)
+            {
+                return _backupJobs.FirstOrDefault(j => j.JobName == jobName);
+            }
         }
         
         /// <summary>
@@ -52,14 +59,17 @@ namespace EasySave.Services
         /// <returns>True if the job was added, false if a job with the same name already exists</returns>
         public bool AddBackupJob(BackupJob backupJob)
         {
-            if (_backupJobs.Any(j => j.JobName == backupJob.JobName))
+            lock (_fileLock)
             {
-                return false;
+                if (_backupJobs.Any(j => j.JobName == backupJob.JobName))
+                {
+                    return false;
+                }
+                
+                _backupJobs.Add(backupJob);
+                SaveBackupJobs();
+                return true;
             }
-            
-            _backupJobs.Add(backupJob);
-            SaveBackupJobs();
-            return true;
         }
         
         /// <summary>
@@ -69,19 +79,22 @@ namespace EasySave.Services
         /// <returns>True if the job was updated, false if the job was not found</returns>
         public bool UpdateBackupJob(BackupJob backupJob)
         {
-            var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == backupJob.JobName);
-            if (existingJob == null)
+            lock (_fileLock)
             {
-                return false;
+                var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == backupJob.JobName);
+                if (existingJob == null)
+                {
+                    return false;
+                }
+                
+                existingJob.SourcePath = backupJob.SourcePath;
+                existingJob.TargetPath = backupJob.TargetPath;
+                existingJob.Description = backupJob.Description;
+                existingJob.Type = backupJob.Type;
+                
+                SaveBackupJobs();
+                return true;
             }
-            
-            existingJob.SourcePath = backupJob.SourcePath;
-            existingJob.TargetPath = backupJob.TargetPath;
-            existingJob.Description = backupJob.Description;
-            existingJob.Type = backupJob.Type;
-            
-            SaveBackupJobs();
-            return true;
         }
         
         /// <summary>
@@ -92,16 +105,19 @@ namespace EasySave.Services
         /// <returns>True si le travail a été mis à jour, false si le travail n'a pas été trouvé</returns>
         public bool UpdateBackupJobLastBackupTime(string jobName, DateTime lastBackupTime)
         {
-            var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == jobName);
-            if (existingJob == null)
+            lock (_fileLock)
             {
-                return false;
+                var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == jobName);
+                if (existingJob == null)
+                {
+                    return false;
+                }
+                
+                existingJob.LastBackupTime = lastBackupTime;
+                
+                SaveBackupJobs();
+                return true;
             }
-            
-            existingJob.LastBackupTime = lastBackupTime;
-            
-            SaveBackupJobs();
-            return true;
         }
         
         /// <summary>
@@ -111,15 +127,18 @@ namespace EasySave.Services
         /// <returns>True if the job was deleted, false if the job was not found</returns>
         public bool DeleteBackupJob(string jobName)
         {
-            var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == jobName);
-            if (existingJob == null)
+            lock (_fileLock)
             {
-                return false;
+                var existingJob = _backupJobs.FirstOrDefault(j => j.JobName == jobName);
+                if (existingJob == null)
+                {
+                    return false;
+                }
+                
+                _backupJobs.Remove(existingJob);
+                SaveBackupJobs();
+                return true;
             }
-            
-            _backupJobs.Remove(existingJob);
-            SaveBackupJobs();
-            return true;
         }
         
         /// <summary>
@@ -153,7 +172,7 @@ namespace EasySave.Services
                 if (hadBackfillChanges)
                 {
                     var updatedJson = JsonSerializer.Serialize(jobs);
-                    File.WriteAllText(_filePath, updatedJson);
+                    WriteAllTextAtomic(_filePath, updatedJson);
                 }
 
                 return jobs;
@@ -173,12 +192,25 @@ namespace EasySave.Services
             try
             {
                 var json = JsonSerializer.Serialize(_backupJobs);
-                File.WriteAllText(_filePath, json);
+                WriteAllTextAtomic(_filePath, json);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error saving backup jobs: {ex.Message}");
             }
+        }
+
+        private static void WriteAllTextAtomic(string path, string content)
+        {
+            string? directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            string tempPath = Path.Combine(directory ?? AppDomain.CurrentDomain.BaseDirectory, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(tempPath, content);
+            File.Move(tempPath, path, true);
         }
     }
 }

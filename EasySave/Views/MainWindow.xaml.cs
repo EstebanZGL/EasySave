@@ -124,11 +124,11 @@ namespace EasySave.Views
 
                 LogoHost.Width = 112;
                 LogoHost.Height = 56;
-                LogoHost.Margin = new Thickness(0, 0, 12, 0);
+                LogoHost.Margin = new Thickness(0, 0, 6, 0);
 
                 CreateJobButton.MinWidth = 230;
                 CreateJobButton.Height = 46;
-                CreatePlusText.FontSize = 16;
+                CreatePlusText.FontSize = 18;
                 CreateLabelText.FontSize = 14;
 
                 SettingsButton.Width = 44;
@@ -150,11 +150,11 @@ namespace EasySave.Views
 
                 LogoHost.Width = 140;
                 LogoHost.Height = 70;
-                LogoHost.Margin = new Thickness(0, 0, 18, 0);
+                LogoHost.Margin = new Thickness(0, 0, 8, 0);
 
                 CreateJobButton.MinWidth = 290;
                 CreateJobButton.Height = 56;
-                CreatePlusText.FontSize = 18;
+                CreatePlusText.FontSize = 20;
                 CreateLabelText.FontSize = 18;
 
                 SettingsButton.Width = 50;

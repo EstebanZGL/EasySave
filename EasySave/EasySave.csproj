@@ -12,7 +12,7 @@
     <!-- Configurer la sortie pour utiliser le dossier output au niveau du projet -->
     <OutputPath>..\output</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <!-- <ApplicationIcon>Resources\easysave_icon.ico</ApplicationIcon> -->
+    <ApplicationIcon>Resources\easysave_cloud.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- 
@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Resources\easysave_icon.ico" />
+    <Resource Include="Resources\easysave_cloud.ico" />
     <Resource Include="Resources\easysave_logo.png" />
     <Resource Include="Resources\easysave_logo_trimmed.png" />
   </ItemGroup>

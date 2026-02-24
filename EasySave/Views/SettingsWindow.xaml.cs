@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Threading.Tasks;
 using EasySave.ViewModels;
 using Microsoft.Win32;
 
@@ -9,6 +10,8 @@ namespace EasySave.Views
     /// </summary>
     public partial class SettingsWindow : Window
     {
+        private const string CopyGlyph = "\uE8C8";
+        private const string CheckGlyph = "\uE73E";
         private readonly SettingsViewModel _viewModel;
         private bool _isEncryptionKeyVisible;
         private bool _isSyncingEncryptionKeyControls;
@@ -104,6 +107,45 @@ namespace EasySave.Views
             {
                 _viewModel.CryptoSoftPath = dialog.FileName;
             }
+        }
+
+        private async void CopyBusinessSoftwarePathButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CopyToClipboard(_viewModel.BusinessSoftwareName))
+            {
+                await ShowCopyFeedbackAsync(sender as System.Windows.Controls.Button);
+            }
+        }
+
+        private async void CopyCryptoSoftPathButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CopyToClipboard(_viewModel.CryptoSoftPath))
+            {
+                await ShowCopyFeedbackAsync(sender as System.Windows.Controls.Button);
+            }
+        }
+
+        private static bool CopyToClipboard(string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                System.Windows.Clipboard.SetText(value);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static async Task ShowCopyFeedbackAsync(System.Windows.Controls.Button? button)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.Content = CheckGlyph;
+            await Task.Delay(2000);
+            button.Content = CopyGlyph;
         }
 
         private void ChangeCryptoPasswordButton_Click(object sender, RoutedEventArgs e)

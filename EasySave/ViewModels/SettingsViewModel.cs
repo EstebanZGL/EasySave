@@ -14,6 +14,9 @@ namespace EasySave.ViewModels
 {
     public class SettingsViewModel : INotifyPropertyChanged
     {
+        private static readonly object SettingsFileLock = new object();
+        private static readonly object LogFormatFileLock = new object();
+
         // Services
         private readonly TranslationService _translationService;
         private readonly string _settingsFilePath;
@@ -381,8 +384,13 @@ namespace EasySave.ViewModels
 
         protected virtual void LoadSettings()
         {
-            if (File.Exists(_settingsFilePath))
+            lock (SettingsFileLock)
             {
+                if (!File.Exists(_settingsFilePath))
+                {
+                    return;
+                }
+
                 try
                 {
                     string json = File.ReadAllText(_settingsFilePath);
@@ -430,7 +438,10 @@ namespace EasySave.ViewModels
                 
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(settings, options);
-                File.WriteAllText(_settingsFilePath, json);
+                lock (SettingsFileLock)
+                {
+                    WriteAllTextAtomic(_settingsFilePath, json);
+                }
             }
             catch (Exception ex)
             {
@@ -443,12 +454,15 @@ namespace EasySave.ViewModels
             try
             {
                 string logFormatPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
-                if (File.Exists(logFormatPath))
+                lock (LogFormatFileLock)
                 {
-                    string format = File.ReadAllText(logFormatPath).Trim();
-                    if (format == "XML" || format == "JSON")
+                    if (File.Exists(logFormatPath))
                     {
-                        _logFormat = format;
+                        string format = File.ReadAllText(logFormatPath).Trim();
+                        if (format == "XML" || format == "JSON")
+                        {
+                            _logFormat = format;
+                        }
                     }
                 }
             }
@@ -463,12 +477,28 @@ namespace EasySave.ViewModels
             try
             {
                 string logFormatPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
-                File.WriteAllText(logFormatPath, _logFormat);
+                lock (LogFormatFileLock)
+                {
+                    WriteAllTextAtomic(logFormatPath, _logFormat);
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error saving log format: {ex.Message}");
             }
+        }
+
+        private static void WriteAllTextAtomic(string path, string content)
+        {
+            string? directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            string tempPath = Path.Combine(directory ?? AppDomain.CurrentDomain.BaseDirectory, $"{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(tempPath, content);
+            File.Move(tempPath, path, true);
         }
 
         // --- Helpers ---
