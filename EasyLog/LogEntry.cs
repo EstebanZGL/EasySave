@@ -43,10 +43,6 @@ namespace EasyLog
         /// </summary>
         public long EncryptionTime { get; set; }
         
-        /// <summary>
-        /// Type of operation (FileTransfer, DirectoryCreation, DirectoryDeletion, ApplicationEvent, JobManagement, etc.)
-        /// </summary>
-        public string OperationType { get; set; } = string.Empty;
         
         /// <summary>
         /// Name of the machine where the log was generated

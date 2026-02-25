@@ -92,11 +92,30 @@ namespace EasySave.LogServer.Services
         /// <summary>
         /// Gets all log entries for a specific date
         /// </summary>
+        /// <summary>
+        /// Gets all log entries for a specific date
+        /// </summary>
         public List<LogEntry> GetLogEntriesForDate(DateTime date)
         {
             string dateKey = date.ToString("yyyy-MM-dd");
             string jsonFilePath = GetJsonLogFilePath(dateKey);
 
+            // === 1. LE CACHE INTELLIGENT (POUR ALLER VITE) ===
+            // Si on demande une date passée (hier, avant-hier...), le fichier ne changera plus.
+            // On regarde d'abord si on l'a déjà en mémoire vive (RAM) !
+            if (date.Date < DateTime.Now.Date)
+            {
+                lock (_logLock)
+                {
+                    if (_dailyLogs.TryGetValue(dateKey, out var memLogs))
+                    {
+                        return memLogs.ToList(); 
+                    }
+                }
+            }
+
+            // === 2. LA LECTURE SUR LE DISQUE DUR ===
+            // Pour aujourd'hui (qui change tout le temps), ou si c'est le tout premier chargement d'une ancienne date.
             if (File.Exists(jsonFilePath))
             {
                 try
@@ -110,12 +129,13 @@ namespace EasySave.LogServer.Services
                         if (string.IsNullOrWhiteSpace(jsonContent))
                             return new List<LogEntry>();
 
-                        // On force la tolérance sur les majuscules/minuscules
+                        // On force la tolérance sur les majuscules/minuscules pour les anciens logs
                         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                         var logs = JsonSerializer.Deserialize<List<LogEntry>>(jsonContent, options);
                         
                         if (logs != null)
                         {
+                            // On sauvegarde dans la RAM pour les prochains clics !
                             lock (_logLock)
                             {
                                 _dailyLogs[dateKey] = logs;
@@ -130,7 +150,8 @@ namespace EasySave.LogServer.Services
                 }
             }
 
-            // Fallback sur la RAM si le fichier n'existe pas ou est illisible
+            // === 3. SOLUTION DE SECOURS ===
+            // Si le fichier n'existe pas ou a planté, on regarde en mémoire au cas où
             lock (_logLock)
             {
                 if (_dailyLogs.TryGetValue(dateKey, out var logs))
