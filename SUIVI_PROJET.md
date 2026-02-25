@@ -427,3 +427,7 @@ Emplacement : dossier racine du répertoire d'exécution.
 - 20/02/2026 : Ajout d'un message d'avertissement bilingue (français/anglais) informant l'utilisateur que les sauvegardes en cours seront perdues
 - 20/02/2026 : Création d'une boîte de dialogue de confirmation permettant à l'utilisateur de confirmer ou d'annuler la fermeture de l'application
 - 21/02/2026 : Correction du workflow GitHub Actions (configuration du nom de la solution et nettoyage des étapes de packaging)
+- 25/02/2026 : Refactorisation des commentaires dans CryptoSoft pour respecter la règle "commentaires 100% en anglais"
+- 25/02/2026 : Application d'une approche minimaliste aux commentaires dans Program.cs et CryptoSoftForm.cs
+- 25/02/2026 : Traduction de l'interface utilisateur de CryptoSoft en anglais pour une cohérence globale
+- 26/02/2026 : Nettoyage du processus de build : suppression de la copie redondante de CryptoSoft dans EasySave.csproj et vérification du chemin de sortie.

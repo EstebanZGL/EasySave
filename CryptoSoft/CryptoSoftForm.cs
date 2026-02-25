@@ -8,9 +8,7 @@ using System.Text;
 
 namespace CryptoSoft
 {
-    /// <summary>
-    /// Interface graphique principale pour CryptoSoft
-    /// </summary>
+    // Main GUI for CryptoSoft
     public class CryptoSoftForm : Form
     {
         private TextBox txtSourcePath = null!;
@@ -27,14 +25,10 @@ namespace CryptoSoft
         private TextBox txtPassword = null!;
         private Button btnSavePassword = null!;
 
-        // Compteurs pour le traitement par lot
         private int totalFiles = 0;
         private int processedFiles = 0;
-        
-        // Indique si le chemin source est un dossier
         private bool isSourceFolder = false;
 
-        // Constantes pour les suffixes
         private const string SUFFIX_ENCRYPTED = "_encrypted";
         private const string SUFFIX_DECRYPTED = "_decrypted";
 
@@ -45,9 +39,8 @@ namespace CryptoSoft
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Icon = SystemIcons.Shield; // Utilise une icône de bouclier pour symboliser la sécurité
+            this.Icon = SystemIcons.Shield;
             
-            // Charger le mot de passe actuel (déchiffré)
             this.txtPassword.Text = Program.LoadEncryptionKey();
         }
 
@@ -59,7 +52,7 @@ namespace CryptoSoft
             // Source path controls
             Label lblSource = new Label
             {
-                Text = "Chemin source:",
+                Text = "Source path:",
                 Location = new Point(10, 20),
                 AutoSize = true
             };
@@ -75,7 +68,7 @@ namespace CryptoSoft
 
             btnBrowseSource = new Button
             {
-                Text = "Parcourir",
+                Text = "Browse",
                 Location = new Point(410, 18),
                 Width = 80
             };
@@ -95,7 +88,7 @@ namespace CryptoSoft
             // Target path controls
             Label lblTarget = new Label
             {
-                Text = "Chemin cible:",
+                Text = "Target path:",
                 Location = new Point(10, 70),
                 AutoSize = true
             };
@@ -110,7 +103,7 @@ namespace CryptoSoft
 
             btnBrowseTarget = new Button
             {
-                Text = "Parcourir",
+                Text = "Browse",
                 Location = new Point(410, 68),
                 Width = 80
             };
@@ -120,7 +113,7 @@ namespace CryptoSoft
             // Password controls
             lblPassword = new Label
             {
-                Text = "Mot de passe:",
+                Text = "Password:",
                 Location = new Point(10, 110),
                 AutoSize = true
             };
@@ -136,7 +129,7 @@ namespace CryptoSoft
 
             btnSavePassword = new Button
             {
-                Text = "Enregistrer",
+                Text = "Save",
                 Location = new Point(410, 108),
                 Width = 80
             };
@@ -146,7 +139,7 @@ namespace CryptoSoft
             // Action buttons
             btnEncrypt = new Button
             {
-                Text = "Chiffrer",
+                Text = "Encrypt",
                 Location = new Point(120, 150),
                 Width = 120,
                 Height = 30
@@ -156,7 +149,7 @@ namespace CryptoSoft
 
             btnDecrypt = new Button
             {
-                Text = "Déchiffrer",
+                Text = "Decrypt",
                 Location = new Point(260, 150),
                 Width = 120,
                 Height = 30
@@ -167,7 +160,7 @@ namespace CryptoSoft
             // Status
             lblStatus = new Label
             {
-                Text = "Prêt",
+                Text = "Ready",
                 Location = new Point(10, 200),
                 AutoSize = true
             };
@@ -199,20 +192,17 @@ namespace CryptoSoft
             
             if (string.IsNullOrEmpty(newPassword))
             {
-                MessageBox.Show("Le mot de passe ne peut pas être vide.", "Erreur", 
+                MessageBox.Show("Password cannot be empty.", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             
             Program.SaveEncryptionKey(newPassword);
-            MessageBox.Show("Mot de passe enregistré avec succès.", "Succès", 
+            MessageBox.Show("Password saved successfully.", "Success", 
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        /// <summary>
-        /// Détecte automatiquement si le chemin source est un fichier ou un dossier
-        /// et met à jour l'interface en conséquence
-        /// </summary>
+        // Detects if source path is a file or folder and updates the UI
         private void TxtSourcePath_TextChanged(object? sender, EventArgs e)
         {
             string path = txtSourcePath.Text.Trim();
@@ -224,79 +214,68 @@ namespace CryptoSoft
                 return;
             }
 
-            // Détecter si c'est un fichier ou un dossier
             if (Directory.Exists(path))
             {
-                lblPathType.Text = "Dossier détecté";
+                lblPathType.Text = "Folder detected";
                 isSourceFolder = true;
                 
-                // Suggérer un chemin cible pour le dossier
                 string parentDir = Directory.GetParent(path)?.FullName ?? "";
                 string folderName = new DirectoryInfo(path).Name;
                 
-                // Déterminer si le dossier semble être chiffré ou non
                 bool seemsEncrypted = folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
                 
                 if (seemsEncrypted)
                 {
-                    // Si le dossier semble chiffré, suggérer un dossier déchiffré
                     string baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
                     txtTargetPath.Text = Path.Combine(parentDir, baseFolderName + SUFFIX_DECRYPTED);
                 }
                 else
                 {
-                    // Sinon, suggérer un dossier chiffré
                     txtTargetPath.Text = Path.Combine(parentDir, folderName + SUFFIX_ENCRYPTED);
                 }
             }
             else if (File.Exists(path))
             {
-                lblPathType.Text = "Fichier détecté";
+                lblPathType.Text = "File detected";
                 isSourceFolder = false;
                 
-                // Suggérer un chemin cible pour le fichier
                 string fileName = Path.GetFileNameWithoutExtension(path);
                 
-                // Déterminer si le fichier semble être chiffré ou non
                 bool seemsEncrypted = fileName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
                 
                 if (seemsEncrypted)
                 {
-                    // Si le fichier semble chiffré, suggérer un déchiffrement
                     SuggestTargetPath(path, false);
                 }
                 else
                 {
-                    // Sinon, suggérer un chiffrement
                     SuggestTargetPath(path, true);
                 }
             }
             else
             {
-                lblPathType.Text = "Chemin invalide";
+                lblPathType.Text = "Invalid path";
                 isSourceFolder = false;
             }
         }
 
         private void BtnBrowseSource_Click(object? sender, EventArgs e)
         {
-            // Dialogue pour sélectionner un fichier ou un dossier
             using OpenFileDialog fileDialog = new OpenFileDialog
             {
-                Title = "Sélectionner un fichier ou un dossier",
-                Filter = "Tous les fichiers (*.*)|*.*",
+                Title = "Select a file or folder",
+                Filter = "All files (*.*)|*.*",
                 CheckFileExists = false,
                 CheckPathExists = true,
                 ValidateNames = false,
-                FileName = "Sélectionner un dossier"
+                FileName = "Select folder"
             };
 
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
                 string selectedPath = fileDialog.FileName;
                 
-                // Si "Sélectionner un dossier" est choisi, extraire le chemin du dossier
-                if (selectedPath.EndsWith("Sélectionner un dossier"))
+                if (selectedPath.EndsWith("Select folder"))
                 {
                     selectedPath = Path.GetDirectoryName(selectedPath) ?? "";
                 }
@@ -304,7 +283,6 @@ namespace CryptoSoft
                 if (!string.IsNullOrEmpty(selectedPath))
                 {
                     txtSourcePath.Text = selectedPath;
-                    // Le changement de texte va déclencher TxtSourcePath_TextChanged
                 }
             }
         }
@@ -313,10 +291,9 @@ namespace CryptoSoft
         {
             if (isSourceFolder)
             {
-                // Sélectionner un dossier cible
                 using FolderBrowserDialog folderDialog = new FolderBrowserDialog
                 {
-                    Description = "Sélectionner le dossier cible",
+                    Description = "Select target folder",
                     UseDescriptionForTitle = true
                 };
 
@@ -327,11 +304,10 @@ namespace CryptoSoft
             }
             else
             {
-                // Sélectionner un fichier cible
                 using SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
-                    Title = "Sélectionner le fichier cible",
-                    Filter = "Tous les fichiers (*.*)|*.*"
+                    Title = "Select target file",
+                    Filter = "All files (*.*)|*.*"
                 };
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
@@ -343,28 +319,21 @@ namespace CryptoSoft
 
         private async void BtnEncrypt_Click(object? sender, EventArgs e)
         {
-            // Force le mode chiffrement
             await ProcessPathAsync(true);
         }
 
         private async void BtnDecrypt_Click(object? sender, EventArgs e)
         {
-            // Force le mode déchiffrement
             await ProcessPathAsync(false);
         }
 
-        /// <summary>
-        /// Suggère un chemin cible basé sur le chemin source et l'opération
-        /// </summary>
-        /// <param name="sourcePath">Chemin source</param>
-        /// <param name="isEncrypt">True pour chiffrement, False pour déchiffrement</param>
+        // Suggests target path based on source path
         private void SuggestTargetPath(string sourcePath, bool isEncrypt)
         {
             string directory = Path.GetDirectoryName(sourcePath) ?? "";
             string fileName = Path.GetFileNameWithoutExtension(sourcePath);
             string extension = Path.GetExtension(sourcePath);
             
-            // Supprimer les suffixes existants si présents
             if (fileName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase))
             {
                 fileName = fileName.Substring(0, fileName.Length - SUFFIX_ENCRYPTED.Length);
@@ -374,7 +343,6 @@ namespace CryptoSoft
                 fileName = fileName.Substring(0, fileName.Length - SUFFIX_DECRYPTED.Length);
             }
             
-            // Ajouter le suffixe approprié
             string newFileName = fileName + (isEncrypt ? SUFFIX_ENCRYPTED : SUFFIX_DECRYPTED) + extension;
             txtTargetPath.Text = Path.Combine(directory, newFileName);
         }
@@ -387,17 +355,16 @@ namespace CryptoSoft
 
             if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(targetPath))
             {
-                MessageBox.Show("Veuillez spécifier les chemins source et cible.", "Erreur de saisie", 
+                MessageBox.Show("Please specify source and target paths.", "Input Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Vérifier si le chemin source existe
             if (isSourceFolder)
             {
                 if (!Directory.Exists(sourcePath))
                 {
-                    MessageBox.Show("Le dossier source n'existe pas.", "Erreur de chemin", 
+                    MessageBox.Show("Source folder does not exist.", "Path Error", 
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
@@ -406,13 +373,12 @@ namespace CryptoSoft
             {
                 if (!File.Exists(sourcePath))
                 {
-                    MessageBox.Show("Le fichier source n'existe pas.", "Erreur de fichier", 
+                    MessageBox.Show("Source file does not exist.", "File Error", 
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
             }
 
-            // Disable controls during operation
             SetControlsEnabled(false);
             progressBar.Visible = true;
             
@@ -420,16 +386,13 @@ namespace CryptoSoft
             {
                 if (isSourceFolder)
                 {
-                    // Traitement de dossier
                     await ProcessFolderAsync(sourcePath, targetPath, isEncrypt, password);
                 }
                 else
                 {
-                    // Traitement de fichier unique
                     progressBar.Style = ProgressBarStyle.Marquee;
-                    lblStatus.Text = isEncrypt ? "Chiffrement en cours..." : "Déchiffrement en cours...";
+                    lblStatus.Text = isEncrypt ? "Encrypting..." : "Decrypting...";
                     
-                    // Créer le dossier cible si nécessaire
                     string? targetDir = Path.GetDirectoryName(targetPath);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                     {
@@ -441,69 +404,58 @@ namespace CryptoSoft
                         Program.EncryptFile(sourcePath, targetPath, password);
                     });
                     
-                    lblStatus.Text = isEncrypt ? "Chiffrement terminé." : "Déchiffrement terminé.";
-                    MessageBox.Show(isEncrypt ? "Fichier chiffré avec succès !" : "Fichier déchiffré avec succès !", 
-                        "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    lblStatus.Text = isEncrypt ? "Encryption complete." : "Decryption complete.";
+                    MessageBox.Show(isEncrypt ? "File encrypted successfully!" : "File decrypted successfully!", 
+                        "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                lblStatus.Text = "Erreur: " + ex.Message;
-                MessageBox.Show($"Une erreur s'est produite: {ex.Message}", "Erreur", 
+                lblStatus.Text = "Error: " + ex.Message;
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", 
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
-                // Re-enable controls
                 SetControlsEnabled(true);
                 progressBar.Visible = false;
                 lblProgress.Text = "";
             }
         }
 
-        /// <summary>
-        /// Traite un dossier entier de manière récursive
-        /// </summary>
+        // Processes an entire folder recursively
         private async Task ProcessFolderAsync(string sourceFolder, string targetFolder, bool isEncrypt, string password)
         {
-            // Créer le dossier cible s'il n'existe pas
             if (!Directory.Exists(targetFolder))
             {
                 Directory.CreateDirectory(targetFolder);
             }
 
-            // Compter le nombre total de fichiers à traiter
             totalFiles = 0;
             processedFiles = 0;
             CountFilesRecursively(sourceFolder);
             
-            // Configurer la barre de progression
             progressBar.Style = ProgressBarStyle.Blocks;
             progressBar.Minimum = 0;
             progressBar.Maximum = totalFiles;
             progressBar.Value = 0;
             
-            lblStatus.Text = isEncrypt ? "Chiffrement du dossier en cours..." : "Déchiffrement du dossier en cours...";
+            lblStatus.Text = isEncrypt ? "Encrypting folder..." : "Decrypting folder...";
             
-            // Traiter tous les fichiers de manière récursive
             await ProcessFilesRecursivelyAsync(sourceFolder, targetFolder, isEncrypt, password);
             
-            lblStatus.Text = isEncrypt ? "Chiffrement du dossier terminé." : "Déchiffrement du dossier terminé.";
-            MessageBox.Show($"Traitement terminé ! {processedFiles} fichiers traités.", 
-                "Succès", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            lblStatus.Text = isEncrypt ? "Folder encryption complete." : "Folder decryption complete.";
+            MessageBox.Show($"Processing complete! {processedFiles} files processed.", 
+                "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        /// <summary>
-        /// Compte le nombre total de fichiers dans un dossier et ses sous-dossiers
-        /// </summary>
+        // Counts total files in a folder and its subfolders
         private void CountFilesRecursively(string folder)
         {
             try
             {
-                // Compter les fichiers dans le dossier actuel
                 totalFiles += Directory.GetFiles(folder).Length;
                 
-                // Compter récursivement dans les sous-dossiers
                 foreach (string subDir in Directory.GetDirectories(folder))
                 {
                     CountFilesRecursively(subDir);
@@ -511,28 +463,21 @@ namespace CryptoSoft
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du comptage des fichiers: {ex.Message}");
+                Console.WriteLine($"Error counting files: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Traite tous les fichiers d'un dossier et de ses sous-dossiers
-        /// </summary>
+        // Processes all files in a folder and its subfolders
         private async Task ProcessFilesRecursivelyAsync(string sourceFolder, string targetFolder, bool isEncrypt, string password)
         {
             try
             {
-                // Traiter tous les fichiers du dossier actuel
                 foreach (string sourceFile in Directory.GetFiles(sourceFolder))
                 {
-                    // Obtenir juste le nom du fichier sans le chemin
                     string fileName = Path.GetFileName(sourceFile);
-                    
-                    // Générer le nom du fichier cible avec le suffixe approprié
                     string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
                     string extension = Path.GetExtension(fileName);
                     
-                    // Supprimer les suffixes existants si présents
                     if (fileNameWithoutExt.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase))
                     {
                         fileNameWithoutExt = fileNameWithoutExt.Substring(0, fileNameWithoutExt.Length - SUFFIX_ENCRYPTED.Length);
@@ -542,58 +487,47 @@ namespace CryptoSoft
                         fileNameWithoutExt = fileNameWithoutExt.Substring(0, fileNameWithoutExt.Length - SUFFIX_DECRYPTED.Length);
                     }
                     
-                    // Créer le nouveau nom de fichier avec le suffixe
                     string newFileName = fileNameWithoutExt + (isEncrypt ? SUFFIX_ENCRYPTED : SUFFIX_DECRYPTED) + extension;
-                    
-                    // Chemin complet du fichier cible
                     string targetFile = Path.Combine(targetFolder, newFileName);
                     
-                    // Mettre à jour l'interface utilisateur
                     UpdateProgressUI(fileName);
                     
-                    // Traiter le fichier
                     await Task.Run(() =>
                     {
                         Program.EncryptFile(sourceFile, targetFile, password);
                     });
                     
-                    // Incrémenter le compteur de fichiers traités
                     processedFiles++;
                     this.Invoke((MethodInvoker)delegate {
                         progressBar.Value = processedFiles;
                     });
                 }
                 
-                // Traiter récursivement tous les sous-dossiers
                 foreach (string sourceSubDir in Directory.GetDirectories(sourceFolder))
                 {
                     string subDirName = new DirectoryInfo(sourceSubDir).Name;
                     string targetSubDir = Path.Combine(targetFolder, subDirName);
                     
-                    // Créer le sous-dossier cible s'il n'existe pas
                     if (!Directory.Exists(targetSubDir))
                     {
                         Directory.CreateDirectory(targetSubDir);
                     }
                     
-                    // Traiter le sous-dossier récursivement
                     await ProcessFilesRecursivelyAsync(sourceSubDir, targetSubDir, isEncrypt, password);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement des fichiers: {ex.Message}");
+                Console.WriteLine($"Error processing files: {ex.Message}");
                 throw;
             }
         }
 
-        /// <summary>
-        /// Met à jour l'interface utilisateur avec la progression
-        /// </summary>
+        // Updates the UI with progress
         private void UpdateProgressUI(string currentFile)
         {
             this.Invoke((MethodInvoker)delegate {
-                lblProgress.Text = $"Traitement de: {currentFile} ({processedFiles + 1}/{totalFiles})";
+                lblProgress.Text = $"Processing: {currentFile} ({processedFiles + 1}/{totalFiles})";
             });
         }
 

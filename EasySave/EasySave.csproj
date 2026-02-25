@@ -9,7 +9,7 @@
     <Nullable>annotations</Nullable>
     <AssemblyName>EasySave</AssemblyName>
     <RootNamespace>EasySave</RootNamespace>
-    <!-- Configurer la sortie pour utiliser le dossier output au niveau du projet -->
+    <!-- Configurer la sortie pour utiliser le dossier output à la racine -->
     <OutputPath>..\output</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>Resources\easysave_cloud.ico</ApplicationIcon>
@@ -44,20 +44,5 @@
     <Resource Include="Resources\easysave_logo.png" />
     <Resource Include="Resources\easysave_logo_trimmed.png" />
   </ItemGroup>
-
-  <!-- Modification de la cible pour copier CryptoSoft dans le dossier output -->
-  <Target Name="CopyCryptoSoftBundle" AfterTargets="Build">
-    <ItemGroup>
-      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.exe" />
-      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.dll" />
-      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.deps.json" />
-      <CryptoSoftBundle Include="..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.runtimeconfig.json" />
-    </ItemGroup>
-
-    <Copy SourceFiles="@(CryptoSoftBundle)"
-          DestinationFolder="$(OutDir)"
-          SkipUnchangedFiles="true"
-          Condition="Exists('..\CryptoSoft\bin\$(Configuration)\net8.0\CryptoSoft.dll')" />
-  </Target>
 
 </Project>
