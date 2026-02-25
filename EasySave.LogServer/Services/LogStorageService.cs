@@ -97,21 +97,25 @@ namespace EasySave.LogServer.Services
             string dateKey = date.ToString("yyyy-MM-dd");
             string jsonFilePath = GetJsonLogFilePath(dateKey);
 
-            // 1. On lit directement le fichier pour avoir les dernières modifications du PC
             if (File.Exists(jsonFilePath))
             {
                 try
                 {
-                    // FileShare.ReadWrite permet de lire même si l'application WPF écrit dedans en même temps
                     using (var stream = new FileStream(jsonFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     using (var reader = new StreamReader(stream))
                     {
                         string jsonContent = reader.ReadToEnd();
-                        var logs = JsonSerializer.Deserialize<List<LogEntry>>(jsonContent, _jsonOptions);
+                        
+                        // Si le fichier est vide, on renvoie une liste vide
+                        if (string.IsNullOrWhiteSpace(jsonContent))
+                            return new List<LogEntry>();
+
+                        // On force la tolérance sur les majuscules/minuscules
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        var logs = JsonSerializer.Deserialize<List<LogEntry>>(jsonContent, options);
                         
                         if (logs != null)
                         {
-                            // On met à jour la RAM par précaution
                             lock (_logLock)
                             {
                                 _dailyLogs[dateKey] = logs;
@@ -122,11 +126,11 @@ namespace EasySave.LogServer.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Erreur de lecture en direct: {ex.Message}");
+                    Console.Error.WriteLine($"Erreur de lecture en direct pour {dateKey}: {ex.Message}");
                 }
             }
 
-            // 2. Si le fichier n'existe pas ou est illisible, on regarde ce qu'on a en mémoire
+            // Fallback sur la RAM si le fichier n'existe pas ou est illisible
             lock (_logLock)
             {
                 if (_dailyLogs.TryGetValue(dateKey, out var logs))

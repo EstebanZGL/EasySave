@@ -60,41 +60,50 @@
         // Charger les logs
         function loadLogs() {
             const date = document.getElementById('log-date').value;
-            const tbody = document.getElementById('log-table-body');
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Chargement...</td></tr>';
+            if (!date) return;
 
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Chargement en cours...</td></tr>';
+
+            // Le timestamp permet d'éviter le cache du navigateur
             fetch(`/api/logs/date/${date}?t=${new Date().getTime()}`)
                 .then(res => {
-                    if (!res.ok) throw new Error("Aucun log trouvé");
+                    if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`);
                     return res.json();
                 })
                 .then(logs => {
-                    if (logs.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Aucun log pour cette date.</td></tr>';
+                    if (!Array.isArray(logs) || logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Aucun log trouvé pour cette date.</td></tr>';
                         return;
                     }
 
                     tbody.innerHTML = '';
-                    // Inverser pour avoir les plus récents en haut
                     logs.reverse().forEach(log => {
-                        const time = new Date(log.timestamp).toLocaleTimeString();
+                        // Sécurité anti-crash : on accepte les majuscules et les minuscules, sinon on met "N/A"
+                        const time = (log.timestamp || log.Timestamp) ? new Date(log.timestamp || log.Timestamp).toLocaleTimeString() : 'Inconnu';
+                        const machine = log.machineName || log.MachineName || 'N/A';
+                        const user = log.userName || log.UserName || 'N/A';
+                        const jobName = log.backupName || log.BackupName || log.event || log.Event || 'N/A';
+                        const fileSize = log.fileSize || log.FileSize || 0;
+                        const transferTime = log.transferTime || log.TransferTime || 0;
+
                         tbody.innerHTML += `
                             <tr>
                                 <td>${time}</td>
-                                <td><strong>${log.machineName}</strong></td>
-                                <td>${log.userName}</td>
-                                <td>${log.backupName}</td>
-                                <td>${log.fileSize}</td>
-                                <td>${log.transferTime} ms</td>
+                                <td><strong>${machine}</strong></td>
+                                <td>${user}</td>
+                                <td>${jobName}</td>
+                                <td>${fileSize}</td>
+                                <td>${transferTime} ms</td>
                             </tr>
                         `;
                     });
                 })
                 .catch(err => {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Erreur ou aucun log trouvé pour cette date.</td></tr>`;
+                    console.error("Erreur JavaScript détaillée:", err);
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Erreur : ${err.message}</td></tr>`;
                 });
         }
-
         // Charger automatiquement au démarrage
         loadLogs();
     </script>
