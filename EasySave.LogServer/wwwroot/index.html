@@ -66,7 +66,6 @@
                     <th>MachineName</th>
                     <th>UserName</th>
                     <th>BackupName</th>
-                    <th>OperationType</th>
                     <th>SourcePath</th>
                     <th>TargetPath</th>
                     <th>FileSize (Octets)</th>
@@ -75,7 +74,7 @@
                 </tr>
             </thead>
             <tbody id="log-table-body">
-                <tr><td colspan="10" style="text-align: center; padding: 20px;">Veuillez charger les logs...</td></tr>
+                <tr><td colspan="9" style="text-align: center; padding: 20px;">Veuillez charger les logs...</td></tr>
             </tbody>
         </table>
     </div>
@@ -94,7 +93,7 @@
             if (!date) return;
 
             const tbody = document.getElementById('log-table-body');
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">Chargement en cours...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Chargement en cours...</td></tr>';
             
             document.getElementById('filter-machine').innerHTML = '<option value="ALL">Toutes</option>';
             document.getElementById('filter-user').innerHTML = '<option value="ALL">Tous</option>';
@@ -107,7 +106,7 @@
                 })
                 .then(logs => {
                     if (!Array.isArray(logs) || logs.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">Aucun log trouvé pour cette date.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Aucun log trouvé pour cette date.</td></tr>';
                         globalLogs = [];
                         document.getElementById('log-count').innerText = "0 log(s)";
                         return;
@@ -118,7 +117,7 @@
                     renderTable();
                 })
                 .catch(err => {
-                    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: red; padding: 20px;">Erreur : ${err.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red; padding: 20px;">Erreur : ${err.message}</td></tr>`;
                 });
         }
 
@@ -138,7 +137,6 @@
             Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
         }
 
-        // Fonction utilitaire pour récupérer la valeur exacte du JSON sans la fausser
         function getExactValue(log, keyPascal, keyCamel, fallback) {
             if (log[keyPascal] !== undefined && log[keyPascal] !== null) return log[keyPascal];
             if (log[keyCamel] !== undefined && log[keyCamel] !== null) return log[keyCamel];
@@ -163,21 +161,19 @@
             document.getElementById('log-count').innerText = `${filteredLogs.length} log(s) affiché(s)`;
 
             if (filteredLogs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">Aucun log ne correspond à ces filtres.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Aucun log ne correspond à ces filtres.</td></tr>';
                 return;
             }
 
             let rowsHtml = '';
             
             filteredLogs.forEach(log => {
-                // Récupération stricte de vos 10 propriétés
                 const rawTime = getExactValue(log, 'Timestamp', 'timestamp', null);
-                const time = rawTime ? new Date(rawTime).toLocaleString('fr-FR') : 'Inconnu'; // Affiche Date ET Heure
+                const time = rawTime ? new Date(rawTime).toLocaleString('fr-FR') : 'Inconnu';
                 
                 const machineName = getExactValue(log, 'MachineName', 'machineName', '');
                 const userName = getExactValue(log, 'UserName', 'userName', '');
                 const backupName = getExactValue(log, 'BackupName', 'backupName', '');
-                
                 
                 const sourcePath = getExactValue(log, 'SourcePath', 'sourcePath', '');
                 const targetPath = getExactValue(log, 'TargetPath', 'targetPath', '');
@@ -200,6 +196,7 @@
                     </tr>
                 `;
             });
+            
 
             tbody.innerHTML = rowsHtml;
         }
