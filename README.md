@@ -26,11 +26,14 @@ EasySave is a robust and scalable backup solution developed by ProSoft. This app
 
 ### New in Version 3.0
 - **Parallel Backups**: Execute multiple backup jobs simultaneously
+- **Individual Job Controls**: Play/Pause/Stop controls for each backup job
+- **CryptoSoft Mono-Instance**: Single-instance encryption with queue management
+- **Enhanced CLI**: Improved command-line interface with parallel execution support
+- **Exit Verification**: Warning when closing with active backup jobs
 - **Priority Management**: Set priorities for different file types
 - **Bandwidth Limitation**: Control network usage during backups
 - **Docker Support**: Run EasySave in containerized environments
-- **Socket Communication**: Remote monitoring and control via network
-- **CryptoSoft Optimization**: Single-instance encryption with queue management
+- **Centralized Logging**: Optional remote logging service
 
 ## Project Structure
 
@@ -40,7 +43,7 @@ The project is divided into five main components:
 - **EasySaveCLI**: Command-line interface for automation and scripting
 - **EasyLog**: Logging management library
 - **CryptoSoft**: External encryption utility
-- **EasySaveRemote**: Remote monitoring application
+- **EasySave.LogServer**: Centralized logging service for Docker environments
 
 All executables are generated in a common `output` folder for easy access.
 
@@ -56,7 +59,7 @@ All executables are generated in a common `output` folder for easy access.
 
 1. Download the latest version from the releases page
 2. Extract the archive to the folder of your choice
-3. All executables (EasySave.exe, EasySaveCLI.exe, CryptoSoft.exe, EasySaveRemote.exe) are located in the `output` folder
+3. All executables (EasySave.exe, EasySaveCLI.exe, CryptoSoft.exe) are located in the `output` folder
 4. Launch the application via `output\EasySave.exe` for GUI or `output\EasySaveCLI.exe` for CLI
 
 ### Docker Installation
@@ -70,6 +73,7 @@ All executables are generated in a common `output` folder for easy access.
 1. Launch `output\EasySave.exe`
 2. Click "New Job" to create a backup job
 3. Select jobs and click "Execute" to run them
+4. Use individual Play/Pause/Stop controls for each job
 
 ### Using the Command Line Interface
 - `EasySaveCLI.exe 1,2,3` - Execute jobs 1, 2 and 3
@@ -79,19 +83,15 @@ All executables are generated in a common `output` folder for easy access.
 - `EasySaveCLI.exe --help` - Display available commands
 - Run without parameters for interactive menu mode
 
-### Remote Monitoring
-1. Launch `output\EasySaveRemote.exe`
-2. Enter the server IP address and port
-3. Connect to view and control backup jobs remotely
-
 ### Configuring Settings
 1. Click the "Settings" button in the GUI
 2. Configure business software detection, encryption settings, and preferences
 3. Set bandwidth limitations and parallel execution options
-4. Changes are saved automatically
+4. Configure priority file extensions and large file threshold
+5. Changes are saved automatically
 
 ## Documentation
 
-- [User Manual](./USER_MANUAL.md) - Guide for end users
-- [Technical Documentation](./TECHNICAL_DOCUMENTATION.md) - Documentation for technical support and developers
+- [User Manual](./USER_MANUAL_v3.0.md) - Guide for end users
+- [Technical Documentation](./TECHNICAL_DOCUMENTATION_v3.0.md) - Documentation for technical support and developers
 - [Release Notes](./RELEASE_NOTES_v3.0.md) - What's new in version 3.0
