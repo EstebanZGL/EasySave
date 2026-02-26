@@ -234,6 +234,8 @@
             </Border>
 
             <Border x:Name="DetailsPanel" Grid.Column="1" Style="{StaticResource RoundedPanel}" Margin="10,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -352,6 +354,7 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+                </ScrollViewer>
             </Border>
         </Grid>
 
