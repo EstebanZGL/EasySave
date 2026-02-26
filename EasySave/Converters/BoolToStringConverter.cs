@@ -4,10 +4,10 @@ using System.Windows.Data;
 
 namespace EasySave.Converters
 {
-    /// <summary>
+     
     /// Converts a boolean value to a string based on the provided parameter
     /// Format: "TrueValue|FalseValue"
-    /// </summary>
+     
     public class BoolToStringConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

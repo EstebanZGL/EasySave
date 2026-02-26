@@ -8,29 +8,18 @@ using EasySave.Models;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Repository for backup jobs
-    /// </summary>
     public class BackupJobRepository
     {
         private readonly string _filePath;
         private readonly List<BackupJob> _backupJobs;
         private readonly object _fileLock = new object();
         
-        /// <summary>
-        /// Creates a new instance of the BackupJobRepository class
-        /// </summary>
-        /// <param name="filePath">The path to the file where backup jobs are stored</param>
         public BackupJobRepository(string filePath = "backupjobs.json")
         {
             _filePath = filePath;
             _backupJobs = LoadBackupJobs();
         }
         
-        /// <summary>
-        /// Gets all backup jobs
-        /// </summary>
-        /// <returns>A list of all backup jobs</returns>
         public List<BackupJob> GetAllBackupJobs()
         {
             lock (_fileLock)
@@ -39,11 +28,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Gets a backup job by name
-        /// </summary>
-        /// <param name="jobName">The name of the job to get</param>
-        /// <returns>The backup job, or null if not found</returns>
         public BackupJob GetBackupJob(string jobName)
         {
             lock (_fileLock)
@@ -52,11 +36,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Adds a new backup job
-        /// </summary>
-        /// <param name="backupJob">The backup job to add</param>
-        /// <returns>True if the job was added, false if a job with the same name already exists</returns>
         public bool AddBackupJob(BackupJob backupJob)
         {
             lock (_fileLock)
@@ -72,11 +51,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Updates an existing backup job
-        /// </summary>
-        /// <param name="backupJob">The backup job to update</param>
-        /// <returns>True if the job was updated, false if the job was not found</returns>
         public bool UpdateBackupJob(BackupJob backupJob)
         {
             lock (_fileLock)
@@ -97,12 +71,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Met à jour la date de dernière sauvegarde d'un travail de sauvegarde
-        /// </summary>
-        /// <param name="jobName">Le nom du travail à mettre à jour</param>
-        /// <param name="lastBackupTime">La nouvelle date de dernière sauvegarde</param>
-        /// <returns>True si le travail a été mis à jour, false si le travail n'a pas été trouvé</returns>
         public bool UpdateBackupJobLastBackupTime(string jobName, DateTime lastBackupTime)
         {
             lock (_fileLock)
@@ -120,11 +88,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Deletes a backup job
-        /// </summary>
-        /// <param name="jobName">The name of the job to delete</param>
-        /// <returns>True if the job was deleted, false if the job was not found</returns>
         public bool DeleteBackupJob(string jobName)
         {
             lock (_fileLock)
@@ -141,10 +104,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Loads backup jobs from the file
-        /// </summary>
-        /// <returns>A list of backup jobs</returns>
         private List<BackupJob> LoadBackupJobs()
         {
             if (!File.Exists(_filePath))
@@ -159,7 +118,7 @@ namespace EasySave.Services
 
                 bool hadBackfillChanges = false;
 
-                // Backfill creation dates for jobs created before this field existed.
+                // Backfill creation dates for jobs created before this field existed
                 foreach (var job in jobs)
                 {
                     if (job.CreatedAt == default)
@@ -184,9 +143,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Saves backup jobs to the file
-        /// </summary>
         private void SaveBackupJobs()
         {
             try

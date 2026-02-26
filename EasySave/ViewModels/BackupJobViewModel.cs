@@ -7,38 +7,37 @@ using EasySave.Commands;
 
 namespace EasySave.ViewModels
 {
-    /// <summary>
+     
     /// View model for a backup job
-    /// </summary>
+     
     public class BackupJobViewModel : ViewModelBase
     {
         private readonly BackupJob _backupJob;
         private bool _isSelected;
         private DateTime? _lastBackupTime;
         
-        /// <summary>
+         
         /// Creates a new instance of the BackupJobViewModel
-        /// </summary>
-        /// <param name="backupJob">The backup job model</param>
+         
         public BackupJobViewModel(BackupJob backupJob)
         {
             _backupJob = backupJob;
             _lastBackupTime = backupJob.LastBackupTime;
         }
         
-        /// <summary>
+         
         /// Gets the backup job model
-        /// </summary>
+         
         public BackupJob BackupJob => _backupJob;
         
-        /// <summary>
+         
         /// Gets the job name
-        /// </summary>
+         
         public string JobName => _backupJob.JobName;
         
-        /// <summary>
+         
         /// Gets or sets the source path
-        /// </summary>
+         
         public string SourcePath
         {
             get => _backupJob.SourcePath;
@@ -52,9 +51,9 @@ namespace EasySave.ViewModels
             }
         }
         
-        /// <summary>
+         
         /// Gets or sets the target path
-        /// </summary>
+         
         public string TargetPath
         {
             get => _backupJob.TargetPath;
@@ -68,9 +67,9 @@ namespace EasySave.ViewModels
             }
         }
 
-        /// <summary>
+         
         /// Gets or sets the description
-        /// </summary>
+         
         public string Description
         {
             get => _backupJob.Description;
@@ -84,9 +83,9 @@ namespace EasySave.ViewModels
             }
         }
         
-        /// <summary>
+         
         /// Gets or sets the backup type
-        /// </summary>
+         
         public BackupType Type
         {
             get => _backupJob.Type;
@@ -100,9 +99,9 @@ namespace EasySave.ViewModels
             }
         }
         
-        /// <summary>
+         
         /// Gets or sets the last backup time
-        /// </summary>
+         
         public DateTime? LastBackupTime
         {
             get => _lastBackupTime;
@@ -116,24 +115,24 @@ namespace EasySave.ViewModels
             }
         }
         
-        /// <summary>
+         
         /// Gets the last backup time as a formatted string
-        /// </summary>
+         
         public string LastBackupTimeDisplay => LastBackupTime.HasValue ? LastBackupTime.Value.ToString("g") : "Never";
 
-        /// <summary>
+         
         /// Gets the creation date
-        /// </summary>
+         
         public DateTime CreatedAt => _backupJob.CreatedAt;
 
-        /// <summary>
+         
         /// Gets the creation date as formatted string
-        /// </summary>
+         
         public string CreatedAtDisplay => _backupJob.CreatedAtDisplay;
         
-        /// <summary>
+         
         /// Gets or sets whether the job is selected
-        /// </summary>
+         
         public bool IsSelected
         {
             get => _isSelected;

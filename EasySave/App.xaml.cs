@@ -11,14 +11,14 @@ using System.Diagnostics;
 
 namespace EasySave
 {
-    /// <summary>
+     
     /// Interaction logic for App.xaml
-    /// </summary>
+     
     public partial class App : System.Windows.Application
     {
         private readonly ServiceProvider _serviceProvider;
 
-        // Expose le ServiceProvider pour permettre l'accès aux services depuis le XAML
+        // Exposes the ServiceProvider to allow access to services from XAML
         public ServiceProvider ServiceProvider => _serviceProvider;
 
         public App()
@@ -56,21 +56,21 @@ namespace EasySave
             services.AddSingleton<TranslationService>();
             services.AddSingleton<BackupJobManager>();
             
-            // Enregistrer BackupJobRepository
+            // Register BackupJobRepository
             string backupJobsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "backupjobs.json");
             services.AddSingleton<BackupJobRepository>(provider => new BackupJobRepository(backupJobsFilePath));
             
-            // Enregistrer le chemin du fichier d'état comme un service
+            // Register the state file path as a service
             string stateFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "state.json");
-            services.AddSingleton(stateFilePath); // Enregistrer le chemin comme un service de type string
+            services.AddSingleton(stateFilePath); // Register the path as a string service
             
-            // Ensuite enregistrer StateManager qui utilisera ce string
+            // Then register StateManager which will use this string
             services.AddSingleton<StateManager>();
             
             // Configure and register logger
             string logFormat = LoadLogFormat();
             
-            // Créer les répertoires de logs s'ils n'existent pas
+            // Create log directories if they don't exist
             CreateLogDirectories();
             
             // Get log centralization settings
@@ -116,7 +116,7 @@ namespace EasySave
             services.AddSingleton<MainViewModel>();
             
             // Register Views
-            // Modifier l'enregistrement de MainWindow pour utiliser une factory qui injecte les services nécessaires
+            // Modify MainWindow registration to use a factory that injects necessary services
             services.AddTransient<MainWindow>(provider => {
                 var viewModel = provider.GetRequiredService<MainViewModel>();
                 var translationService = provider.GetRequiredService<TranslationService>();
@@ -196,26 +196,26 @@ namespace EasySave
             Console.WriteLine("      If no arguments are provided, the graphical interface will be launched.");
         }
 
-        // Créer la structure de répertoires pour les logs
+        // Create the directory structure for logs
         private void CreateLogDirectories()
         {
             try
             {
-                // Créer le répertoire principal des logs
+                // Create the main logs directory
                 string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
                 if (!Directory.Exists(logsDir))
                 {
                     Directory.CreateDirectory(logsDir);
                 }
 
-                // Créer le sous-répertoire pour les logs JSON
+                // Create the subdirectory for JSON logs
                 string jsonDir = Path.Combine(logsDir, "Json");
                 if (!Directory.Exists(jsonDir))
                 {
                     Directory.CreateDirectory(jsonDir);
                 }
 
-                // Créer le sous-répertoire pour les logs XML
+                // Create the subdirectory for XML logs
                 string xmlDir = Path.Combine(logsDir, "Xml");
                 if (!Directory.Exists(xmlDir))
                 {

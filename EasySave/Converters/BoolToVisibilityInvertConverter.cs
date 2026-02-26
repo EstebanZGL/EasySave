@@ -5,10 +5,10 @@ using System.Windows.Data;
 
 namespace EasySave.Converters
 {
-    /// <summary>
+     
     /// Converts a boolean value to Visibility with inverted logic
     /// True -> Collapsed, False -> Visible
-    /// </summary>
+     
     public class BoolToVisibilityInvertConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

@@ -2,73 +2,52 @@ using System;
 
 namespace EasySave.Models
 {
-    /// <summary>
-    /// Represents the state of a backup job during execution
-    /// </summary>
+     
+    /// Represents the real-time state of a backup job during execution
+    /// Used for state.json and UI status updates
+     
     public class BackupJobState
     {
-        /// <summary>
-        /// The name of the backup job
-        /// </summary>
+        // Name of the backup job this state belongs to
         public string JobName;
-
-        /// <summary>
-        /// The status of the backup job
-        /// </summary>
+        
+        // Current status (Running, Paused, Completed, etc.)
         public string Status;
-
-        /// <summary>
-        /// The total number of files to process
-        /// </summary>
+        
+        // Total number of files to be processed
         public int TotalFiles;
-
-        /// <summary>
-        /// The number of files remaining to process
-        /// </summary>
+        
+        // Number of files still waiting to be processed
         public int TotalFilesRemaining;
-
-        /// <summary>
-        /// The total size of all files to process in bytes
-        /// </summary>
+        
+        // Total size in bytes of all files to be processed
         public long TotalSize;
-
-        /// <summary>
-        /// The size remaining to process in bytes
-        /// </summary>
+        
+        // Size in bytes of files still waiting to be processed
         public long TotalSizeRemaining;
-
-        /// <summary>
-        /// The path of the file currently being processed
-        /// </summary>
+        
+        // Path of the file currently being processed
         public string CurrentFile;
-
-        /// <summary>
-        /// The destination path of the file currently being processed
-        /// </summary>
+        
+        // Destination path of the file currently being processed
         public string CurrentFileDestination;
-
-        /// <summary>
-        /// The progress percentage (0-100)
-        /// </summary>
+        
+        // Progress percentage (0-100)
         public int Progress;
-
-        /// <summary>
-        /// The start time of the backup job
-        /// </summary>
+        
+        // When the backup job started execution
         public DateTime StartTime;
-
-        /// <summary>
-        /// The end time of the backup job
-        /// </summary>
+        
+        // When the backup job finished (null if still running)
         public DateTime? EndTime;
 
-        /// <summary>
-        /// Creates a new instance of the BackupJobState class
-        /// </summary>
+         
+        /// Creates a new backup job state with default values
+         
         public BackupJobState()
         {
             JobName = string.Empty;
-            Status = "En cours"; // Changed from "Not Started" to "En cours"
+            Status = "En cours"; // Default status "In progress"
             TotalFiles = 0;
             TotalFilesRemaining = 0;
             TotalSize = 0;

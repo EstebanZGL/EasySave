@@ -15,19 +15,11 @@ namespace EasySave.Services
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
 
-        /// <summary>
-        /// Determines if a file should be encrypted based on its extension.
-        /// </summary>
         public bool ShouldEncrypt(string filePath)
         {
             return _settings.ShouldEncryptFile(filePath);
         }
 
-        /// <summary>
-        /// Encrypts a file using CryptoSoft, encrypting the file in place.
-        /// </summary>
-        /// <param name="filePath">Path to the file to encrypt</param>
-        /// <returns>Time taken to encrypt in milliseconds, or -1 if encryption failed</returns>
         public async Task<long> EncryptFileAsync(string filePath)
         {
             // Create a temporary file path
@@ -61,12 +53,6 @@ namespace EasySave.Services
             }
         }
 
-        /// <summary>
-        /// Encrypts a file using CryptoSoft.
-        /// </summary>
-        /// <param name="sourceFile">Path to the source file</param>
-        /// <param name="targetFile">Path where the encrypted file should be saved</param>
-        /// <returns>Time taken to encrypt in milliseconds, or -1 if encryption failed</returns>
         public async Task<long> EncryptFileAsync(string sourceFile, string targetFile)
         {
             if (!File.Exists(sourceFile))

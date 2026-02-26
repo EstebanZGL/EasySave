@@ -174,7 +174,6 @@ namespace EasySave
         // Show the main interactive menu
         private async Task ShowMainMenuAsync()
         {
-            // This method is only used in console mode, which is no longer needed in v2.0
             // But we keep it for backward compatibility with command-line mode
             Console.WriteLine("EasySave 3.0 - Console Mode");
             Console.WriteLine("Please use the graphical interface for full functionality.");

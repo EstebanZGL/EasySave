@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace EasySave.LogServer.Services
 {
-    /// <summary>
+     
     /// Service responsible for managing centralized logs
-    /// </summary>
+     
     public class LogStorageService
     {
         private readonly string _logDirectory;
@@ -19,10 +19,9 @@ namespace EasySave.LogServer.Services
         private readonly object _logLock = new object();
         private readonly SemaphoreSlim _asyncLock = new SemaphoreSlim(1, 1);
 
-        /// <summary>
+         
         /// Creates a new instance of the LogStorageService
-        /// </summary>
-        /// <param name="logDirectory">The directory where logs will be stored</param>
+         
         public LogStorageService(string logDirectory)
         {
             _logDirectory = logDirectory ?? throw new ArgumentNullException(nameof(logDirectory));
@@ -48,11 +47,9 @@ namespace EasySave.LogServer.Services
             LoadTodaysLogs();
         }
 
-        /// <summary>
+         
         /// Adds a log entry to the centralized log system
-        /// </summary>
-        /// <param name="logEntry">The log entry to add</param>
-        /// <returns>A task representing the asynchronous operation</returns>
+         
         public async Task AddLogEntryAsync(LogEntry logEntry)
         {
             if (logEntry == null)
@@ -84,17 +81,9 @@ namespace EasySave.LogServer.Services
             await SaveLogsToDiskAsync(dateKey);
         }
 
-        /// <summary>
+         
         /// Gets all log entries for a specific date
-        /// </summary>
-        /// <param name="date">The date to get logs for</param>
-        /// <returns>A list of log entries</returns>
-        /// <summary>
-        /// Gets all log entries for a specific date
-        /// </summary>
-        /// <summary>
-        /// Gets all log entries for a specific date
-        /// </summary>
+         
         public List<LogEntry> GetLogEntriesForDate(DateTime date)
         {
             string dateKey = date.ToString("yyyy-MM-dd");
@@ -163,12 +152,9 @@ namespace EasySave.LogServer.Services
             return new List<LogEntry>();
         }
 
-        /// <summary>
+         
         /// Gets all log entries for a specific date range
-        /// </summary>
-        /// <param name="startDate">The start date</param>
-        /// <param name="endDate">The end date</param>
-        /// <returns>A list of log entries</returns>
+         
         public async Task<List<LogEntry>> GetLogEntriesForDateRangeAsync(DateTime startDate, DateTime endDate)
         {
             var result = new List<LogEntry>();
@@ -211,9 +197,9 @@ namespace EasySave.LogServer.Services
             return result;
         }
 
-        /// <summary>
+         
         /// Loads today's logs from disk
-        /// </summary>
+         
         private void LoadTodaysLogs()
         {
             string dateKey = DateTime.Now.ToString("yyyy-MM-dd");
@@ -242,11 +228,9 @@ namespace EasySave.LogServer.Services
             }
         }
 
-        /// <summary>
+         
         /// Loads logs for a specific date from disk
-        /// </summary>
-        /// <param name="dateKey">The date key in format yyyy-MM-dd</param>
-        /// <returns>A list of log entries</returns>
+         
         private async Task<List<LogEntry>> LoadLogsFromDiskAsync(string dateKey)
         {
             // Use SemaphoreSlim for async operations instead of lock
@@ -297,11 +281,9 @@ namespace EasySave.LogServer.Services
             }
         }
 
-        /// <summary>
+         
         /// Saves logs for a specific date to disk
-        /// </summary>
-        /// <param name="dateKey">The date key in format yyyy-MM-dd</param>
-        /// <returns>A task representing the asynchronous operation</returns>
+         
         private async Task SaveLogsToDiskAsync(string dateKey)
         {
             List<LogEntry> logs;
@@ -327,8 +309,7 @@ namespace EasySave.LogServer.Services
                 string jsonContent = JsonSerializer.Serialize(logs, _jsonOptions);
                 await File.WriteAllTextAsync(jsonFilePath, jsonContent);
                 
-                // Save to XML (using System.Xml.Serialization would be more appropriate,
-                // but for simplicity we'll just save as JSON for now)
+                // Save to XML 
                 string xmlFilePath = GetXmlLogFilePath(dateKey);
                 await File.WriteAllTextAsync(xmlFilePath, jsonContent);
             }
@@ -338,30 +319,25 @@ namespace EasySave.LogServer.Services
             }
         }
 
-        /// <summary>
+         
         /// Gets the path to the JSON log file for a specific date
-        /// </summary>
-        /// <param name="dateKey">The date key in format yyyy-MM-dd</param>
-        /// <returns>The file path</returns>
+         
         private string GetJsonLogFilePath(string dateKey)
         {
             return Path.Combine(_logDirectory, "Json", $"{dateKey}.json");
         }
 
-        /// <summary>
+         
         /// Gets the path to the XML log file for a specific date
-        /// </summary>
-        /// <param name="dateKey">The date key in format yyyy-MM-dd</param>
-        /// <returns>The file path</returns>
+         
         private string GetXmlLogFilePath(string dateKey)
         {
             return Path.Combine(_logDirectory, "Xml", $"{dateKey}.xml");
         }
 
-        /// <summary>
+         
         /// Ensures a directory exists
-        /// </summary>
-        /// <param name="path">The directory path</param>
+         
         private void EnsureDirectoryExists(string path)
         {
             if (!Directory.Exists(path))

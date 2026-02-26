@@ -22,14 +22,14 @@ namespace EasySave.ViewModels
         private readonly string _settingsFilePath;
         private readonly CryptoPasswordService _cryptoPasswordService;
         
-        // Champs privés (Backing fields)
+        // Private fields
         private string _language = "en";
         private string _logFormat = "json";
         private string _businessSoftwareName = "";
         private string _cryptoSoftPath = "";
         private List<string> _encryptionExtensions = new List<string>();
         private List<string> _priorityExtensions = new List<string>();
-        private long _largeFileThreshold = 1048576; // 1MB par défaut
+        private long _largeFileThreshold = 1048576; // 1MB default
         private int _maxParallelJobs = 5;
         private string _encryptionKey = "";
         private LogCentralizationSettings _logCentralizationSettings = new LogCentralizationSettings();
@@ -38,7 +38,7 @@ namespace EasySave.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // Constructeur sans paramètre pour faciliter les tests
+        // Constructor without parameters for testing
         public SettingsViewModel() : this(null)
         {
         }
@@ -49,7 +49,7 @@ namespace EasySave.ViewModels
             _settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
             _cryptoPasswordService = new CryptoPasswordService();
             
-            // Valeurs par défaut
+            // Default values
             _businessSoftwareName = "calc.exe";
             _encryptionExtensions = new List<string> { ".txt", ".doc", ".pdf" };
             _priorityExtensions = new List<string> { ".exe", ".dll", ".sys" };
@@ -61,21 +61,21 @@ namespace EasySave.ViewModels
             _customUserName = Environment.UserName; // Valeur par défaut : nom d'utilisateur système
             ReplaceLogCentralizationSettings(_logCentralizationSettings, saveChanges: false, notifyChange: false);
             
-            // Chargement des paramètres
+            // Load settings
             LoadSettings();
             LoadLogFormat();
             
-            // CHARGEMENT CRITIQUE : On lit la clé depuis le fichier partagé au démarrage
+            // CRITICAL: Read key from shared file at startup
             _encryptionKey = _cryptoPasswordService.GetPassword();
             
-            // Abonnement aux traductions
+            // Subscribe to translations
             if (_translationService != null)
             {
                 _translationService.PropertyChanged += OnTranslationServicePropertyChanged;
             }
         }
 
-        // --- Propriétés Publiques ---
+        // --- Public Properties ---
 
         // Nouvelles propriétés pour le nom de la machine et le nom d'utilisateur personnalisés
         public string CustomMachineName
@@ -119,19 +119,19 @@ namespace EasySave.ViewModels
                 {
                     _encryptionKey = value;
                     OnPropertyChanged();
-                    OnPropertyChanged(nameof(CryptoPassword)); // Notifier aussi l'alias pour la vue
+                    OnPropertyChanged(nameof(CryptoPassword)); // Notify alias for view
                     
-                    // SAUVEGARDE CRITIQUE : On écrit immédiatement dans le fichier partagé
+                    // CRITICAL: Write immediately to shared file
                     bool success = _cryptoPasswordService.SetPassword(value);
                     if (!success)
                     {
-                        Debug.WriteLine("Erreur critique : Impossible de sauvegarder la clé partagée !");
+                        Debug.WriteLine("Critical error: Unable to save shared key!");
                     }
                 }
             }
         }
 
-        // --- Membres de compatibilité pour SettingsWindow.xaml.cs ---
+        // --- Compatibility members for SettingsWindow.xaml.cs ---
 
         public string CryptoPassword
         {
@@ -145,8 +145,7 @@ namespace EasySave.ViewModels
             return true;
         }
 
-        // Property needed for compatibility with CryptoServiceTests
-        // Rendre cette propriété virtuelle pour permettre le mocking
+        // Virtual property to allow mocking in CryptoServiceTests
         public virtual string[] ExtensionsToEncrypt
         {
             get => _encryptionExtensions?.ToArray() ?? Array.Empty<string>();
@@ -236,13 +235,13 @@ namespace EasySave.ViewModels
             }
         }
 
-        // Nouvelle propriété pour afficher et définir la taille en MB uniquement
+        // Property to display and set size in MB only
         public int LargeFileThresholdMB
         {
             get => (int)(_largeFileThreshold / (1024 * 1024));
             set
             {
-                // Convertir MB en bytes
+                // Convert MB to bytes
                 long newThreshold = value * 1024L * 1024L;
                 if (_largeFileThreshold != newThreshold)
                 {
@@ -254,13 +253,13 @@ namespace EasySave.ViewModels
             }
         }
 
-        // Propriété pour l'affichage uniquement (pour la rétrocompatibilité)
+        // Display property (for backward compatibility)
         public string LargeFileThresholdDisplay
         {
             get => $"{LargeFileThresholdMB} MB";
             set
             {
-                // Extraire uniquement la partie numérique
+                // Extract only numeric part
                 string numericPart = new string(value.TakeWhile(c => char.IsDigit(c)).ToArray());
                 
                 if (int.TryParse(numericPart, out int mbValue))
@@ -313,7 +312,7 @@ namespace EasySave.ViewModels
             }
         }
 
-        // --- Propriétés de Traduction ---
+        // --- Translation Properties ---
 
         public string WindowTitle => GetTranslation("menu_settings");
         public string GeneralSettingsHeader => GetTranslation("general_settings");
@@ -372,10 +371,6 @@ namespace EasySave.ViewModels
             }
         }
 
-        /// <summary>
-        /// Checks if the configured business software is currently running using multiple detection methods
-        /// </summary>
-        /// <returns>True if the business software is running, false otherwise</returns>
         public virtual bool IsBusinessSoftwareRunning()
         {
             if (string.IsNullOrEmpty(_businessSoftwareName))
@@ -644,7 +639,7 @@ namespace EasySave.ViewModels
         {
             if (e.PropertyName == "CurrentLanguage" || e.PropertyName == "AllTranslations")
             {
-                // Mettre Ã  jour toutes les propriÃ©tÃ©s de traduction
+                // Update all translation properties
                 OnPropertyChanged(nameof(WindowTitle));
                 OnPropertyChanged(nameof(GeneralSettingsHeader));
                 OnPropertyChanged(nameof(BusinessSoftwareLabel));

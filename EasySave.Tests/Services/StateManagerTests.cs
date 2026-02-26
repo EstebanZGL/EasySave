@@ -91,7 +91,7 @@ namespace EasySave.Tests.Services
             // Assert
             Assert.True(File.Exists(testStateFile));
             var fileContent = await File.ReadAllTextAsync(testStateFile);
-            // Spécifier explicitement la classe BackupJobState à utiliser
+            // Explicitly specify the BackupJobState class to use
             var loadedStates = JsonSerializer.Deserialize<List<EasySave.Services.BackupJobState>>(fileContent);
             Assert.NotNull(loadedStates);
             Assert.Contains(loadedStates, s => s.Name == "TestJob");

@@ -93,17 +93,9 @@ namespace EasySave.Tests.Services
                 eventValue = isRunning;
             };
             
-            // Act - Simulate a status change by directly calling the method
-            // This is a bit of a hack since the method is private, but we can test the event this way
-            // In a real test, we would refactor the class to make this testable
             
-            // For now, we'll just verify the event handler registration works
             Assert.False(eventRaised);
             
-            // In a proper test, we would do:
-            // monitor.SimulateStatusChange(true);
-            // Assert.True(eventRaised);
-            // Assert.True(eventValue);
-        }
+            }
     }
 }

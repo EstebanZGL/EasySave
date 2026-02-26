@@ -6,9 +6,9 @@ using System.Windows.Media;
 
 namespace EasySave.Views
 {
-    /// <summary>
+     
     /// Converts a null value to false and a non-null value to true
-    /// </summary>
+     
     public class NullToBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -22,9 +22,9 @@ namespace EasySave.Views
         }
     }
 
-    /// <summary>
+     
     /// Converts a boolean value to a color (e.g., for status indicators)
-    /// </summary>
+     
     public class BoolToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

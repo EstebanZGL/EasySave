@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace EasySave.Models
 {
-    // Represents a backup job configuration
+    // Represents a backup job configuration with source/target paths and type
     public class BackupJob : INotifyPropertyChanged
     {
         private string _name;
@@ -17,7 +17,7 @@ namespace EasySave.Models
         private DateTime? _lastBackupTime;
         private bool _isSelected;
 
-        // Name of the backup job
+        // Primary name property used for serialization
         public string JobName
         {
             get => _name;
@@ -27,13 +27,13 @@ namespace EasySave.Models
                 {
                     _name = value;
                     OnPropertyChanged();
-                    OnPropertyChanged(nameof(Name)); // Notify Name property changed too
+                    OnPropertyChanged(nameof(Name));
                 }
             }
         }
 
-        // Property that redirects to JobName for backward compatibility
-        [JsonIgnore] // To avoid serializing the same data twice
+        // Alternative name property for UI binding
+        [JsonIgnore]
         public string Name
         {
             get => _name;
@@ -43,12 +43,11 @@ namespace EasySave.Models
                 {
                     _name = value;
                     OnPropertyChanged();
-                    OnPropertyChanged(nameof(JobName)); // Notify JobName property changed too
+                    OnPropertyChanged(nameof(JobName));
                 }
             }
         }
 
-        // Source directory path
         public string SourcePath
         {
             get => _sourcePath;
@@ -62,7 +61,6 @@ namespace EasySave.Models
             }
         }
 
-        // Target directory path
         public string TargetPath
         {
             get => _targetPath;
@@ -76,7 +74,6 @@ namespace EasySave.Models
             }
         }
 
-        // Job description
         public string Description
         {
             get => _description;
@@ -90,7 +87,6 @@ namespace EasySave.Models
             }
         }
 
-        // Type of backup (Complete or Differential)
         public BackupType Type
         {
             get => _type;
@@ -104,7 +100,6 @@ namespace EasySave.Models
             }
         }
 
-        // Creation date of the job
         public DateTime CreatedAt
         {
             get => _createdAt;
@@ -119,7 +114,6 @@ namespace EasySave.Models
             }
         }
 
-        // Last backup time (nullable)
         public DateTime? LastBackupTime
         {
             get => _lastBackupTime;
@@ -134,7 +128,7 @@ namespace EasySave.Models
             }
         }
 
-        // Formatted display of last backup time
+        // Formatted display strings for dates
         public string LastBackupTimeDisplay
         {
             get
@@ -147,10 +141,8 @@ namespace EasySave.Models
             }
         }
 
-        // Formatted display of creation time
         public string CreatedAtDisplay => _createdAt.ToString("yyyy-MM-dd HH:mm:ss");
 
-        // Selection state for UI (not serialized to JSON)
         [JsonIgnore]
         public bool IsSelected
         {
@@ -165,7 +157,6 @@ namespace EasySave.Models
             }
         }
 
-        // Constructor with all parameters
         public BackupJob(string name, string sourcePath, string targetPath, BackupType type)
         {
             _name = name;
@@ -177,7 +168,6 @@ namespace EasySave.Models
             _isSelected = false;
         }
 
-        // Default constructor for serialization
         public BackupJob() 
         {
             _description = string.Empty;
@@ -185,26 +175,21 @@ namespace EasySave.Models
             _isSelected = false;
         }
 
-        // Validates the backup job parameters
-        // Returns: True if valid, false otherwise
+        // Validates that the backup job has all required fields
         public bool Validate()
         {
-            // Check if name is not empty
             if (string.IsNullOrWhiteSpace(Name))
                 return false;
 
-            // Check if source path exists
             if (string.IsNullOrWhiteSpace(SourcePath))
                 return false;
 
-            // Check if target path is specified
             if (string.IsNullOrWhiteSpace(TargetPath))
                 return false;
 
             return true;
         }
 
-        // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -213,69 +198,25 @@ namespace EasySave.Models
         }
     }
 
-    // Type of backup
+    // Available backup types
     public enum BackupType
     {
-        // Complete backup (copies all files)
-        Complete,
-        
-        // Differential backup (copies only new or modified files)
-        Differential
+        Complete,     // Copy all files from source to destination
+        Differential  // Copy only new or modified files
     }
 
-    /// <summary>
-    /// State of a backup job
-    /// </summary>
+    // Possible states of a backup job
     public enum BackupState
     {
-        /// <summary>
-        /// The backup job has not started yet
-        /// </summary>
         NotStarted,
-        
-        /// <summary>
-        /// Backup job is inactive
-        /// </summary>
         Inactive,
-        
-        /// <summary>
-        /// The backup job is in progress
-        /// </summary>
         InProgress,
-        
-        /// <summary>
-        /// Backup job is active (legacy name, same as InProgress)
-        /// </summary>
         Active = InProgress,
-        
-        /// <summary>
-        /// The backup job is paused
-        /// </summary>
         Paused,
-        
-        /// <summary>
-        /// The backup job has been canceled
-        /// </summary>
         Canceled,
-        
-        /// <summary>
-        /// The backup job has been cancelled (legacy spelling)
-        /// </summary>
         Cancelled = Canceled,
-        
-        /// <summary>
-        /// The backup job has completed successfully
-        /// </summary>
         Completed,
-        
-        /// <summary>
-        /// The backup job has failed
-        /// </summary>
         Failed,
-        
-        /// <summary>
-        /// Backup job has failed (legacy name, same as Failed)
-        /// </summary>
         Error = Failed
     }
 }
