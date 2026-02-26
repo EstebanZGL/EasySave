@@ -23,20 +23,17 @@ namespace EasyLog
         /// </summary>
         /// <param name="serverUrl">The URL of the log server</param>
         /// <param name="fallbackLogger">A fallback logger to use if the server is unavailable</param>
-        public RemoteLogger(string serverUrl, IEncryptionLogger fallbackLogger)
+        // Remplacez le constructeur de RemoteLogger par celui-ci :
+
+        public RemoteLogger(string serverUrl, IEncryptionLogger fallbackLogger, string customMachineName = "", string customUserName = "")
         {
-            _serverUrl = serverUrl?.TrimEnd('/') ?? throw new ArgumentNullException(nameof(serverUrl));
-            _fallbackLogger = fallbackLogger ?? throw new ArgumentNullException(nameof(fallbackLogger));
-            
+            _serverUrl = serverUrl;
             _httpClient = new HttpClient();
-            _machineName = Environment.MachineName;
-            _userName = Environment.UserName;
-            
-            _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
-            };
+            _fallbackLogger = fallbackLogger;
+        
+            // Si on a rentré un nom personnalisé, on l'utilise. Sinon, on prend le vrai nom du PC.
+            _machineName = !string.IsNullOrWhiteSpace(customMachineName) ? customMachineName : Environment.MachineName;
+            _userName = !string.IsNullOrWhiteSpace(customUserName) ? customUserName : Environment.UserName;
         }
         
         /// <summary>

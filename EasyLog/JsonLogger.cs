@@ -67,7 +67,9 @@ namespace EasyLog
             {
                 Timestamp = DateTime.Now,
                 Event = eventName,
-                Details = details
+                Details = details,
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
             
             string logFilePath = Path.Combine(_logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
@@ -99,7 +101,9 @@ namespace EasyLog
                 TargetPath = targetPath,
                 FileSize = fileSize,
                 TransferTime = transferTime,
-                EncryptionTime = 0 // Default to 0 for non-encrypted transfers
+                EncryptionTime = 0, // Default to 0 for non-encrypted transfers
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);
@@ -116,7 +120,9 @@ namespace EasyLog
                 TargetPath = targetPath,
                 FileSize = fileSize,
                 TransferTime = transferTime,
-                EncryptionTime = encryptionTime
+                EncryptionTime = encryptionTime,
+                MachineName = LogIdentityProvider.GetMachineName(),
+                UserName = LogIdentityProvider.GetUserName()
             };
 
             await WriteLogEntryAsync(logEntry);

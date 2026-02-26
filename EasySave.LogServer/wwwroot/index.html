@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>EasySave - Serveur de Logs Centralisé</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; font-size: 14px; }
+        .header { background: #2c3e50; color: white; padding: 15px; border-radius: 5px; }
+        .status { float: right; background: #27ae60; padding: 5px 10px; border-radius: 3px; font-weight: bold; }
+        .controls { margin: 20px 0; background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .filter-group { display: flex; align-items: center; gap: 5px; border-left: 2px solid #eee; padding-left: 15px; }
+        
+        /* Conteneur pour permettre de scroller de gauche à droite si les chemins sont longs */
+        .table-container { overflow-x: auto; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; position: sticky; top: 0; }
+        tr:hover { background-color: #f5f5f5; }
+        
+        /* Permet de raccourcir visuellement les chemins très longs avec "..." */
+        .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+        
+        button { padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2980b9; }
+        select, input { padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="status" id="server-status">Vérification...</div>
+        <h2>🌐 Console Centralisée EasySave</h2>
+    </div>
+
+    <div class="controls">
+        <div>
+            <label for="log-date">📅 Date : </label>
+            <input type="date" id="log-date">
+            <button onclick="loadLogs()">Charger</button>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filter-machine">💻 Machine : </label>
+            <select id="filter-machine" onchange="renderTable()">
+                <option value="ALL">Toutes</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="filter-user">👤 Utilisateur : </label>
+            <select id="filter-user" onchange="renderTable()">
+                <option value="ALL">Tous</option>
+            </select>
+        </div>
+        
+        <div style="margin-left: auto; font-size: 0.9em; color: #7f8c8d;" id="log-count">
+            0 log(s) affiché(s)
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>MachineName</th>
+                    <th>UserName</th>
+                    <th>BackupName</th>
+                    <th>SourcePath</th>
+                    <th>TargetPath</th>
+                    <th>FileSize (Octets)</th>
+                    <th>TransferTime (ms)</th>
+                    <th>EncryptionTime (ms)</th>
+                </tr>
+            </thead>
+            <tbody id="log-table-body">
+                <tr><td colspan="9" style="text-align: center; padding: 20px;">Veuillez charger les logs...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('log-date').valueAsDate = new Date();
+        let globalLogs = []; 
+
+        fetch('/api/logs/health')
+            .then(res => res.json())
+            .then(data => { document.getElementById('server-status').innerText = data.status === 'Healthy' ? '🟢 En ligne' : '🔴 Hors ligne'; })
+            .catch(() => document.getElementById('server-status').innerText = '🔴 Hors ligne');
+
+        function loadLogs() {
+            const date = document.getElementById('log-date').value;
+            if (!date) return;
+
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Chargement en cours...</td></tr>';
+            
+            document.getElementById('filter-machine').innerHTML = '<option value="ALL">Toutes</option>';
+            document.getElementById('filter-user').innerHTML = '<option value="ALL">Tous</option>';
+            document.getElementById('log-count').innerText = "Chargement...";
+
+            fetch(`/api/logs/date/${date}?t=${new Date().getTime()}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Erreur serveur: ${res.status}`);
+                    return res.json();
+                })
+                .then(logs => {
+                    if (!Array.isArray(logs) || logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Aucun log trouvé pour cette date.</td></tr>';
+                        globalLogs = [];
+                        document.getElementById('log-count').innerText = "0 log(s)";
+                        return;
+                    }
+
+                    globalLogs = logs.reverse();
+                    updateFilterOptions();
+                    renderTable();
+                })
+                .catch(err => {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red; padding: 20px;">Erreur : ${err.message}</td></tr>`;
+                });
+        }
+
+        function updateFilterOptions() {
+            const machines = new Set();
+            const users = new Set();
+
+            globalLogs.forEach(log => {
+                machines.add(log.MachineName !== undefined ? log.MachineName : (log.machineName || 'N/A'));
+                users.add(log.UserName !== undefined ? log.UserName : (log.userName || 'N/A'));
+            });
+
+            const machineSelect = document.getElementById('filter-machine');
+            const userSelect = document.getElementById('filter-user');
+
+            Array.from(machines).sort().forEach(m => machineSelect.innerHTML += `<option value="${m}">${m}</option>`);
+            Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
+        }
+
+        function getExactValue(log, keyPascal, keyCamel, fallback) {
+            if (log[keyPascal] !== undefined && log[keyPascal] !== null) return log[keyPascal];
+            if (log[keyCamel] !== undefined && log[keyCamel] !== null) return log[keyCamel];
+            return fallback;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('log-table-body');
+            const machineFilter = document.getElementById('filter-machine').value;
+            const userFilter = document.getElementById('filter-user').value;
+
+            const filteredLogs = globalLogs.filter(log => {
+                const m = getExactValue(log, 'MachineName', 'machineName', 'N/A');
+                const u = getExactValue(log, 'UserName', 'userName', 'N/A');
+                
+                const matchMachine = (machineFilter === 'ALL' || m === machineFilter);
+                const matchUser = (userFilter === 'ALL' || u === userFilter);
+                
+                return matchMachine && matchUser;
+            });
+
+            document.getElementById('log-count').innerText = `${filteredLogs.length} log(s) affiché(s)`;
+
+            if (filteredLogs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">Aucun log ne correspond à ces filtres.</td></tr>';
+                return;
+            }
+
+            let rowsHtml = '';
+            
+            filteredLogs.forEach(log => {
+                const rawTime = getExactValue(log, 'Timestamp', 'timestamp', null);
+                const time = rawTime ? new Date(rawTime).toLocaleString('fr-FR') : 'Inconnu';
+                
+                const machineName = getExactValue(log, 'MachineName', 'machineName', '');
+                const userName = getExactValue(log, 'UserName', 'userName', '');
+                const backupName = getExactValue(log, 'BackupName', 'backupName', '');
+                
+                const sourcePath = getExactValue(log, 'SourcePath', 'sourcePath', '');
+                const targetPath = getExactValue(log, 'TargetPath', 'targetPath', '');
+                
+                const fileSize = getExactValue(log, 'FileSize', 'fileSize', 0);
+                const transferTime = getExactValue(log, 'TransferTime', 'transferTime', 0);
+                const encryptionTime = getExactValue(log, 'EncryptionTime', 'encryptionTime', 0);
+
+                rowsHtml += `
+                    <tr>
+                        <td>${time}</td>
+                        <td><strong>${machineName}</strong></td>
+                        <td>${userName}</td>
+                        <td>${backupName}</td>
+                        <td class="truncate" title="${sourcePath}">${sourcePath}</td>
+                        <td class="truncate" title="${targetPath}">${targetPath}</td>
+                        <td>${fileSize}</td>
+                        <td>${transferTime}</td>
+                        <td>${encryptionTime}</td>
+                    </tr>
+                `;
+            });
+            
+
+            tbody.innerHTML = rowsHtml;
+        }
+    </script>
+</body>
+</html>
