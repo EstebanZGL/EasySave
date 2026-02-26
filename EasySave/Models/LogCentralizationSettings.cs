@@ -14,8 +14,8 @@ namespace EasySave.Models
         private LogDestination _logDestination = LogDestination.Local;
         private string _serverUrl = "http://localhost:5000";
         private bool _isEnabled = false;
-        public string SimulatedMachineName { get; set; } = "";
-        public string SimulatedUserName { get; set; } = "";
+        private string _simulatedMachineName = "";
+        private string _simulatedUserName = "";
 
         /// <summary>
         /// Gets or sets the log destination (Local, Remote, or Both)
@@ -60,6 +60,32 @@ namespace EasySave.Models
                 if (_isEnabled != value)
                 {
                     _isEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SimulatedMachineName
+        {
+            get => _simulatedMachineName;
+            set
+            {
+                if (_simulatedMachineName != value)
+                {
+                    _simulatedMachineName = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SimulatedUserName
+        {
+            get => _simulatedUserName;
+            set
+            {
+                if (_simulatedUserName != value)
+                {
+                    _simulatedUserName = value;
                     OnPropertyChanged();
                 }
             }

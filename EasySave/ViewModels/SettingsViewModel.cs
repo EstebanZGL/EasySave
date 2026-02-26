@@ -59,6 +59,7 @@ namespace EasySave.ViewModels
             _largeFileThreshold = 1048576; // 1MB
             _customMachineName = Environment.MachineName; // Valeur par défaut : nom de la machine système
             _customUserName = Environment.UserName; // Valeur par défaut : nom d'utilisateur système
+            ReplaceLogCentralizationSettings(_logCentralizationSettings, saveChanges: false, notifyChange: false);
             
             // Chargement des paramètres
             LoadSettings();
@@ -274,12 +275,7 @@ namespace EasySave.ViewModels
             get => _logCentralizationSettings;
             set
             {
-                if (_logCentralizationSettings != value)
-                {
-                    _logCentralizationSettings = value;
-                    OnPropertyChanged();
-                    SaveSettings();
-                }
+                ReplaceLogCentralizationSettings(value, saveChanges: true, notifyChange: true);
             }
         }
 
@@ -449,7 +445,7 @@ namespace EasySave.ViewModels
                         
                         if (settings.LogCentralization != null)
                         {
-                            _logCentralizationSettings = settings.LogCentralization;
+                            ReplaceLogCentralizationSettings(settings.LogCentralization, saveChanges: false, notifyChange: false);
                         }
                     }
                 }
@@ -545,6 +541,44 @@ namespace EasySave.ViewModels
         }
 
         // --- Helpers ---
+
+        private void ReplaceLogCentralizationSettings(LogCentralizationSettings? settings, bool saveChanges, bool notifyChange)
+        {
+            var newSettings = settings ?? new LogCentralizationSettings();
+            if (ReferenceEquals(_logCentralizationSettings, newSettings))
+            {
+                if (_logCentralizationSettings != null)
+                {
+                    _logCentralizationSettings.PropertyChanged -= OnLogCentralizationSettingsPropertyChanged;
+                    _logCentralizationSettings.PropertyChanged += OnLogCentralizationSettingsPropertyChanged;
+                }
+
+                return;
+            }
+
+            if (_logCentralizationSettings != null)
+            {
+                _logCentralizationSettings.PropertyChanged -= OnLogCentralizationSettingsPropertyChanged;
+            }
+
+            _logCentralizationSettings = newSettings;
+            _logCentralizationSettings.PropertyChanged += OnLogCentralizationSettingsPropertyChanged;
+
+            if (notifyChange)
+            {
+                OnPropertyChanged(nameof(LogCentralization));
+            }
+
+            if (saveChanges)
+            {
+                SaveSettings();
+            }
+        }
+
+        private void OnLogCentralizationSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            SaveSettings();
+        }
 
         private string FormatFileSize(long bytes)
         {
