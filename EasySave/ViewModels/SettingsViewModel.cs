@@ -33,6 +33,8 @@ namespace EasySave.ViewModels
         private int _maxParallelJobs = 5;
         private string _encryptionKey = "";
         private LogCentralizationSettings _logCentralizationSettings = new LogCentralizationSettings();
+        private string _customMachineName = ""; // Nouveau champ pour le nom de la machine personnalisé
+        private string _customUserName = ""; // Nouveau champ pour le nom d'utilisateur personnalisé
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -55,6 +57,9 @@ namespace EasySave.ViewModels
             _maxParallelJobs = 5;
             _logFormat = "JSON";
             _largeFileThreshold = 1048576; // 1MB
+            _customMachineName = Environment.MachineName; // Valeur par défaut : nom de la machine système
+            _customUserName = Environment.UserName; // Valeur par défaut : nom d'utilisateur système
+            ReplaceLogCentralizationSettings(_logCentralizationSettings, saveChanges: false, notifyChange: false);
             
             // Load settings
             LoadSettings();
@@ -71,6 +76,39 @@ namespace EasySave.ViewModels
         }
 
         // --- Public Properties ---
+
+        // Nouvelles propriétés pour le nom de la machine et le nom d'utilisateur personnalisés
+        public string CustomMachineName
+        {
+            get => _customMachineName;
+            set 
+            { 
+                if (_customMachineName != value) 
+                { 
+                    _customMachineName = value; 
+                    OnPropertyChanged(); 
+                    SaveSettings(); 
+                } 
+            }
+        }
+
+        public string CustomUserName
+        {
+            get => _customUserName;
+            set 
+            { 
+                if (_customUserName != value) 
+                { 
+                    _customUserName = value; 
+                    OnPropertyChanged(); 
+                    SaveSettings(); 
+                } 
+            }
+        }
+
+        // Propriétés pour obtenir le nom de la machine et le nom d'utilisateur à utiliser dans les logs
+        public string LogMachineName => string.IsNullOrWhiteSpace(_customMachineName) ? Environment.MachineName : _customMachineName;
+        public string LogUserName => string.IsNullOrWhiteSpace(_customUserName) ? Environment.UserName : _customUserName;
 
         public string EncryptionKey
         {
@@ -236,12 +274,7 @@ namespace EasySave.ViewModels
             get => _logCentralizationSettings;
             set
             {
-                if (_logCentralizationSettings != value)
-                {
-                    _logCentralizationSettings = value;
-                    OnPropertyChanged();
-                    SaveSettings();
-                }
+                ReplaceLogCentralizationSettings(value, saveChanges: true, notifyChange: true);
             }
         }
 
@@ -315,6 +348,8 @@ namespace EasySave.ViewModels
         public string LanguageLabel => GetTranslation("language");
         public string EnglishLanguageText => GetTranslation("language_english");
         public string FrenchLanguageText => GetTranslation("language_french");
+        public string CustomMachineNameLabel => GetTranslation("custom_machine_name");
+        public string CustomUserNameLabel => GetTranslation("custom_user_name");
 
         public string SelectedLanguageCode
         {
@@ -400,10 +435,12 @@ namespace EasySave.ViewModels
                         _priorityExtensions = settings.PriorityExtensions ?? new List<string>();
                         _largeFileThreshold = settings.LargeFileThreshold > 0 ? settings.LargeFileThreshold : 1048576;
                         _maxParallelJobs = settings.MaxParallelJobs > 0 ? settings.MaxParallelJobs : 5;
+                        _customMachineName = settings.CustomMachineName ?? Environment.MachineName;
+                        _customUserName = settings.CustomUserName ?? Environment.UserName;
                         
                         if (settings.LogCentralization != null)
                         {
-                            _logCentralizationSettings = settings.LogCentralization;
+                            ReplaceLogCentralizationSettings(settings.LogCentralization, saveChanges: false, notifyChange: false);
                         }
                     }
                 }
@@ -428,7 +465,9 @@ namespace EasySave.ViewModels
                     PriorityExtensions = _priorityExtensions,
                     LargeFileThreshold = _largeFileThreshold,
                     MaxParallelJobs = _maxParallelJobs,
-                    LogCentralization = _logCentralizationSettings
+                    LogCentralization = _logCentralizationSettings,
+                    CustomMachineName = _customMachineName,
+                    CustomUserName = _customUserName
                 };
                 
                 var options = new JsonSerializerOptions { WriteIndented = true };
@@ -497,6 +536,44 @@ namespace EasySave.ViewModels
         }
 
         // --- Helpers ---
+
+        private void ReplaceLogCentralizationSettings(LogCentralizationSettings? settings, bool saveChanges, bool notifyChange)
+        {
+            var newSettings = settings ?? new LogCentralizationSettings();
+            if (ReferenceEquals(_logCentralizationSettings, newSettings))
+            {
+                if (_logCentralizationSettings != null)
+                {
+                    _logCentralizationSettings.PropertyChanged -= OnLogCentralizationSettingsPropertyChanged;
+                    _logCentralizationSettings.PropertyChanged += OnLogCentralizationSettingsPropertyChanged;
+                }
+
+                return;
+            }
+
+            if (_logCentralizationSettings != null)
+            {
+                _logCentralizationSettings.PropertyChanged -= OnLogCentralizationSettingsPropertyChanged;
+            }
+
+            _logCentralizationSettings = newSettings;
+            _logCentralizationSettings.PropertyChanged += OnLogCentralizationSettingsPropertyChanged;
+
+            if (notifyChange)
+            {
+                OnPropertyChanged(nameof(LogCentralization));
+            }
+
+            if (saveChanges)
+            {
+                SaveSettings();
+            }
+        }
+
+        private void OnLogCentralizationSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            SaveSettings();
+        }
 
         private string FormatFileSize(long bytes)
         {
@@ -598,6 +675,8 @@ namespace EasySave.ViewModels
                 OnPropertyChanged(nameof(EnglishLanguageText));
                 OnPropertyChanged(nameof(FrenchLanguageText));
                 OnPropertyChanged(nameof(SelectedLanguageCode));
+                OnPropertyChanged(nameof(CustomMachineNameLabel));
+                OnPropertyChanged(nameof(CustomUserNameLabel));
             }
         }
 
@@ -617,6 +696,8 @@ namespace EasySave.ViewModels
             public long LargeFileThreshold { get; set; }
             public int MaxParallelJobs { get; set; }
             public LogCentralizationSettings LogCentralization { get; set; }
+            public string? CustomMachineName { get; set; }
+            public string? CustomUserName { get; set; }
         }
     }
 }

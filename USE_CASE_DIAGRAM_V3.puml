@@ -1,0 +1,97 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Utilisateur" as User
+actor "Logiciel metier\n(processus surveille)" as BizSoft
+actor "Serveur de logs\n(Docker)" as LogServer
+actor "CryptoSoft" as Crypto
+
+rectangle "EasySave v3.0" {
+  usecase "Gerer les travaux de sauvegarde" as UC_Manage
+  usecase "Creer un travail" as UC_Create
+  usecase "Modifier un travail" as UC_Edit
+  usecase "Supprimer un travail" as UC_Delete
+  usecase "Lister les travaux" as UC_List
+  usecase "Choisir type\n(complete / differentielle)" as UC_Type
+  usecase "Definir source / destination" as UC_Paths
+
+  usecase "Configurer l'application" as UC_Settings
+  usecase "Choisir format de log\n(JSON/XML)" as UC_LogFormat
+  usecase "Definir extensions a chiffrer" as UC_EncryptExt
+  usecase "Definir extensions prioritaires" as UC_PriorityExt
+  usecase "Definir seuil fichier volumineux" as UC_LargeThreshold
+  usecase "Definir nb max de travaux\nlances simultanement" as UC_MaxParallel
+  usecase "Configurer logiciel metier\na surveiller" as UC_BizConf
+  usecase "Configurer centralisation logs\n(local / distant / les deux)" as UC_LogDest
+  usecase "Configurer URL serveur de logs" as UC_LogUrl
+  usecase "Configurer chemin CryptoSoft\net cle de chiffrement" as UC_CryptoConf
+  usecase "Changer la langue\n(FR/EN)" as UC_Lang
+
+  usecase "Executer un travail" as UC_RunOne
+  usecase "Executer plusieurs travaux\n(en parallele)" as UC_RunManyParallel
+  usecase "Executer les travaux selectionnes" as UC_RunSelected
+  usecase "Pause / Reprise manuelle\nd'un travail" as UC_PauseResume
+  usecase "Stop manuel\nd'un travail" as UC_Stop
+  usecase "Suivre l'etat en temps reel\n(progression + fichier courant)" as UC_Monitor
+
+  usecase "Suspendre / reprendre auto\nsi logiciel metier actif" as UC_AutoPause
+  usecase "Appliquer la barriere de priorite\n(fichiers prioritaires d'abord)" as UC_PriorityBarrier
+  usecase "Limiter les gros fichiers\n(semaphore: 1 a la fois)" as UC_Semaphore
+  usecase "Chiffrer fichiers cibles\npendant la copie" as UC_Encrypt
+  usecase "Journaliser les operations" as UC_Log
+  usecase "Envoyer les logs au serveur\nDocker" as UC_RemoteLog
+  usecase "Ecrire l'etat dans state.json" as UC_State
+
+  usecase "Quitter l'application" as UC_Exit
+  usecase "Avertir si des sauvegardes\nsont en cours" as UC_ExitWarn
+}
+
+User --> UC_Manage
+User --> UC_Settings
+User --> UC_RunOne
+User --> UC_RunManyParallel
+User --> UC_RunSelected
+User --> UC_PauseResume
+User --> UC_Stop
+User --> UC_Monitor
+User --> UC_Exit
+
+UC_Manage .> UC_Create : <<include>>
+UC_Manage .> UC_Edit : <<include>>
+UC_Manage .> UC_Delete : <<include>>
+UC_Manage .> UC_List : <<include>>
+UC_Create .> UC_Type : <<include>>
+UC_Create .> UC_Paths : <<include>>
+UC_Edit .> UC_Type : <<include>>
+UC_Edit .> UC_Paths : <<include>>
+
+UC_Settings .> UC_LogFormat : <<include>>
+UC_Settings .> UC_EncryptExt : <<include>>
+UC_Settings .> UC_PriorityExt : <<include>>
+UC_Settings .> UC_LargeThreshold : <<include>>
+UC_Settings .> UC_MaxParallel : <<include>>
+UC_Settings .> UC_BizConf : <<include>>
+UC_Settings .> UC_LogDest : <<include>>
+UC_Settings .> UC_LogUrl : <<include>>
+UC_Settings .> UC_CryptoConf : <<include>>
+UC_Settings .> UC_Lang : <<include>>
+
+UC_RunOne .> UC_PriorityBarrier : <<include>>
+UC_RunOne .> UC_Semaphore : <<include>>
+UC_RunOne .> UC_Encrypt : <<include>>
+UC_RunOne .> UC_Log : <<include>>
+UC_RunOne .> UC_State : <<include>>
+UC_RunOne .> UC_AutoPause : <<include>>
+
+UC_RunManyParallel .> UC_RunOne : <<include>>
+UC_RunSelected .> UC_RunManyParallel : <<include>>
+UC_Monitor .> UC_State : <<include>>
+UC_Log .> UC_RemoteLog : <<extend>>
+UC_Exit .> UC_ExitWarn : <<extend>>
+
+BizSoft --> UC_AutoPause
+Crypto --> UC_Encrypt
+LogServer --> UC_RemoteLog
+
+@enduml

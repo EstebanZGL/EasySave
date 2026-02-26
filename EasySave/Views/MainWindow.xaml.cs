@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using System.Threading.Tasks;
 using EasySave.Services;
@@ -24,6 +25,11 @@ namespace EasySave.Views
         private const double UltraCompactHeightThreshold = 560;
         private const double MicroWidthThreshold = 700;
         private const double MicroHeightThreshold = 470;
+        private const double JobStatusDefaultExpandedHeight = 230;
+        private const double JobStatusCollapsedHeaderHeight = 56;
+
+        private bool _isJobStatusCollapsed;
+        private double _jobStatusExpandedHeight = JobStatusDefaultExpandedHeight;
 
         public MainWindow(MainViewModel viewModel, TranslationService translationService, ParallelBackupService backupService)
         {
@@ -94,6 +100,8 @@ namespace EasySave.Views
             {
                 DetailsPanel.Visibility = Visibility.Collapsed;
                 JobStatusPanel.Visibility = Visibility.Collapsed;
+                JobStatusSplitter.Visibility = Visibility.Collapsed;
+                JobStatusRow.Height = new GridLength(0);
                 Grid.SetColumnSpan(BackupJobsPanel, 2);
                 BackupJobsPanel.Margin = new Thickness(0);
             }
@@ -101,6 +109,12 @@ namespace EasySave.Views
             {
                 DetailsPanel.Visibility = Visibility.Visible;
                 JobStatusPanel.Visibility = Visibility.Visible;
+                JobStatusRow.Height = _isJobStatusCollapsed
+                    ? GridLength.Auto
+                    : new GridLength(Math.Max(_jobStatusExpandedHeight, JobStatusDefaultExpandedHeight));
+                JobStatusListView.Visibility = _isJobStatusCollapsed ? Visibility.Collapsed : Visibility.Visible;
+                JobStatusSplitter.Visibility = _isJobStatusCollapsed ? Visibility.Collapsed : Visibility.Visible;
+                JobStatusToggleButton.Content = _isJobStatusCollapsed ? "▾" : "▴";
                 Grid.SetColumnSpan(BackupJobsPanel, 1);
                 BackupJobsPanel.Margin = new Thickness(0, 0, 10, 0);
             }
@@ -240,6 +254,43 @@ namespace EasySave.Views
                     bool isMicroCompact = ActualWidth < MicroWidthThreshold || ActualHeight < MicroHeightThreshold;
                     ApplyBackupJobsColumnsSize(isMicroCompact, isUltraCompact);
                 }));
+        }
+
+        private void JobStatusToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isJobStatusCollapsed = !_isJobStatusCollapsed;
+
+            if (_isJobStatusCollapsed)
+            {
+                if (JobStatusRow.Height.IsAbsolute && JobStatusRow.Height.Value > JobStatusCollapsedHeaderHeight)
+                {
+                    _jobStatusExpandedHeight = JobStatusRow.Height.Value;
+                }
+
+                JobStatusListView.Visibility = Visibility.Collapsed;
+                JobStatusSplitter.Visibility = Visibility.Collapsed;
+                JobStatusRow.Height = GridLength.Auto;
+                JobStatusToggleButton.Content = "▾";
+                return;
+            }
+
+            JobStatusListView.Visibility = Visibility.Visible;
+            JobStatusSplitter.Visibility = Visibility.Visible;
+            JobStatusRow.Height = new GridLength(Math.Max(_jobStatusExpandedHeight, JobStatusDefaultExpandedHeight));
+            JobStatusToggleButton.Content = "▴";
+        }
+
+        private void JobStatusSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            if (_isJobStatusCollapsed)
+            {
+                return;
+            }
+
+            if (JobStatusRow.Height.IsAbsolute && JobStatusRow.Height.Value > JobStatusCollapsedHeaderHeight)
+            {
+                _jobStatusExpandedHeight = JobStatusRow.Height.Value;
+            }
         }
 
         private static bool CopyToClipboard(string value)

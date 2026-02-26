@@ -1,0 +1,1294 @@
+@startuml
+
+skinparam style strictuml
+
+hide circle
+
+skinparam classAttributeIconSize 0
+
+skinparam linetype ortho
+
+skinparam nodesep 60
+
+skinparam ranksep 60
+
+skinparam packageStyle rectangle
+
+skinparam shadowing false
+
+skinparam BackgroundColor #FFFFFF
+
+skinparam ArrowColor #4B5563
+
+skinparam ClassBackgroundColor #F8FAFC
+
+skinparam ClassBorderColor #1F2937
+
+skinparam InterfaceBackgroundColor #ECFDF5
+
+skinparam InterfaceBorderColor #065F46
+
+skinparam EnumBackgroundColor #FEF3C7
+
+skinparam EnumBorderColor #92400E
+
+skinparam PackageBackgroundColor #F3F4F6
+
+skinparam PackageBorderColor #374151
+ 
+title EasySave - Diagramme de classes (Mis à jour : Technique + DI + Sécurité)
+ 
+' --- DEPENDANCES EXTERNES ---
+
+package "External Processes" {
+
+  class "CryptoSoft.exe" as External_CryptoSoft <<Executable>> {
+
+    +Encrypt(source, target)
+
+  }
+
+}
+ 
+package "CryptoSoft" {
+
+  class "CryptoSoftForm" as CryptoSoft_CryptoSoftForm {
+
+  +CryptoSoftForm()
+
+  }
+
+  class "Program" as CryptoSoft_Program {
+
+  -_mutex : Mutex?
+
+  -_mutexCreated : bool
+
+  }
+
+}
+ 
+package "EasyLog" {
+
+  interface "IEncryptionLogger" as EasyLog_IEncryptionLogger {
+
+  +LogEncryptedTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime) : Task
+
+  }
+
+  interface "ILogger" as EasyLog_ILogger {
+
+  +LogTransferAsync(string backupName, string sourcePath, string targetPath, long fileSize, long transferTime) : Task
+
+  +LogApplicationEventAsync(string eventName, string details) : Task
+
+  +LogBackupOperationAsync(string jobName, string sourcePath, string targetPath, long fileSize, long transferTime) : Task
+
+  }
+
+  class "JsonLogger" as EasyLog_JsonLogger {
+
+  -_logDirectory : string
+
+  +JsonLogger()
+
+  +JsonLogger(string logDirectory)
+
+  }
+
+  enum "LogDestination" as EasyLog_LogDestination {
+
+  +Local
+
+  +Remote
+
+  +Both
+
+  }
+
+  class "LogEntry" as EasyLog_LogEntry {
+
+  +Timestamp : DateTime
+
+  +BackupName : string
+
+  +SourcePath : string
+
+  +TargetPath : string
+
+  +FileSize : long
+
+  +TransferTime : long
+
+  +EncryptionTime : long
+
+  +OperationType : string
+
+  }
+
+  class "LoggerFactory" as EasyLog_LoggerFactory <<static>> {
+
+  +CreateJsonLogger(string? logDirectory = null) : ILogger
+
+  +CreateEncryptionJsonLogger(string? logDirectory = null) : IEncryptionLogger
+
+  +CreateXmlLogger(string? logDirectory = null) : ILogger
+
+  +CreateEncryptionXmlLogger(string? logDirectory = null) : IEncryptionLogger
+
+  +CreateRemoteLogger(string serverUrl, string format = "json", string? logDirectory = null) : IEncryptionLogger
+
+  +CreateLogger(string format = "json", string? logDirectory = null) : ILogger
+
+  +CreateEncryptionLogger(string format = "json", string? logDirectory = null) : IEncryptionLogger
+
+  +CreateEncryptionLogger(string format = "json", string? logDirectory = null, string? serverUrl = null, LogDestination logDestination = LogDestination.Local) : IEncryptionLogger
+
+  }
+
+  class "PerformanceLogger" as EasyLog_PerformanceLogger {
+
+  -_logger : IEncryptionLogger
+
+  +PerformanceLogger(IEncryptionLogger logger)
+
+  }
+
+  class "RemoteLogger" as EasyLog_RemoteLogger {
+
+  -_serverUrl : string
+
+  -_httpClient : HttpClient
+
+  -_machineName : string
+
+  -_userName : string
+
+  -_jsonOptions : JsonSerializerOptions
+
+  -_fallbackLogger : IEncryptionLogger
+
+  +RemoteLogger(string serverUrl, IEncryptionLogger fallbackLogger)
+
+  }
+
+  class "XmlLogger" as EasyLog_XmlLogger {
+
+  -_logDirectory : string
+
+  +XmlLogger()
+
+  +XmlLogger(string logDirectory)
+
+  }
+
+}
+ 
+package "EasySave" {
+
+  class "App" as EasySave_App {
+
+  -_serviceProvider : ServiceProvider
+
+  +App()
+
+  }
+
+  note right of EasySave_App
+<b>Dependency Injection (DI)</b>
+
+    Configures Services as <b>Singletons</b>:
+
+    - TranslationService
+
+    - BackupJobManager
+
+    - BackupJobRepository
+
+    - StateManager
+
+    - CryptoService
+
+    - ParallelBackupService
+
+    - BusinessSoftwareMonitor
+
+  end note
+ 
+  class "EasySaveController" as EasySave_EasySaveController {
+
+  -_translationService : TranslationService
+
+  -_jobManager : BackupJobManager
+
+  -_backupService : BackupService
+
+  -_stateManager : StateManager
+
+  -_logger : ILogger
+
+  -_lastBackupTimes : Dictionary<string, DateTime>
+
+  +EasySaveController()
+
+  }
+
+}
+ 
+package "EasySave.Commands" {
+
+  class "RelayCommand" as EasySave_Commands_RelayCommand {
+
+  -_execute : Action<object>
+
+  -_canExecute : Predicate<object>
+
+  +RelayCommand(Action<object> execute)
+
+  +RelayCommand(Action<object> execute, Predicate<object> canExecute)
+
+  }
+
+}
+ 
+package "EasySave.Converters" {
+
+  class "BoolToColorConverter" as EasySave_Converters_BoolToColorConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  -TrueBrush : SolidColorBrush
+
+  -FalseBrush : SolidColorBrush
+
+  }
+
+  class "BoolToStringConverter" as EasySave_Converters_BoolToStringConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "BoolToVisibilityConverter" as EasySave_Converters_BoolToVisibilityConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "BoolToVisibilityInvertConverter" as EasySave_Converters_BoolToVisibilityInvertConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "EnumToBoolConverter" as EasySave_Converters_EnumToBoolConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "InverseBoolConverter" as EasySave_Converters_InverseBoolConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "NullToBoolConverter" as EasySave_Converters_NullToBoolConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "StringToBoolConverter" as EasySave_Converters_StringToBoolConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "StringToVisibilityConverter" as EasySave_Converters_StringToVisibilityConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+}
+ 
+package "EasySave.LogServer.Controllers" {
+
+  class "LogsController" as EasySave_LogServer_Controllers_LogsController {
+
+  -_logStorageService : LogStorageService
+
+  -_logger : ILogger<LogsController>
+
+  +LogsController(LogStorageService logStorageService, ILogger<LogsController> logger)
+
+  }
+
+}
+ 
+package "EasySave.LogServer.Models" {
+
+  class "LogEntry" as EasySave_LogServer_Models_LogEntry {
+
+  +Id : Guid
+
+  +Timestamp : DateTime
+
+  +BackupName : string
+
+  +SourcePath : string
+
+  +TargetPath : string
+
+  +FileSize : long
+
+  +TransferTime : long
+
+  +EncryptionTime : long
+
+  +MachineName : string
+
+  +UserName : string
+
+  +LogType : string
+
+  +Details : string
+
+  }
+
+}
+ 
+package "EasySave.LogServer.Services" {
+
+  class "LogStorageService" as EasySave_LogServer_Services_LogStorageService {
+
+  -_logDirectory : string
+
+  -_jsonOptions : JsonSerializerOptions
+
+  -_dailyLogs : Dictionary<string, List<LogEntry>>
+
+  +LogStorageService(string logDirectory)
+
+  }
+
+}
+ 
+package "EasySave.Models" {
+
+  class "ActiveBackupJobViewModel" as EasySave_Models_ActiveBackupJobViewModel {
+
+  -_jobName : string
+
+  -_status : string
+
+  -_progress : int
+
+  -_currentFile : string
+
+  -_isPaused : bool
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  }
+
+  class "BackupJob" as EasySave_Models_BackupJob {
+
+  -_name : string
+
+  -_sourcePath : string
+
+  -_targetPath : string
+
+  -_description : string
+
+  -_type : BackupType
+
+  -_createdAt : DateTime
+
+  -_lastBackupTime : DateTime?
+
+  -_isSelected : bool
+
+  +BackupJob(string name, string sourcePath, string targetPath, BackupType type)
+
+  +BackupJob()
+
+  +PropertyChanged : event PropertyChangedEventHandler?
+
+  }
+
+  class "BackupJobState" as EasySave_Models_BackupJobState {
+
+  +JobName : string
+
+  +Status : string
+
+  +TotalFiles : int
+
+  +TotalFilesRemaining : int
+
+  +TotalSize : long
+
+  +TotalSizeRemaining : long
+
+  +CurrentFile : string
+
+  +CurrentFileDestination : string
+
+  +Progress : int
+
+  +StartTime : DateTime
+
+  +EndTime : DateTime?
+
+  +BackupJobState()
+
+  }
+
+  class "BackupJobStatusEventArgs" as EasySave_Models_BackupJobStatusEventArgs {
+
+  +JobName : string
+
+  +Status : string
+
+  +Progress : int
+
+  +CurrentFile : string
+
+  +BackupJobStatusEventArgs(string jobName, string status, int progress, string currentFile)
+
+  }
+
+  enum "BackupState" as EasySave_Models_BackupState {
+
+  +NotStarted
+
+  +Inactive
+
+  +InProgress
+
+  +Active
+
+  +Paused
+
+  +Canceled
+
+  +Cancelled
+
+  +Completed
+
+  +Failed
+
+  +Error
+
+  }
+
+  enum "BackupType" as EasySave_Models_BackupType {
+
+  +Complete
+
+  +Differential
+
+  }
+
+  class "JobStatus" as EasySave_Models_JobStatus <<static>> {
+
+  +Running : string
+
+  +Paused : string
+
+  +Completed : string
+
+  +Canceled : string
+
+  +Stopping : string
+
+  +Failed : string
+
+  }
+
+  class "LogCentralizationSettings" as EasySave_Models_LogCentralizationSettings {
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  }
+
+}
+ 
+package "EasySave.Services" {
+
+  class "BackupJobManager" as EasySave_Services_BackupJobManager {
+
+  -_backupJobs : List<BackupJob>
+
+  -_configFilePath : string
+
+  +BackupJobManager()
+
+  }
+
+  class "BackupJobRepository" as EasySave_Services_BackupJobRepository {
+
+  -_filePath : string
+
+  -_backupJobs : List<BackupJob>
+
+  +BackupJobRepository(string filePath = "backupjobs.json")
+
+  }
+
+  class "RuntimeBackupJobState" as EasySave_Services_BackupJobState {
+
+  +Name : string
+
+  +LastUpdateTime : DateTime
+
+  +SourceFilePath : string
+
+  +TargetFilePath : string
+
+  +TotalFilesToCopy : int
+
+  +TotalFilesSize : long
+
+  +NbFilesLeftToDo : int
+
+  +Progression : int
+
+  +SizeRemaining : long
+
+  +StartTime : DateTime?
+
+  +EndTime : DateTime?
+
+  +JobName : string
+
+  +Status : string
+
+  +TotalFiles : int
+
+  +TotalFilesRemaining : int
+
+  +TotalSize : long
+
+  +TotalSizeRemaining : long
+
+  +CurrentFile : string
+
+  +CurrentFileDestination : string
+
+  +Progress : int
+
+  }
+
+  class "ServiceBackupJobStatusEventArgs" as EasySave_Services_BackupJobStatusEventArgs {
+
+  +JobName : string
+
+  +Status : string
+
+  +Progress : int
+
+  +CurrentFile : string
+
+  +BackupJobStatusEventArgs(string jobName, string status, int progress, string currentFile = "")
+
+  }
+
+  class "BackupService" as EasySave_Services_BackupService {
+
+  -_logger : IEncryptionLogger
+
+  -_stateManager : StateManager
+
+  -_settings : SettingsViewModel
+
+  -_cryptoService : CryptoService
+
+  -_cancellationTokenSource : CancellationTokenSource
+
+  -_isPaused : bool
+
+  -_businessSoftwareMonitor : BusinessSoftwareMonitor
+
+  #BackupService()
+
+  +BackupService(ILogger logger, StateManager stateManager)
+
+  +BackupService(IEncryptionLogger logger, StateManager stateManager)
+
+  }
+
+  class "BusinessSoftwareMonitor" as EasySave_Services_BusinessSoftwareMonitor {
+
+  -_settingsViewModel : SettingsViewModel
+
+  -_backupService : object
+
+  -_logger : IEncryptionLogger
+
+  -_cancellationTokenSource : CancellationTokenSource
+
+  -_isMonitoring : bool
+
+  +BusinessSoftwareStatusChanged : event EventHandler<bool>
+
+  +BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, ParallelBackupService backupService)
+
+  +BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, IBackupService backupService, IEncryptionLogger logger)
+
+  }
+
+  class "CryptoPasswordService" as EasySave_Services_CryptoPasswordService {
+
+  -{static} SymmetricKey : byte[]
+
+  +PasswordFileExists() : bool
+
+  +GetPassword() : string
+
+  +SetPassword(string newPassword) : bool
+
+  -EncryptPassword(string password) : string
+
+  -DecryptPassword(string encryptedData) : string
+
+  -SimpleEncrypt(string text, byte[] key) : string
+
+  -SimpleDecrypt(string encryptedText, byte[] key) : string
+
+  -KeyFilePath : string
+
+  -DefaultPassword : string
+
+  }
+
+  class "CryptoService" as EasySave_Services_CryptoService {
+
+  -_settings : SettingsViewModel
+
+  +CryptoService(SettingsViewModel settings)
+
+  +ShouldEncrypt(string filePath) : bool
+
+  +EncryptFileAsync(string filePath) : Task<long>
+
+  }
+
+  class "EncryptionLoggerExtensions" as EasySave_Services_EncryptionLoggerExtensions <<static>> {
+
+  +LogError(this IEncryptionLogger logger, string message) : Task
+
+  +LogFileTransfer(this IEncryptionLogger logger, string backupName, string sourcePath, string targetPath, long fileSize, long transferTime, long encryptionTime) : Task
+
+  +LogBackupComplete(this IEncryptionLogger logger, string backupName, string sourcePath, string targetPath, int totalFiles, long totalSize) : Task
+
+  }
+
+  interface "IBackupService" as EasySave_Services_IBackupService {
+
+  +ExecuteBackupJobAsync(BackupJob job) : Task
+
+  +PauseBackupJob() : void
+
+  +ResumeBackupJob() : void
+
+  +StopBackupJob() : void
+
+  }
+
+  class "ParallelBackupService" as EasySave_Services_ParallelBackupService {
+
+  -_logger : IEncryptionLogger
+
+  -_stateManager : StateManager
+
+  -_cryptoService : CryptoService
+
+  -_settingsViewModel : SettingsViewModel
+
+  -_backupJobRepository : BackupJobRepository
+
+  -_globalPendingPriorityTransfers : int
+
+  -_largeFileSemaphore : SemaphoreSlim
+
+  -_priorityExtensions : List<string>
+
+  -_activeJobs : ConcurrentDictionary<string, BackupJobState>
+
+  -_jobPauseStates : ConcurrentDictionary<string, bool>
+
+  +BackupJobStatusChanged : event EventHandler<Models.BackupJobStatusEventArgs>
+
+  +ParallelBackupService(IEncryptionLogger, StateManager, CryptoService, SettingsViewModel, BackupJobRepository)
+
+  +StartBackupJobAsync(BackupJob job) : Task
+
+  +PauseJobAsync(string jobName) : Task<bool>
+
+  +ResumeJobAsync(string jobName) : Task<bool>
+
+  }
+
+  class "StateManager" as EasySave_Services_StateManager {
+
+  -_stateFilePath : string
+
+  -_states : Dictionary<string, BackupJobState>
+
+  +StateManager(string stateFilePath)
+
+  }
+
+  class "TranslationService" as EasySave_Services_TranslationService {
+
+  -_translations : Dictionary<string, string>
+
+  -_currentLanguage : string
+
+  -_languageFilePath : string
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  +TranslationService(string defaultLanguage = "en")
+
+  }
+
+}
+ 
+package "EasySave.Tests" {
+
+  class "UnitTest1" as EasySave_Tests_UnitTest1 {
+
+  +Test1() : void
+
+  }
+
+}
+ 
+package "EasySave.Tests.Models" {
+
+  class "BackupJobTests" as EasySave_Tests_Models_BackupJobTests {
+
+  +Validate_WithValidParameters_ReturnsTrue() : void
+
+  +Validate_WithEmptyName_ReturnsFalse() : void
+
+  +Validate_WithEmptySourcePath_ReturnsFalse() : void
+
+  +Validate_WithEmptyTargetPath_ReturnsFalse() : void
+
+  }
+
+}
+ 
+package "EasySave.Tests.Services" {
+
+  class "BusinessSoftwareMonitorTests" as EasySave_Tests_Services_BusinessSoftwareMonitorTests {
+
+  +StartMonitoring_ShouldStartTimer() : void
+
+  +StopMonitoring_ShouldStopTimer() : void
+
+  +Dispose_ShouldStopMonitoring() : void
+
+  +BusinessSoftwareStatusChanged_ShouldRaiseEvent() : void
+
+  }
+
+  class "CryptoServiceTests" as EasySave_Tests_Services_CryptoServiceTests {
+
+  +ShouldEncrypt_WithMatchingExtension_ReturnsTrue() : void
+
+  +ShouldEncrypt_WithNonMatchingExtension_ReturnsFalse() : void
+
+  +ShouldEncrypt_WithNoExtensionsToEncrypt_ReturnsFalse() : void
+
+  +ShouldEncrypt_WithNullExtensionsToEncrypt_ReturnsFalse() : void
+
+  +ShouldEncrypt_WithNullFilePath_ReturnsFalse() : void
+
+  }
+
+  class "StateManagerTests" as EasySave_Tests_Services_StateManagerTests {
+
+  +StateManagerTests()
+
+  }
+
+}
+ 
+package "EasySave.ViewModels" {
+
+  class "ActiveBackupJobViewModel" as EasySave_ViewModels_ActiveBackupJobViewModel {
+
+  -_jobName : string
+
+  -_status : string
+
+  -_progress : int
+
+  -_currentFile : string
+
+  -_isPaused : bool
+
+  -_translationService : TranslationService
+
+  +ActiveBackupJobViewModel()
+
+  +ActiveBackupJobViewModel(TranslationService translationService)
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  }
+
+  class "BackupJobViewModel" as EasySave_ViewModels_BackupJobViewModel {
+
+  -_backupJob : BackupJob
+
+  -_isSelected : bool
+
+  -_lastBackupTime : DateTime?
+
+  +BackupJobViewModel(BackupJob backupJob)
+
+  }
+
+  class "MainViewModel" as EasySave_ViewModels_MainViewModel {
+
+  -_backupJobRepository : BackupJobRepository
+
+  -_backupService : ParallelBackupService
+
+  -_businessSoftwareMonitor : BusinessSoftwareMonitor
+
+  -_translationService : TranslationService
+
+  -_backupJobs : ObservableCollection<BackupJobViewModel>
+
+  -_activeJobs : ObservableCollection<ActiveBackupJobViewModel>
+
+  -_selectedBackupJob : BackupJobViewModel
+
+  -_isAllJobsSelected : bool
+
+  -_isBusinessSoftwareRunning : bool
+
+  -_statusMessage : string
+
+  -_hasSelectedJobs : bool
+
+  +CreateBackupJobCommand : ICommand
+
+  +EditBackupJobCommand : ICommand
+
+  +DeleteBackupJobCommand : ICommand
+
+  +ExecuteBackupJobCommand : ICommand
+
+  +ExecuteSelectedJobsCommand : ICommand
+
+  +OpenSettingsCommand : ICommand
+
+  +ChangeLanguageCommand : ICommand
+
+  +PauseResumeJobCommand : ICommand
+
+  +StopJobCommand : ICommand
+
+  }
+
+  class "SettingsViewModel" as EasySave_ViewModels_SettingsViewModel {
+
+  -_translationService : TranslationService
+
+  -_settingsFilePath : string
+
+  -_cryptoPasswordService : CryptoPasswordService
+
+  +PropertyChanged : event PropertyChangedEventHandler?
+
+  +SettingsViewModel()
+
+  +SettingsViewModel(TranslationService translationService = null)
+
+  }
+
+  class "ViewModelBase" as EasySave_ViewModels_ViewModelBase {
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  }
+
+}
+ 
+package "EasySave.Views" {
+
+  class "BackupJobDialog" as EasySave_Views_BackupJobDialog {
+
+  -_name : string
+
+  -_sourcePath : string
+
+  -_targetPath : string
+
+  -_description : string
+
+  -_isDifferentialType : bool
+
+  -_validationMessage : string
+
+  -_createdAt : DateTime
+
+  -_lastBackupTime : DateTime?
+
+  -_translationService : TranslationService
+
+  +BackupJobDialog()
+
+  +BackupJobDialog(BackupJob job)
+
+  +PropertyChanged : event PropertyChangedEventHandler
+
+  }
+
+  class "BoolToColorConverter" as EasySave_Views_BoolToColorConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "MainWindow" as EasySave_Views_MainWindow {
+
+  -_viewModel : MainViewModel
+
+  -_translationService : TranslationService
+
+  -_backupService : ParallelBackupService
+
+  +MainWindow(MainViewModel viewModel, TranslationService translationService, ParallelBackupService backupService)
+
+  }
+
+  class "NullToBoolConverter" as EasySave_Views_NullToBoolConverter {
+
+  +Convert(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  +ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) : object
+
+  }
+
+  class "SettingsWindow" as EasySave_Views_SettingsWindow {
+
+  -_viewModel : SettingsViewModel
+
+  -_isEncryptionKeyVisible : bool
+
+  -_isSyncingEncryptionKeyControls : bool
+
+  +SettingsWindow(SettingsViewModel viewModel)
+
+  }
+
+  class "TranslationServiceProvider" as EasySave_Views_TranslationServiceProvider {
+
+  -_translationService : TranslationService
+
+  }
+
+}
+ 
+package "EasySaveCLI" {
+
+  class "EasySaveCLIController" as EasySaveCLI_EasySaveCLIController {
+
+  -_translationService : TranslationService
+
+  -_jobManager : BackupJobManager
+
+  -_backupService : BackupService
+
+  -_stateManager : StateManager
+
+  -_logger : IEncryptionLogger
+
+  -_settings : SettingsViewModel
+
+  -_lastBackupTimes : Dictionary<string, DateTime>
+
+  +EasySaveCLIController(ServiceProvider serviceProvider)
+
+  }
+
+  class "Program" as EasySaveCLI_Program {
+
+  -ConfigureServices() : void
+
+  -_serviceProvider : ServiceProvider
+
+  }
+
+}
+ 
+CryptoSoft_CryptoSoftForm --|> "Form"
+
+EasyLog_IEncryptionLogger --|> EasyLog_ILogger
+
+EasyLog_JsonLogger ..|> EasyLog_IEncryptionLogger
+
+
+
+EasyLog_PerformanceLogger ..|> EasyLog_IEncryptionLogger
+
+EasyLog_PerformanceLogger ..> EasyLog_IEncryptionLogger :  ctor
+
+EasyLog_PerformanceLogger --> EasyLog_IEncryptionLogger :  field
+
+EasyLog_RemoteLogger ..|> EasyLog_IEncryptionLogger
+
+EasyLog_RemoteLogger ..> EasyLog_IEncryptionLogger :  ctor
+
+EasyLog_RemoteLogger --> EasyLog_IEncryptionLogger :  field
+
+EasyLog_XmlLogger ..|> EasyLog_IEncryptionLogger
+
+EasySave_App --|> "System.Windows.Application"
+
+EasySave_Commands_RelayCommand ..|> "ICommand"
+
+EasySave_Converters_BoolToColorConverter ..|> "IValueConverter"
+
+EasySave_Converters_BoolToStringConverter ..|> "IValueConverter"
+
+EasySave_Converters_BoolToVisibilityConverter ..|> "IValueConverter"
+
+EasySave_Converters_BoolToVisibilityInvertConverter ..|> "IValueConverter"
+
+EasySave_Converters_EnumToBoolConverter ..|> "IValueConverter"
+
+EasySave_Converters_InverseBoolConverter ..|> "IValueConverter"
+
+EasySave_Converters_NullToBoolConverter ..|> "IValueConverter"
+
+EasySave_Converters_StringToBoolConverter ..|> "IValueConverter"
+
+EasySave_Converters_StringToVisibilityConverter ..|> "IValueConverter"
+
+EasySave_EasySaveController --> EasyLog_ILogger :  field
+
+EasySave_EasySaveController --> EasySave_Services_BackupJobManager :  field
+
+EasySave_EasySaveController --> EasySave_Services_BackupService :  field
+
+EasySave_EasySaveController --> EasySave_Services_StateManager :  field
+
+EasySave_EasySaveController --> EasySave_Services_TranslationService :  field
+
+EasySave_LogServer_Controllers_LogsController ..> EasySave_LogServer_Services_LogStorageService :  ctor
+
+EasySave_LogServer_Controllers_LogsController --|> "ControllerBase"
+
+EasySave_LogServer_Controllers_LogsController --> EasySave_LogServer_Services_LogStorageService :  field
+
+EasySave_Models_ActiveBackupJobViewModel ..|> "INotifyPropertyChanged"
+
+EasySave_Models_BackupJob ..|> "INotifyPropertyChanged"
+
+EasySave_Models_BackupJob ..> EasySave_Models_BackupType :  ctor
+
+EasySave_Models_BackupJob --> EasySave_Models_BackupType :  field
+
+EasySave_Models_BackupJobStatusEventArgs --|> "EventArgs"
+
+EasySave_Models_LogCentralizationSettings ..|> "INotifyPropertyChanged"
+
+EasySave_Models_LogCentralizationSettings --> EasyLog_LogDestination :  field
+
+EasySave_Services_BackupJobManager --> EasySave_Models_BackupJob :  field
+
+EasySave_Services_BackupJobRepository --> EasySave_Models_BackupJob :  field
+
+EasySave_Services_BackupJobState --> EasySave_Models_BackupState :  field
+
+EasySave_Services_BackupJobStatusEventArgs --|> "EventArgs"
+
+EasySave_Services_BackupService ..|> EasySave_Services_IBackupService
+
+EasySave_Services_BackupService ..> EasyLog_IEncryptionLogger :  ctor
+
+EasySave_Services_BackupService ..> EasyLog_ILogger :  ctor
+
+EasySave_Services_BackupService ..> EasySave_Services_StateManager :  ctor
+
+EasySave_Services_BackupService --> EasyLog_IEncryptionLogger :  field
+
+EasySave_Services_BackupService --> EasySave_Services_BusinessSoftwareMonitor :  field
+
+EasySave_Services_BackupService --> EasySave_Services_CryptoService :  field
+
+EasySave_Services_BackupService --> EasySave_Services_StateManager :  field
+
+EasySave_Services_BackupService --> EasySave_ViewModels_SettingsViewModel :  field
+
+EasySave_Services_BusinessSoftwareMonitor ..|> "IDisposable"
+
+EasySave_Services_BusinessSoftwareMonitor ..> EasyLog_IEncryptionLogger :  ctor
+
+EasySave_Services_BusinessSoftwareMonitor ..> EasySave_Services_IBackupService :  ctor
+
+EasySave_Services_BusinessSoftwareMonitor ..> EasySave_Services_ParallelBackupService :  ctor
+
+EasySave_Services_BusinessSoftwareMonitor ..> EasySave_ViewModels_SettingsViewModel :  ctor
+
+EasySave_Services_BusinessSoftwareMonitor --> EasyLog_IEncryptionLogger :  field
+
+EasySave_Services_BusinessSoftwareMonitor --> EasySave_ViewModels_SettingsViewModel :  field
+
+EasySave_Services_CryptoService ..> EasySave_ViewModels_SettingsViewModel :  ctor
+
+EasySave_Services_CryptoService --> EasySave_ViewModels_SettingsViewModel :  field
+
+EasySave_Services_CryptoService ..> External_CryptoSoft : "Uses Process"
+
+EasySave_Services_IBackupService --|> "IDisposable"
+
+EasySave_Services_ParallelBackupService ..> EasyLog_IEncryptionLogger :  ctor
+
+EasySave_Services_ParallelBackupService ..> EasySave_Services_BackupJobRepository :  ctor
+
+EasySave_Services_ParallelBackupService ..> EasySave_Services_CryptoService :  ctor
+
+EasySave_Services_ParallelBackupService ..> EasySave_Services_StateManager :  ctor
+
+EasySave_Services_ParallelBackupService ..> EasySave_ViewModels_SettingsViewModel :  ctor
+
+EasySave_Services_ParallelBackupService --> EasyLog_IEncryptionLogger :  field
+
+EasySave_Services_ParallelBackupService --> EasySave_Services_BackupJobRepository :  field
+
+EasySave_Services_ParallelBackupService --> EasySave_Services_CryptoService :  field
+
+EasySave_Services_ParallelBackupService --> EasySave_Services_StateManager :  field
+
+EasySave_Services_ParallelBackupService --> EasySave_ViewModels_SettingsViewModel :  field
+
+EasySave_Services_StateManager --> EasySave_Models_BackupState :  field
+
+EasySave_Services_TranslationService ..|> "INotifyPropertyChanged"
+
+EasySave_ViewModels_ActiveBackupJobViewModel ..|> "INotifyPropertyChanged"
+
+EasySave_ViewModels_ActiveBackupJobViewModel ..> EasySave_Services_TranslationService :  ctor
+
+EasySave_ViewModels_ActiveBackupJobViewModel --> EasySave_Services_TranslationService :  field
+
+EasySave_ViewModels_BackupJobViewModel ..> EasySave_Models_BackupJob :  ctor
+
+EasySave_ViewModels_BackupJobViewModel --|> EasySave_ViewModels_ViewModelBase
+
+EasySave_ViewModels_BackupJobViewModel --> EasySave_Models_BackupJob :  field
+
+EasySave_ViewModels_MainViewModel ..> EasySave_Services_BackupJobRepository :  ctor
+
+EasySave_ViewModels_MainViewModel ..> EasySave_Services_BusinessSoftwareMonitor :  ctor
+
+EasySave_ViewModels_MainViewModel ..> EasySave_Services_ParallelBackupService :  ctor
+
+EasySave_ViewModels_MainViewModel ..> EasySave_Services_TranslationService :  ctor
+
+EasySave_ViewModels_MainViewModel --|> EasySave_ViewModels_ViewModelBase
+
+EasySave_ViewModels_MainViewModel --> EasySave_Services_BackupJobRepository :  field
+
+EasySave_ViewModels_MainViewModel --> EasySave_Services_BusinessSoftwareMonitor :  field
+
+EasySave_ViewModels_MainViewModel --> EasySave_Services_ParallelBackupService :  field
+
+EasySave_ViewModels_MainViewModel --> EasySave_Services_TranslationService :  field
+
+EasySave_ViewModels_MainViewModel --> EasySave_ViewModels_BackupJobViewModel :  field
+
+EasySave_ViewModels_SettingsViewModel ..|> "INotifyPropertyChanged"
+
+EasySave_ViewModels_SettingsViewModel ..> EasySave_Services_TranslationService :  ctor
+
+EasySave_ViewModels_SettingsViewModel --> EasySave_Models_LogCentralizationSettings :  field
+
+EasySave_ViewModels_SettingsViewModel --> EasySave_Services_CryptoPasswordService :  field
+
+EasySave_ViewModels_SettingsViewModel --> EasySave_Services_TranslationService :  field
+
+EasySave_ViewModels_ViewModelBase ..|> "INotifyPropertyChanged"
+
+EasySave_Views_BackupJobDialog ..|> "INotifyPropertyChanged"
+
+EasySave_Views_BackupJobDialog ..> EasySave_Models_BackupJob :  ctor
+
+EasySave_Views_BackupJobDialog --|> "Window"
+
+EasySave_Views_BackupJobDialog --> EasySave_Services_TranslationService :  field
+
+EasySave_Views_BoolToColorConverter ..|> "IValueConverter"
+
+EasySave_Views_MainWindow ..> EasySave_Services_ParallelBackupService :  ctor
+
+EasySave_Views_MainWindow ..> EasySave_Services_TranslationService :  ctor
+
+EasySave_Views_MainWindow ..> EasySave_ViewModels_MainViewModel :  ctor
+
+EasySave_Views_MainWindow --|> "Window"
+
+EasySave_Views_MainWindow --> EasySave_Services_ParallelBackupService :  field
+
+EasySave_Views_MainWindow --> EasySave_Services_TranslationService :  field
+
+EasySave_Views_MainWindow --> EasySave_ViewModels_MainViewModel :  field
+
+EasySave_Views_NullToBoolConverter ..|> "IValueConverter"
+
+EasySave_Views_SettingsWindow ..> EasySave_ViewModels_SettingsViewModel :  ctor
+
+EasySave_Views_SettingsWindow --|> "Window"
+
+EasySave_Views_SettingsWindow --> EasySave_ViewModels_SettingsViewModel :  field
+
+EasySave_Views_TranslationServiceProvider --> EasySave_Services_TranslationService :  field
+
+EasySaveCLI_EasySaveCLIController --> EasyLog_IEncryptionLogger :  field
+
+EasySaveCLI_EasySaveCLIController --> EasySave_Services_BackupJobManager :  field
+
+EasySaveCLI_EasySaveCLIController --> EasySave_Services_BackupService :  field
+
+EasySaveCLI_EasySaveCLIController --> EasySave_Services_StateManager :  field
+
+EasySaveCLI_EasySaveCLIController --> EasySave_Services_TranslationService :  field
+
+EasySaveCLI_EasySaveCLIController --> EasySave_ViewModels_SettingsViewModel :  field
+ 
+@enduml
+ 
+ 

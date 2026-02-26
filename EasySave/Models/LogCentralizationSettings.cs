@@ -14,6 +14,8 @@ namespace EasySave.Models
         private LogDestination _logDestination = LogDestination.Local;
         private string _serverUrl = "http://localhost:5000";
         private bool _isEnabled = false;
+        private string _simulatedMachineName = "";
+        private string _simulatedUserName = "";
 
          
         /// Gets or sets the log destination (Local, Remote, or Both)
@@ -63,7 +65,32 @@ namespace EasySave.Models
             }
         }
 
-         
+        public string SimulatedMachineName
+        {
+            get => _simulatedMachineName;
+            set
+            {
+                if (_simulatedMachineName != value)
+                {
+                    _simulatedMachineName = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SimulatedUserName
+        {
+            get => _simulatedUserName;
+            set
+            {
+                if (_simulatedUserName != value)
+                {
+                    _simulatedUserName = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         /// Event raised when a property changes
          
         public event PropertyChangedEventHandler PropertyChanged;
@@ -71,8 +98,7 @@ namespace EasySave.Models
          
         /// Raises the PropertyChanged event
          
-        /// <param name="propertyName">The name of the property that changed</param>
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

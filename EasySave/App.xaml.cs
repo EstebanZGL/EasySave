@@ -7,6 +7,7 @@ using EasySave.Views;
 using Microsoft.Extensions.DependencyInjection;
 using EasyLog;
 using EasySave.Models;
+using System.Diagnostics;
 
 namespace EasySave
 {
@@ -23,8 +24,30 @@ namespace EasySave
         public App()
         {
             var services = new ServiceCollection();
+            
+            // Enregistrer d'abord SettingsViewModel pour pouvoir l'utiliser immédiatement
+            services.AddSingleton<SettingsViewModel>();
+            var tempProvider = services.BuildServiceProvider();
+            var settingsViewModel = tempProvider.GetRequiredService<SettingsViewModel>();
+            
+            // Configurer LogIdentityProvider AVANT de créer les loggers
+            var identityProvider = new SettingsLogIdentityProvider(settingsViewModel);
+            LogIdentityProvider.Configure(identityProvider);
+            
+            // Maintenant configurer tous les autres services
             ConfigureServices(services);
             _serviceProvider = services.BuildServiceProvider();
+            
+            // Reconfigurer LogIdentityProvider avec l'instance finale de SettingsViewModel
+            settingsViewModel = _serviceProvider.GetRequiredService<SettingsViewModel>();
+            identityProvider = new SettingsLogIdentityProvider(settingsViewModel);
+            LogIdentityProvider.Configure(identityProvider);
+            
+            // Afficher les valeurs pour le débogage
+            Debug.WriteLine($"App: CustomMachineName = '{settingsViewModel.CustomMachineName}'");
+            Debug.WriteLine($"App: CustomUserName = '{settingsViewModel.CustomUserName}'");
+            Debug.WriteLine($"App: LogIdentityProvider.GetMachineName() = '{LogIdentityProvider.GetMachineName()}'");
+            Debug.WriteLine($"App: LogIdentityProvider.GetUserName() = '{LogIdentityProvider.GetUserName()}'");
         }
 
         private void ConfigureServices(ServiceCollection services)
@@ -43,9 +66,6 @@ namespace EasySave
             
             // Then register StateManager which will use this string
             services.AddSingleton<StateManager>();
-            
-            // Register settings
-            services.AddSingleton<SettingsViewModel>();
             
             // Configure and register logger
             string logFormat = LoadLogFormat();
@@ -135,6 +155,8 @@ namespace EasySave
                     DisplayHelp();
                     return;
                 }
+                
+                // LogIdentityProvider est déjà configuré dans le constructeur
                 
                 // Create and run the controller for command-line mode
                 var controller = new EasySaveController();
