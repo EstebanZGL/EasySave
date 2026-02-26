@@ -24,6 +24,7 @@ namespace CryptoSoft
         private Label lblPassword = null!;
         private TextBox txtPassword = null!;
         private Button btnSavePassword = null!;
+        private CheckBox chkForceDecryption = null!;
 
         private int totalFiles = 0;
         private int processedFiles = 0;
@@ -47,7 +48,7 @@ namespace CryptoSoft
         private void InitializeComponent()
         {
             // Form size
-            this.ClientSize = new Size(500, 280);
+            this.ClientSize = new Size(500, 320);
 
             // Source path controls
             Label lblSource = new Label
@@ -110,18 +111,28 @@ namespace CryptoSoft
             btnBrowseTarget.Click += BtnBrowseTarget_Click;
             this.Controls.Add(btnBrowseTarget);
 
+            // Force decryption checkbox
+            chkForceDecryption = new CheckBox
+            {
+                Text = "Force decryption mode (use when file doesn't have _encrypted suffix)",
+                Location = new Point(120, 100),
+                AutoSize = true
+            };
+            chkForceDecryption.CheckedChanged += ChkForceDecryption_CheckedChanged;
+            this.Controls.Add(chkForceDecryption);
+
             // Password controls
             lblPassword = new Label
             {
                 Text = "Password:",
-                Location = new Point(10, 110),
+                Location = new Point(10, 130),
                 AutoSize = true
             };
             this.Controls.Add(lblPassword);
 
             txtPassword = new TextBox
             {
-                Location = new Point(120, 110),
+                Location = new Point(120, 130),
                 Width = 280,
                 UseSystemPasswordChar = true
             };
@@ -130,7 +141,7 @@ namespace CryptoSoft
             btnSavePassword = new Button
             {
                 Text = "Save",
-                Location = new Point(410, 108),
+                Location = new Point(410, 128),
                 Width = 80
             };
             btnSavePassword.Click += BtnSavePassword_Click;
@@ -140,7 +151,7 @@ namespace CryptoSoft
             btnEncrypt = new Button
             {
                 Text = "Encrypt",
-                Location = new Point(120, 150),
+                Location = new Point(120, 170),
                 Width = 120,
                 Height = 30
             };
@@ -150,7 +161,7 @@ namespace CryptoSoft
             btnDecrypt = new Button
             {
                 Text = "Decrypt",
-                Location = new Point(260, 150),
+                Location = new Point(260, 170),
                 Width = 120,
                 Height = 30
             };
@@ -161,7 +172,7 @@ namespace CryptoSoft
             lblStatus = new Label
             {
                 Text = "Ready",
-                Location = new Point(10, 200),
+                Location = new Point(10, 220),
                 AutoSize = true
             };
             this.Controls.Add(lblStatus);
@@ -170,7 +181,7 @@ namespace CryptoSoft
             lblProgress = new Label
             {
                 Text = "",
-                Location = new Point(10, 220),
+                Location = new Point(10, 240),
                 AutoSize = true
             };
             this.Controls.Add(lblProgress);
@@ -178,12 +189,57 @@ namespace CryptoSoft
             // Progress bar
             progressBar = new ProgressBar
             {
-                Location = new Point(120, 200),
+                Location = new Point(120, 220),
                 Width = 370,
                 Height = 20,
                 Visible = false
             };
             this.Controls.Add(progressBar);
+        }
+
+        private void ChkForceDecryption_CheckedChanged(object? sender, EventArgs e)
+        {
+            // If source path is set, update target path suggestion
+            if (!string.IsNullOrEmpty(txtSourcePath.Text))
+            {
+                if (isSourceFolder)
+                {
+                    string path = txtSourcePath.Text.Trim();
+                    string parentDir = Directory.GetParent(path)?.FullName ?? "";
+                    string folderName = new DirectoryInfo(path).Name;
+                    
+                    // If force decryption is checked, always suggest _decrypted suffix
+                    if (chkForceDecryption.Checked)
+                    {
+                        string baseFolderName = folderName;
+                        if (folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase))
+                        {
+                            baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
+                        }
+                        txtTargetPath.Text = Path.Combine(parentDir, baseFolderName + SUFFIX_DECRYPTED);
+                    }
+                    else
+                    {
+                        // Original logic
+                        bool seemsEncrypted = folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
+                        
+                        if (seemsEncrypted)
+                        {
+                            string baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
+                            txtTargetPath.Text = Path.Combine(parentDir, baseFolderName + SUFFIX_DECRYPTED);
+                        }
+                        else
+                        {
+                            txtTargetPath.Text = Path.Combine(parentDir, folderName + SUFFIX_ENCRYPTED);
+                        }
+                    }
+                }
+                else if (File.Exists(txtSourcePath.Text))
+                {
+                    // For files, suggest target path based on force decryption setting
+                    SuggestTargetPath(txtSourcePath.Text, !chkForceDecryption.Checked);
+                }
+            }
         }
 
         private void BtnSavePassword_Click(object? sender, EventArgs e)
@@ -222,16 +278,30 @@ namespace CryptoSoft
                 string parentDir = Directory.GetParent(path)?.FullName ?? "";
                 string folderName = new DirectoryInfo(path).Name;
                 
-                bool seemsEncrypted = folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
-                
-                if (seemsEncrypted)
+                // If force decryption is checked, always suggest _decrypted suffix
+                if (chkForceDecryption.Checked)
                 {
-                    string baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
+                    string baseFolderName = folderName;
+                    if (folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase))
+                    {
+                        baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
+                    }
                     txtTargetPath.Text = Path.Combine(parentDir, baseFolderName + SUFFIX_DECRYPTED);
                 }
                 else
                 {
-                    txtTargetPath.Text = Path.Combine(parentDir, folderName + SUFFIX_ENCRYPTED);
+                    // Original logic
+                    bool seemsEncrypted = folderName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
+                    
+                    if (seemsEncrypted)
+                    {
+                        string baseFolderName = folderName.Substring(0, folderName.Length - SUFFIX_ENCRYPTED.Length);
+                        txtTargetPath.Text = Path.Combine(parentDir, baseFolderName + SUFFIX_DECRYPTED);
+                    }
+                    else
+                    {
+                        txtTargetPath.Text = Path.Combine(parentDir, folderName + SUFFIX_ENCRYPTED);
+                    }
                 }
             }
             else if (File.Exists(path))
@@ -241,15 +311,23 @@ namespace CryptoSoft
                 
                 string fileName = Path.GetFileNameWithoutExtension(path);
                 
-                bool seemsEncrypted = fileName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
-                
-                if (seemsEncrypted)
+                // If force decryption is checked, always suggest decryption
+                if (chkForceDecryption.Checked)
                 {
                     SuggestTargetPath(path, false);
                 }
                 else
                 {
-                    SuggestTargetPath(path, true);
+                    bool seemsEncrypted = fileName.EndsWith(SUFFIX_ENCRYPTED, StringComparison.OrdinalIgnoreCase);
+                    
+                    if (seemsEncrypted)
+                    {
+                        SuggestTargetPath(path, false);
+                    }
+                    else
+                    {
+                        SuggestTargetPath(path, true);
+                    }
                 }
             }
             else
@@ -319,11 +397,15 @@ namespace CryptoSoft
 
         private async void BtnEncrypt_Click(object? sender, EventArgs e)
         {
+            // Force encryption mode
+            chkForceDecryption.Checked = false;
             await ProcessPathAsync(true);
         }
 
         private async void BtnDecrypt_Click(object? sender, EventArgs e)
         {
+            // Force decryption mode
+            chkForceDecryption.Checked = true;
             await ProcessPathAsync(false);
         }
 
@@ -487,6 +569,7 @@ namespace CryptoSoft
                         fileNameWithoutExt = fileNameWithoutExt.Substring(0, fileNameWithoutExt.Length - SUFFIX_DECRYPTED.Length);
                     }
                     
+                    // Utilisation de SUFFIX_DECRYPTED pour le cas de décryptage
                     string newFileName = fileNameWithoutExt + (isEncrypt ? SUFFIX_ENCRYPTED : SUFFIX_DECRYPTED) + extension;
                     string targetFile = Path.Combine(targetFolder, newFileName);
                     
@@ -541,6 +624,7 @@ namespace CryptoSoft
             btnDecrypt.Enabled = enabled;
             txtPassword.Enabled = enabled;
             btnSavePassword.Enabled = enabled;
+            chkForceDecryption.Enabled = enabled;
         }
     }
 }
