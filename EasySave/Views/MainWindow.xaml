@@ -104,6 +104,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition x:Name="JobStatusRow" Height="230" MinHeight="56"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -358,10 +359,42 @@
             </Border>
         </Grid>
 
-        <Border x:Name="JobStatusPanel" Grid.Row="2" Style="{StaticResource RoundedPanel}" Margin="0,10,0,0">
+        <GridSplitter x:Name="JobStatusSplitter"
+                      Grid.Row="2"
+                      Height="8"
+                      Margin="0,8,0,0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Center"
+                      ResizeDirection="Rows"
+                      ResizeBehavior="PreviousAndNext"
+                      Background="#D4DED5"
+                      ShowsPreview="True"
+                      DragCompleted="JobStatusSplitter_DragCompleted"/>
+
+        <Border x:Name="JobStatusPanel" Grid.Row="3" Style="{StaticResource RoundedPanel}" Margin="0,2,0,0">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="{Binding ActiveJobsHeader}" FontSize="20" FontWeight="Bold" Margin="8,0,8,6"/>
-                <ListView ItemsSource="{Binding ActiveJobs}" BorderThickness="0" Background="Transparent">
+                <Grid DockPanel.Dock="Top" Margin="8,0,8,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding ActiveJobsHeader}"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                    <Button x:Name="JobStatusToggleButton"
+                            Grid.Column="1"
+                            Width="34"
+                            Height="30"
+                            Margin="8,0,0,0"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="JobStatusToggleButton_Click"
+                            ToolTip="Afficher / masquer l'état du travail"
+                            Content="▴"/>
+                </Grid>
+
+                <ListView x:Name="JobStatusListView" ItemsSource="{Binding ActiveJobs}" BorderThickness="0" Background="Transparent">
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Header="{Binding DataContext.NameLabel, RelativeSource={RelativeSource AncestorType=Window}}" Width="160" DisplayMemberBinding="{Binding JobName}"/>
@@ -412,7 +445,7 @@
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Margin="0,8,0,0"
                 Padding="10,5"
                 CornerRadius="12"
