@@ -35,7 +35,7 @@ namespace CryptoSoft
         public CryptoSoftForm()
         {
             InitializeComponent();
-            this.Text = "CryptoSoft v4.0";
+            this.Text = "CryptoSoft v3.0";
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;

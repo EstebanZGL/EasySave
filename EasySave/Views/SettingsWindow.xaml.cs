@@ -5,9 +5,9 @@ using Microsoft.Win32;
 
 namespace EasySave.Views
 {
-    /// <summary>
+     
     /// Interaction logic for SettingsWindow.xaml
-    /// </summary>
+     
     public partial class SettingsWindow : Window
     {
         private const string CopyGlyph = "\uE8C8";
@@ -77,8 +77,8 @@ namespace EasySave.Views
             EncryptionKeyPasswordBox.Visibility = _isEncryptionKeyVisible ? Visibility.Collapsed : Visibility.Visible;
             EncryptionKeyTextBox.Visibility = _isEncryptionKeyVisible ? Visibility.Visible : Visibility.Collapsed;
             ToggleEncryptionKeyVisibilityButton.ToolTip = _isEncryptionKeyVisible
-                ? "Masquer la clé"
-                : "Afficher la clé";
+                ? "Hide key"
+                : "Show key";
         }
 
         private void BrowseBusinessSoftwareButton_Click(object sender, RoutedEventArgs e)
@@ -150,24 +150,24 @@ namespace EasySave.Views
 
         private void ChangeCryptoPasswordButton_Click(object sender, RoutedEventArgs e)
         {
-            // Récupérer le mot de passe depuis la TextBox
+            // Get password from TextBox
             string newPassword = _viewModel.CryptoPassword;
 
-            // Vérifier que le mot de passe n'est pas vide
+            // Check that password is not empty
             if (string.IsNullOrWhiteSpace(newPassword))
             {
-                MessageDialog("Le mot de passe ne peut pas être vide.", "Erreur");
+                MessageDialog("Password cannot be empty.", "Error");
                 return;
             }
 
-            // Changer le mot de passe
+            // Change password
             if (_viewModel.ChangeCryptoPassword(newPassword))
             {
-                MessageDialog("Le mot de passe de cryptage a été modifié avec succès.", "Succès");
+                MessageDialog("Encryption password has been successfully modified.", "Success");
             }
             else
             {
-                MessageDialog("Une erreur est survenue lors de la modification du mot de passe.", "Erreur");
+                MessageDialog("An error occurred while modifying the password.", "Error");
             }
         }
 
@@ -176,10 +176,10 @@ namespace EasySave.Views
             Close();
         }
         
-        // Méthode simplifiée pour afficher un message
+        // Simplified method to display a message
         private void MessageDialog(string message, string title)
         {
-            // Créer une nouvelle fenêtre pour le message
+            // Create a new window for the message
             Window dialogWindow = new Window
             {
                 Title = title,
@@ -190,18 +190,18 @@ namespace EasySave.Views
                 ResizeMode = ResizeMode.NoResize
             };
             
-            // Créer un conteneur pour les éléments
+            // Create a container for elements
             System.Windows.Controls.StackPanel panel = new System.Windows.Controls.StackPanel();
             panel.Margin = new Thickness(10);
             
-            // Ajouter le message
+            // Add the message
             System.Windows.Controls.TextBlock messageText = new System.Windows.Controls.TextBlock();
             messageText.Text = message;
             messageText.TextWrapping = TextWrapping.Wrap;
             messageText.Margin = new Thickness(10);
             panel.Children.Add(messageText);
             
-            // Ajouter un bouton OK
+            // Add an OK button
             System.Windows.Controls.Button okButton = new System.Windows.Controls.Button();
             okButton.Content = "OK";
             okButton.Width = 80;
@@ -209,10 +209,10 @@ namespace EasySave.Views
             okButton.Click += (s, e) => dialogWindow.Close();
             panel.Children.Add(okButton);
             
-            // Définir le contenu de la fenêtre
+            // Set window content
             dialogWindow.Content = panel;
             
-            // Afficher la fenêtre de dialogue
+            // Show dialog window
             dialogWindow.ShowDialog();
         }
     }

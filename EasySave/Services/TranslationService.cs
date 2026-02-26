@@ -41,7 +41,7 @@ namespace EasySave.Services
         public void ToggleLanguage()
         {
             CurrentLanguage = _currentLanguage == "en" ? "fr" : "en";
-            // Notifier que toutes les traductions ont potentiellement changÃ©
+            // Notify that all translations have potentially changed
             OnPropertyChanged(nameof(CurrentLanguage));
             NotifyTranslationsChanged();
         }
@@ -53,15 +53,15 @@ namespace EasySave.Services
                 throw new ArgumentException("Language must be 'en' or 'fr'", nameof(language));
 
             CurrentLanguage = language;
-            // Notifier que toutes les traductions ont potentiellement changÃ©
+            // Notify that all translations have potentially changed
             OnPropertyChanged(nameof(CurrentLanguage));
             NotifyTranslationsChanged();
         }
         
-        // Notifier que toutes les traductions ont changÃ©
+        // Notify that all translations have changed
         private void NotifyTranslationsChanged()
         {
-            // DÃ©clencher un Ã©vÃ©nement spÃ©cial pour indiquer que toutes les traductions ont changÃ©
+            // Trigger a special event to indicate that all translations have changed
             OnPropertyChanged("AllTranslations");
         }
 
@@ -104,7 +104,7 @@ namespace EasySave.Services
             translations["en_last_backup"] = "Last Backup:";
             translations["en_created"] = "Created:";
             
-            // Ajout des traductions pour BackupJobDialog
+            // Adding translations for BackupJobDialog
             translations["en_create_backup_job"] = "Create Backup Job";
             translations["en_edit_backup_job"] = "Edit Backup Job";
             translations["en_browse"] = "Browse";
@@ -116,18 +116,18 @@ namespace EasySave.Services
             translations["en_save"] = "Save";
             translations["en_cancel"] = "Cancel";
             
-            // Ajout des traductions pour les messages de validation
+            // Adding translations for validation messages
             translations["en_name_required"] = "Name is required.";
             translations["en_source_required"] = "Source path is required.";
             translations["en_source_not_exist"] = "Source directory does not exist.";
             translations["en_target_required"] = "Target path is required.";
             translations["en_target_error"] = "Error creating target directory: {0}";
             
-            // Ajout des traductions pour la sÃ©lection multiple
+            // Adding translations for multi-selection
             translations["en_select_all"] = "Select All";
             translations["en_execute_selected"] = "Execute Selected Jobs";
             
-            // Ajout des traductions pour les paramÃ¨tres
+            // Adding translations for settings
             translations["en_business_software"] = "Business Software:";
             translations["en_cryptosoft_path"] = "CryptoSoft Path:";
             translations["en_encrypt_extensions"] = "Encrypt Extensions:";
@@ -143,7 +143,7 @@ namespace EasySave.Services
             translations["en_settings_changes_note"] = "- Changes are saved automatically";
             translations["en_close"] = "Close";
             
-            // Ajout des traductions pour les boutons de contrÃ´le des travaux
+            // Adding translations for job control buttons
             translations["en_pause"] = "Pause";
             translations["en_resume"] = "Resume";
             translations["en_stop"] = "Stop";
@@ -151,13 +151,13 @@ namespace EasySave.Services
             translations["en_large_file_threshold"] = "Large File Threshold (Megabytes):";
             translations["en_business_software_running"] = "Business software is running. Backups are paused.";
             
-            // Ajout des traductions pour les sections des paramÃ¨tres
+            // Adding translations for settings sections
             translations["en_general_settings"] = "General Settings";
             translations["en_parallel_backup_settings"] = "Parallel Backup Settings";
             translations["en_encryption_settings"] = "Encryption Settings";
             translations["en_log_centralization_settings"] = "Log Centralization Settings";
             
-            // Ajout des traductions pour les paramÃ¨tres de centralisation des logs
+            // Adding translations for log centralization settings
             translations["en_enable_centralization"] = "Enable Centralization:";
             translations["en_log_server_url"] = "Log Server URL:";
             translations["en_log_destination"] = "Log Destination:";
@@ -165,13 +165,13 @@ namespace EasySave.Services
             translations["en_remote_only"] = "Remote Only";
             translations["en_both_local_remote"] = "Both Local and Remote";
             
-            // Ajout des traductions pour les notes des paramÃ¨tres
+            // Adding translations for settings notes
             translations["en_max_parallel_jobs_note"] = "- Max Parallel Jobs: Maximum number of backup jobs that can run simultaneously";
             translations["en_large_file_threshold_note"] = "- Large File Threshold: Files larger than this size cannot be transferred simultaneously";
             translations["en_priority_extensions_note"] = "- Priority Extensions: File types that will be processed before any other files";
             translations["en_log_centralization_note"] = "- Log Centralization: Configure where log files are stored (local, remote server, or both)";
             
-            // Ajout des traductions pour la barre d'avancement
+            // Adding translations for the progress bar
             translations["en_current_file"] = "Current File:";
             translations["en_progress"] = "Progress:";
 
@@ -314,4 +314,3 @@ namespace EasySave.Services
         }
     }
 }
-

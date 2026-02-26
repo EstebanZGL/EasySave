@@ -4,9 +4,9 @@ using System.Windows.Data;
 
 namespace EasySave.Converters
 {
-    /// <summary>
+     
     /// Converts between enum values and boolean values for use with radio buttons
-    /// </summary>
+     
     public class EnumToBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

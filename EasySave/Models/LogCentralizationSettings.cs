@@ -6,18 +6,18 @@ using System.Text.Json.Serialization;
 
 namespace EasySave.Models
 {
-    /// <summary>
+     
     /// Settings for log centralization
-    /// </summary>
+     
     public class LogCentralizationSettings : INotifyPropertyChanged
     {
         private LogDestination _logDestination = LogDestination.Local;
         private string _serverUrl = "http://localhost:5000";
         private bool _isEnabled = false;
 
-        /// <summary>
+         
         /// Gets or sets the log destination (Local, Remote, or Both)
-        /// </summary>
+         
         public LogDestination LogDestination
         {
             get => _logDestination;
@@ -31,9 +31,9 @@ namespace EasySave.Models
             }
         }
 
-        /// <summary>
+         
         /// Gets or sets the URL of the log server
-        /// </summary>
+         
         public string ServerUrl
         {
             get => _serverUrl;
@@ -47,9 +47,9 @@ namespace EasySave.Models
             }
         }
 
-        /// <summary>
+         
         /// Gets or sets whether log centralization is enabled
-        /// </summary>
+         
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -63,14 +63,14 @@ namespace EasySave.Models
             }
         }
 
-        /// <summary>
+         
         /// Event raised when a property changes
-        /// </summary>
+         
         public event PropertyChangedEventHandler PropertyChanged;
 
-        /// <summary>
+         
         /// Raises the PropertyChanged event
-        /// </summary>
+         
         /// <param name="propertyName">The name of the property that changed</param>
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

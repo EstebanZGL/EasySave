@@ -21,11 +21,9 @@ namespace EasySave.LogServer.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        /// <summary>
+         
         /// Adds a new log entry to the centralized log system
-        /// </summary>
-        /// <param name="logEntry">The log entry to add</param>
-        /// <returns>A result indicating success or failure</returns>
+         
         [HttpPost]
         public async Task<IActionResult> AddLogEntry([FromBody] LogEntry logEntry)
         {
@@ -60,12 +58,10 @@ namespace EasySave.LogServer.Controllers
             }
         }
 
-        /// <summary>
+         
         /// Gets all log entries for a specific date
-        /// </summary>
-        /// <param name="date">The date to get logs for (format: yyyy-MM-dd)</param>
-        /// <returns>A list of log entries</returns>
-        [HttpGet("date/{date}")]
+         
+       [HttpGet("date/{date}")]
         public IActionResult GetLogsByDate(string date)
         {
             try
@@ -85,12 +81,9 @@ namespace EasySave.LogServer.Controllers
             }
         }
 
-        /// <summary>
+         
         /// Gets all log entries for a specific date range
-        /// </summary>
-        /// <param name="startDate">The start date (format: yyyy-MM-dd)</param>
-        /// <param name="endDate">The end date (format: yyyy-MM-dd)</param>
-        /// <returns>A list of log entries</returns>
+         
         [HttpGet("range")]
         public async Task<IActionResult> GetLogsByDateRange([FromQuery] string startDate, [FromQuery] string endDate)
         {
@@ -121,10 +114,9 @@ namespace EasySave.LogServer.Controllers
             }
         }
 
-        /// <summary>
+         
         /// Gets the health status of the log server
-        /// </summary>
-        /// <returns>A status message</returns>
+         
         [HttpGet("health")]
         public IActionResult GetHealth()
         {

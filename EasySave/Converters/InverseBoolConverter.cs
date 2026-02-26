@@ -4,10 +4,10 @@ using System.Windows.Data;
 
 namespace EasySave.Converters
 {
-    /// <summary>
+     
     /// Converts a boolean value to its inverse
     /// True -> False, False -> True
-    /// </summary>
+     
     public class InverseBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

@@ -8,9 +8,9 @@ using EasySave.ViewModels;
 
 namespace EasySave.Views
 {
-    /// <summary>
+     
     /// Interaction logic for MainWindow.xaml
-    /// </summary>
+     
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
@@ -265,17 +265,17 @@ namespace EasySave.Views
             button.Content = CopyGlyph;
         }
 
-        /// <summary>
-        /// Gestionnaire d'événement pour la fermeture de la fenêtre
-        /// </summary>
+         
+        /// Event handler for window closing
+         
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // Vérifier si des sauvegardes sont en cours
+            // Check if backups are currently running
             var activeJobs = _backupService.GetActiveJobs();
             
             if (activeJobs.Count > 0)
             {
-                // Obtenir le message de confirmation en fonction de la langue actuelle
+                // Get the confirmation message based on the current language
                 string message = _translationService.CurrentLanguage == "fr"
                     ? "Des sauvegardes sont en cours d'exécution. Si vous fermez l'application maintenant, ces sauvegardes seront perdues.\n\nVoulez-vous vraiment quitter ?"
                     : "Backup jobs are currently running. If you close the application now, these backups will be lost.\n\nDo you really want to quit?";
@@ -284,7 +284,7 @@ namespace EasySave.Views
                     ? "Confirmation de fermeture"
                     : "Confirm Close";
                 
-                // Utiliser System.Windows.MessageBox explicitement pour éviter l'ambiguïté
+                // Use System.Windows.MessageBox explicitly to avoid ambiguity
                 MessageBoxResult result = System.Windows.MessageBox.Show(
                     message,
                     title,
@@ -292,7 +292,7 @@ namespace EasySave.Views
                     MessageBoxImage.Warning
                 );
                 
-                // Annuler la fermeture si l'utilisateur clique sur "Non"
+                // Cancel closing if the user clicks "No"
                 if (result == MessageBoxResult.No)
                 {
                     e.Cancel = true;
@@ -301,4 +301,3 @@ namespace EasySave.Views
         }
     }
 }
-

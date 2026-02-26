@@ -12,13 +12,13 @@ namespace EasySave.Views
         {
             if (_translationService == null)
             {
-                // Accéder au service de traduction via le conteneur DI
+                // Access the translation service via the DI container
                 _translationService = ((App)App.Current).ServiceProvider.GetService<TranslationService>();
             }
             return _translationService;
         }
         
-        // Cette méthode est utilisée par les bindings XAML pour obtenir les traductions
+        // This method is used by XAML bindings to get translations
         public string GetTranslation(string key)
         {
             return GetTranslationService().GetTranslation(key);

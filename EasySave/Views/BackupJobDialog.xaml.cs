@@ -9,9 +9,9 @@ using Microsoft.Win32;
 
 namespace EasySave.Views
 {
-    /// <summary>
+     
     /// Interaction logic for BackupJobDialog.xaml
-    /// </summary>
+     
     public partial class BackupJobDialog : Window, INotifyPropertyChanged
     {
         private string _name;
@@ -23,7 +23,7 @@ namespace EasySave.Views
         private string _validationMessage;
         private DateTime _createdAt;
         private DateTime? _lastBackupTime;
-        private bool _useDefaultTargetPath = true; // Par défaut, utiliser le chemin par défaut
+        private bool _useDefaultTargetPath = true; // By default, use the default path
         private readonly TranslationService _translationService;
 
         public BackupJobDialog()
@@ -33,7 +33,7 @@ namespace EasySave.Views
             InitializeComponent();
             DataContext = this;
             
-            // Obtenir le service de traduction depuis l'application en spécifiant explicitement System.Windows.Application
+            // Get the translation service from the application by explicitly specifying System.Windows.Application
             _translationService = ((App)System.Windows.Application.Current).ServiceProvider.GetService(typeof(TranslationService)) as TranslationService;
         }
 
@@ -42,7 +42,7 @@ namespace EasySave.Views
             JobName = job.JobName;
             SourcePath = job.SourcePath;
             
-            // Vérifier si le chemin cible est un chemin par défaut
+            // Check if the target path is a default path
             string defaultPath = GetDefaultTargetPath(job.JobName);
             if (job.TargetPath.Equals(defaultPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -68,7 +68,7 @@ namespace EasySave.Views
             {
                 _name = value;
                 OnPropertyChanged();
-                // Mettre à jour l'affichage du chemin par défaut quand le nom change
+                // Update the default path display when the name changes
                 OnPropertyChanged(nameof(DefaultTargetPathDisplay));
             }
         }
@@ -133,13 +133,13 @@ namespace EasySave.Views
                 _useDefaultTargetPath = value;
                 OnPropertyChanged();
                 
-                // Si on active l'utilisation du chemin par défaut, mettre à jour le chemin cible
+                // If default path usage is enabled, update the target path
                 if (value)
                 {
                     TargetPath = GetDefaultTargetPath(JobName);
                 }
                 
-                // Mettre à jour l'affichage du chemin par défaut
+                // Update the default path display
                 OnPropertyChanged(nameof(DefaultTargetPathDisplay));
             }
         }
@@ -182,7 +182,7 @@ namespace EasySave.Views
             }
         }
 
-        // Propriétés de traduction
+        // Translation properties
         public string DialogTitle => IsEditMode ? GetTranslation("edit_backup_job") : GetTranslation("create_backup_job");
         public string NameLabel => GetTranslation("job_name");
         public string SourcePathLabel => GetTranslation("source_path");
@@ -195,14 +195,12 @@ namespace EasySave.Views
         public string CancelButtonText => GetTranslation("cancel");
         public string BrowseButtonText => GetTranslation("browse");
 
-        // Propriété pour déterminer si nous sommes en mode édition
+        // Property to determine if we are in edit mode
         private bool IsEditMode => !string.IsNullOrEmpty(JobName);
 
-        /// <summary>
-        /// Génère le chemin de destination par défaut basé sur le nom du travail
-        /// </summary>
-        /// <param name="jobName">Nom du travail de sauvegarde</param>
-        /// <returns>Le chemin de destination par défaut</returns>
+         
+        /// Generates the default destination path based on the job name
+         
         private string GetDefaultTargetPath(string jobName)
         {
             if (string.IsNullOrWhiteSpace(jobName))
@@ -210,10 +208,10 @@ namespace EasySave.Views
                 return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "saves", "unnamed_backup");
             }
             
-            // Créer le chemin de base output/saves/[Nom de la sauvegarde]
+            // Create the base path output/saves/[Backup Name]
             string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "saves");
             
-            // Nettoyer le nom du travail pour qu'il soit valide comme nom de dossier
+            // Clean the job name to make it valid as a folder name
             string safeName = string.Join("_", jobName.Split(Path.GetInvalidFileNameChars()));
             
             return Path.Combine(basePath, safeName);
@@ -322,7 +320,3 @@ namespace EasySave.Views
         }
     }
 }
-
-
-
-

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization; // Ajout de cette directive pour JsonIgnore
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using EasySave.Models;
 using System.Threading;
@@ -16,7 +16,6 @@ namespace EasySave.Services
         private readonly Dictionary<string, BackupJobState> _states;
         private readonly SemaphoreSlim _stateLock = new SemaphoreSlim(1, 1); // Thread safety for state updates
  
-        // Initializes a new instance of the StateManager
         public StateManager(string stateFilePath)
         {
             _stateFilePath = stateFilePath ?? throw new ArgumentNullException(nameof(stateFilePath));
@@ -59,14 +58,6 @@ namespace EasySave.Services
         }
  
         // Updates the state of a backup job and persists changes
-        // name: Name of the backup job
-        // state: Current state
-        // totalFiles: Total files count
-        // totalSize: Total size in bytes
-        // filesRemaining: Files remaining
-        // sizeRemaining: Size remaining in bytes
-        // currentSourceFile: Current source file (optional)
-        // currentTargetFile: Current target file (optional)
         public async Task UpdateStateAsync(
             string name,
             BackupState state,
@@ -118,10 +109,6 @@ namespace EasySave.Services
                 else if ((state == BackupState.Completed || state == BackupState.Failed || state == BackupState.Canceled) && !jobState.EndTime.HasValue)
                 {
                     jobState.EndTime = DateTime.Now;
-                }
-                else if (state == BackupState.Paused)
-                {
-                    // Don't update timestamps for pause state
                 }
 
                 await SaveStateAsync();
@@ -185,28 +172,21 @@ namespace EasySave.Services
             }
             catch (Exception ex)
             {
-                // Log the error but continue
                 Console.WriteLine($"Error saving state file: {ex.Message}");
             }
         }
     }
  
-    // Represents the state of a backup job
     public class BackupJobState
     {
-        // Name of the backup job
         public string Name { get; set; }
        
-        // Last update timestamp
         [JsonIgnore]
         public DateTime LastUpdateTime { get; set; } = DateTime.Now;
        
-        // Current source file being processed
         public string SourceFilePath { get; set; } = string.Empty;
-       
-        // Current target file being processed
         public string TargetFilePath { get; set; } = string.Empty;
-       
+        
         // Backing field for state
         private BackupState _state = BackupState.NotStarted;
         
@@ -257,7 +237,6 @@ namespace EasySave.Services
             }
         }
        
-        // Enum representation of the state
         [JsonIgnore]
         public BackupState StateEnum
         {
@@ -265,26 +244,15 @@ namespace EasySave.Services
             set { _state = value; }
         }
        
-        // Total number of files
         public int TotalFilesToCopy { get; set; }
-       
-        // Total size in bytes
         public long TotalFilesSize { get; set; }
-       
-        // Number of files remaining
         public int NbFilesLeftToDo { get; set; }
-       
-        // Progress percentage (0-100)
         public int Progression { get; set; }
-       
-        // Size remaining in bytes
         public long SizeRemaining { get; set; }
 
-        // Start time of the backup job
         [JsonIgnore]
         public DateTime? StartTime { get; set; }
 
-        // End time of the backup job
         [JsonIgnore]
         public DateTime? EndTime { get; set; }
 

@@ -10,9 +10,6 @@ using EasyLog;
 
 namespace EasySave.Services
 {
-    /// <summary>
-    /// Service for monitoring business software that should pause backups when running
-    /// </summary>
     public class BusinessSoftwareMonitor : IDisposable
     {
         private readonly SettingsViewModel _settingsViewModel;
@@ -22,25 +19,17 @@ namespace EasySave.Services
         private bool _isMonitoring;
         private List<string> _pausedJobs = new List<string>();
         
-        // Paramètres de surveillance intelligente
-        private const int INITIAL_CHECK_INTERVAL = 1000;      // Intervalle initial (1 seconde)
-        private const int NORMAL_CHECK_INTERVAL = 3000;       // Intervalle normal (3 secondes)
-        private const int EXTENDED_CHECK_INTERVAL = 10000;    // Intervalle étendu (10 secondes)
-        private const int MAX_STABLE_CHECKS = 5;              // Nombre de vérifications stables avant de passer à l'intervalle étendu
+        // Smart monitoring parameters
+        private const int INITIAL_CHECK_INTERVAL = 1000;      // 1 second
+        private const int NORMAL_CHECK_INTERVAL = 3000;       // 3 seconds
+        private const int EXTENDED_CHECK_INTERVAL = 10000;    // 10 seconds
+        private const int MAX_STABLE_CHECKS = 5;              // Number of stable checks before switching to extended interval
         private int _currentCheckInterval = INITIAL_CHECK_INTERVAL;
         private int _stableCheckCount = 0;
         private bool _lastStatus = false;
         
-        /// <summary>
-        /// Event raised when business software status changes
-        /// </summary>
         public event EventHandler<bool> BusinessSoftwareStatusChanged;
         
-        /// <summary>
-        /// Creates a new instance of the BusinessSoftwareMonitor with ParallelBackupService
-        /// </summary>
-        /// <param name="settingsViewModel">The settings view model</param>
-        /// <param name="backupService">The parallel backup service</param>
         public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, ParallelBackupService backupService)
         {
             _settingsViewModel = settingsViewModel;
@@ -48,12 +37,6 @@ namespace EasySave.Services
             _logger = null;
         }
         
-        /// <summary>
-        /// Creates a new instance of the BusinessSoftwareMonitor with IBackupService
-        /// </summary>
-        /// <param name="settingsViewModel">The settings view model</param>
-        /// <param name="backupService">The backup service</param>
-        /// <param name="logger">The logger</param>
         public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, IBackupService backupService, IEncryptionLogger logger)
         {
             _settingsViewModel = settingsViewModel;
@@ -61,9 +44,6 @@ namespace EasySave.Services
             _logger = logger;
         }
         
-        /// <summary>
-        /// Starts monitoring for business software
-        /// </summary>
         public void Start()
         {
             if (_isMonitoring)
@@ -74,16 +54,13 @@ namespace EasySave.Services
             _isMonitoring = true;
             _cancellationTokenSource = new CancellationTokenSource();
             
-            // Réinitialiser les paramètres de surveillance
+            // Reset monitoring parameters
             _currentCheckInterval = INITIAL_CHECK_INTERVAL;
             _stableCheckCount = 0;
             
             Task.Run(async () => await MonitorBusinessSoftwareAsync(_cancellationTokenSource.Token));
         }
         
-        /// <summary>
-        /// Stops monitoring for business software
-        /// </summary>
         public void Stop()
         {
             if (!_isMonitoring)
@@ -96,26 +73,18 @@ namespace EasySave.Services
             _cancellationTokenSource = null;
         }
 
-        /// <summary>
-        /// Alias for Start method (for compatibility with BackupService)
-        /// </summary>
+        // Alias for Start method (for compatibility with BackupService)
         public void StartMonitoring()
         {
             Start();
         }
 
-        /// <summary>
-        /// Alias for Stop method (for compatibility with BackupService)
-        /// </summary>
+        // Alias for Stop method (for compatibility with BackupService)
         public void StopMonitoring()
         {
             Stop();
         }
         
-        /// <summary>
-        /// Monitors for business software in a loop with adaptive checking intervals
-        /// </summary>
-        /// <param name="cancellationToken">Token to monitor for cancellation</param>
         private async Task MonitorBusinessSoftwareAsync(CancellationToken cancellationToken)
         {
             bool wasRunning = false;
@@ -128,7 +97,7 @@ namespace EasySave.Services
                     
                     if (isRunning != wasRunning)
                     {
-                        // Le statut a changé, réinitialiser l'intervalle et le compteur de stabilité
+                        // Status changed, reset interval and stability counter
                         _currentCheckInterval = INITIAL_CHECK_INTERVAL;
                         _stableCheckCount = 0;
                         wasRunning = isRunning;
@@ -149,12 +118,12 @@ namespace EasySave.Services
                     }
                     else
                     {
-                        // Le statut est stable, ajuster l'intervalle de vérification
+                        // Status is stable, adjust check interval
                         if (isRunning == _lastStatus)
                         {
                             _stableCheckCount++;
                             
-                            // Si le statut est stable depuis plusieurs vérifications, augmenter l'intervalle
+                            // If status is stable for several checks, increase interval
                             if (_stableCheckCount >= MAX_STABLE_CHECKS)
                             {
                                 _currentCheckInterval = EXTENDED_CHECK_INTERVAL;
@@ -166,7 +135,7 @@ namespace EasySave.Services
                         }
                         else
                         {
-                            // Réinitialiser le compteur si le statut est différent de la dernière fois
+                            // Reset counter if status is different from last time
                             _stableCheckCount = 0;
                             _currentCheckInterval = INITIAL_CHECK_INTERVAL;
                         }
@@ -174,7 +143,7 @@ namespace EasySave.Services
                     
                     _lastStatus = isRunning;
                     
-                    // Attendre selon l'intervalle de vérification actuel
+                    // Wait according to current check interval
                     await Task.Delay(_currentCheckInterval, cancellationToken);
                 }
                 catch (OperationCanceledException)
@@ -191,15 +160,10 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Checks if any configured business software is running
-        /// </summary>
-        /// <returns>True if business software is running, false otherwise</returns>
         private bool IsBusinessSoftwareRunning()
         {
             try
             {
-                // Use the IsBusinessSoftwareRunning method from SettingsViewModel
                 return _settingsViewModel.IsBusinessSoftwareRunning();
             }
             catch (Exception ex)
@@ -209,9 +173,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Pauses all active backup jobs
-        /// </summary>
         private async Task PauseAllActiveJobsAsync()
         {
             Debug.WriteLine("Pausing all active backup jobs due to business software running");
@@ -236,7 +197,6 @@ namespace EasySave.Services
                 {
                     service.PauseBackupJob();
                     Debug.WriteLine("Paused backup job in BackupService");
-                    // No need to track job names for the old BackupService
                 }
                 
                 // Log the event if logger is available
@@ -253,9 +213,6 @@ namespace EasySave.Services
             }
         }
         
-        /// <summary>
-        /// Resumes all previously paused backup jobs
-        /// </summary>
         private async Task ResumeAllPausedJobsAsync()
         {
             Debug.WriteLine("Resuming all paused backup jobs as business software is no longer running");
@@ -292,18 +249,11 @@ namespace EasySave.Services
             _pausedJobs.Clear();
         }
         
-        /// <summary>
-        /// Raises the BusinessSoftwareStatusChanged event
-        /// </summary>
-        /// <param name="isRunning">Whether business software is running</param>
         private void OnBusinessSoftwareStatusChanged(bool isRunning)
         {
             BusinessSoftwareStatusChanged?.Invoke(this, isRunning);
         }
 
-        /// <summary>
-        /// Disposes resources used by the monitor
-        /// </summary>
         public void Dispose()
         {
             Stop();
