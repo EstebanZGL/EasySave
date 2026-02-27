@@ -35,6 +35,7 @@ namespace EasySave.Services
             _settingsViewModel = settingsViewModel;
             _backupService = backupService;
             _logger = null;
+            Debug.WriteLine("BusinessSoftwareMonitor created with ParallelBackupService");
         }
         
         public BusinessSoftwareMonitor(SettingsViewModel settingsViewModel, IBackupService backupService, IEncryptionLogger logger)
@@ -42,15 +43,18 @@ namespace EasySave.Services
             _settingsViewModel = settingsViewModel;
             _backupService = backupService;
             _logger = logger;
+            Debug.WriteLine("BusinessSoftwareMonitor created with IBackupService and logger");
         }
         
         public void Start()
         {
             if (_isMonitoring)
             {
+                Debug.WriteLine("BusinessSoftwareMonitor already running, ignoring Start request");
                 return;
             }
             
+            Debug.WriteLine("Starting BusinessSoftwareMonitor");
             _isMonitoring = true;
             _cancellationTokenSource = new CancellationTokenSource();
             
@@ -58,36 +62,50 @@ namespace EasySave.Services
             _currentCheckInterval = INITIAL_CHECK_INTERVAL;
             _stableCheckCount = 0;
             
+            // Perform an immediate check to get initial status
+            bool initialStatus = IsBusinessSoftwareRunning();
+            Debug.WriteLine($"Initial business software status: {(initialStatus ? "Running" : "Not running")}");
+            
+            // Start monitoring task
             Task.Run(async () => await MonitorBusinessSoftwareAsync(_cancellationTokenSource.Token));
+            
+            Debug.WriteLine("BusinessSoftwareMonitor started successfully");
         }
         
         public void Stop()
         {
             if (!_isMonitoring)
             {
+                Debug.WriteLine("BusinessSoftwareMonitor not running, ignoring Stop request");
                 return;
             }
             
+            Debug.WriteLine("Stopping BusinessSoftwareMonitor");
             _isMonitoring = false;
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = null;
+            Debug.WriteLine("BusinessSoftwareMonitor stopped");
         }
 
         // Alias for Start method (for compatibility with BackupService)
         public void StartMonitoring()
         {
+            Debug.WriteLine("StartMonitoring called (alias for Start)");
             Start();
         }
 
         // Alias for Stop method (for compatibility with BackupService)
         public void StopMonitoring()
         {
+            Debug.WriteLine("StopMonitoring called (alias for Stop)");
             Stop();
         }
         
         private async Task MonitorBusinessSoftwareAsync(CancellationToken cancellationToken)
         {
             bool wasRunning = false;
+            
+            Debug.WriteLine("MonitorBusinessSoftwareAsync task started");
             
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -149,6 +167,7 @@ namespace EasySave.Services
                 catch (OperationCanceledException)
                 {
                     // Monitoring was canceled
+                    Debug.WriteLine("BusinessSoftwareMonitor task canceled");
                     break;
                 }
                 catch (Exception ex)
@@ -158,13 +177,17 @@ namespace EasySave.Services
                     await Task.Delay(5000, cancellationToken); // Longer delay after error
                 }
             }
+            
+            Debug.WriteLine("MonitorBusinessSoftwareAsync task ended");
         }
         
         private bool IsBusinessSoftwareRunning()
         {
             try
             {
-                return _settingsViewModel.IsBusinessSoftwareRunning();
+                bool isRunning = _settingsViewModel.IsBusinessSoftwareRunning();
+                Debug.WriteLine($"Business software check: {(isRunning ? "Running" : "Not running")} (Software name: {_settingsViewModel.BusinessSoftwareName})");
+                return isRunning;
             }
             catch (Exception ex)
             {
@@ -182,21 +205,42 @@ namespace EasySave.Services
             {
                 if (_backupService is ParallelBackupService parallelService)
                 {
-                    foreach (var job in parallelService.GetActiveJobs())
+                    var activeJobs = parallelService.GetActiveJobs();
+                    Debug.WriteLine($"Found {activeJobs.Count()} active jobs to pause");
+                    
+                    foreach (var job in activeJobs)
                     {
                         if (job.Status != "Paused" && job.Status != "Completed" && 
                             job.Status != "Canceled" && !job.Status.StartsWith("Failed"))
                         {
-                            await parallelService.PauseJobAsync(job.JobName);
-                            _pausedJobs.Add(job.JobName);
-                            Debug.WriteLine($"Paused job: {job.JobName}");
+                            Debug.WriteLine($"Attempting to pause job: {job.JobName} (Current status: {job.Status})");
+                            bool success = await parallelService.PauseJobAsync(job.JobName);
+                            
+                            if (success)
+                            {
+                                _pausedJobs.Add(job.JobName);
+                                Debug.WriteLine($"Successfully paused job: {job.JobName}");
+                            }
+                            else
+                            {
+                                Debug.WriteLine($"Failed to pause job: {job.JobName}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Skipping job {job.JobName} with status {job.Status} (not eligible for pausing)");
                         }
                     }
                 }
                 else if (_backupService is IBackupService service)
                 {
+                    Debug.WriteLine("Using IBackupService interface to pause job");
                     service.PauseBackupJob();
                     Debug.WriteLine("Paused backup job in BackupService");
+                }
+                else
+                {
+                    Debug.WriteLine($"Unknown backup service type: {_backupService?.GetType().Name ?? "null"}");
                 }
                 
                 // Log the event if logger is available
@@ -215,7 +259,7 @@ namespace EasySave.Services
         
         private async Task ResumeAllPausedJobsAsync()
         {
-            Debug.WriteLine("Resuming all paused backup jobs as business software is no longer running");
+            Debug.WriteLine($"Resuming {_pausedJobs.Count} paused backup jobs as business software is no longer running");
             
             try
             {
@@ -223,14 +267,28 @@ namespace EasySave.Services
                 {
                     foreach (var jobName in _pausedJobs)
                     {
-                        await parallelService.ResumeJobAsync(jobName);
-                        Debug.WriteLine($"Resumed job: {jobName}");
+                        Debug.WriteLine($"Attempting to resume job: {jobName}");
+                        bool success = await parallelService.ResumeJobAsync(jobName);
+                        
+                        if (success)
+                        {
+                            Debug.WriteLine($"Successfully resumed job: {jobName}");
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Failed to resume job: {jobName}");
+                        }
                     }
                 }
                 else if (_backupService is IBackupService service)
                 {
+                    Debug.WriteLine("Using IBackupService interface to resume job");
                     service.ResumeBackupJob();
                     Debug.WriteLine("Resumed backup job in BackupService");
+                }
+                else
+                {
+                    Debug.WriteLine($"Unknown backup service type: {_backupService?.GetType().Name ?? "null"}");
                 }
                 
                 // Log the event if logger is available
@@ -251,11 +309,13 @@ namespace EasySave.Services
         
         private void OnBusinessSoftwareStatusChanged(bool isRunning)
         {
+            Debug.WriteLine($"Firing BusinessSoftwareStatusChanged event with status: {isRunning}");
             BusinessSoftwareStatusChanged?.Invoke(this, isRunning);
         }
 
         public void Dispose()
         {
+            Debug.WriteLine("BusinessSoftwareMonitor being disposed");
             Stop();
             _cancellationTokenSource?.Dispose();
         }

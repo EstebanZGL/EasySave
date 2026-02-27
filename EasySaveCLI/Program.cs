@@ -49,21 +49,41 @@ namespace EasySaveCLI
 
             // Register services
             services.AddSingleton<TranslationService>();
-            services.AddSingleton<BackupJobManager>();
+            
+            // Définir un chemin absolu pour le fichier de jobs
+            // Utiliser le même répertoire que l'application principale
+            string jobsFilePath = Path.Combine(
+                Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? string.Empty,
+                "backupjobs.json");
+            
+            // Afficher le chemin pour le débogage
+            Console.WriteLine($"Using jobs file path: {jobsFilePath}");
+            
+            // Enregistrer BackupJobRepository avec le chemin spécifique
+            services.AddSingleton<BackupJobRepository>(provider => 
+                new BackupJobRepository(jobsFilePath));
             
             // Register StateManager with the state file path
             services.AddSingleton<StateManager>(provider => {
-                // Define the state file path
-                string stateFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "state.json");
+                // Define the state file path - use same directory as jobs file
+                string stateFilePath = Path.Combine(
+                    Path.GetDirectoryName(jobsFilePath) ?? string.Empty,
+                    "state.json");
+                Console.WriteLine($"Using state file path: {stateFilePath}");
                 return new StateManager(stateFilePath);
             });
             
             services.AddSingleton<SettingsViewModel>();
             
+            // Configure CryptoService
+            services.AddSingleton<CryptoService>();
+            
             // Configure logger based on settings
             services.AddSingleton<IEncryptionLogger>(provider => {
                 // Get settings to determine log format
-                var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logformat.txt");
+                var settingsPath = Path.Combine(
+                    Path.GetDirectoryName(jobsFilePath) ?? string.Empty,
+                    "logformat.txt");
                 string logFormat = "JSON"; // Default
                 
                 if (File.Exists(settingsPath))
@@ -71,10 +91,11 @@ namespace EasySaveCLI
                     try
                     {
                         logFormat = File.ReadAllText(settingsPath).Trim();
+                        Console.WriteLine($"Using log format: {logFormat}");
                     }
                     catch
                     {
-                        // Use default if file can't be read
+                        Console.WriteLine("Could not read log format, using default: JSON");
                     }
                 }
                 
@@ -94,13 +115,20 @@ namespace EasySaveCLI
                 throw new InvalidOperationException("Logger does not implement IEncryptionLogger");
             });
             
-            // Register backup service with dependencies
-            services.AddSingleton<BackupService>(provider => {
-                var stateManager = provider.GetRequiredService<StateManager>();
+            // Register ParallelBackupService instead of BackupService
+            services.AddSingleton<ParallelBackupService>(provider => {
                 var logger = provider.GetRequiredService<IEncryptionLogger>();
+                var stateManager = provider.GetRequiredService<StateManager>();
+                var cryptoService = provider.GetRequiredService<CryptoService>();
+                var settingsViewModel = provider.GetRequiredService<SettingsViewModel>();
+                var backupJobRepository = provider.GetRequiredService<BackupJobRepository>();
                 
-                // Use the constructor that accepts IEncryptionLogger and StateManager
-                return new BackupService(logger, stateManager);
+                return new ParallelBackupService(
+                    logger,
+                    stateManager,
+                    cryptoService,
+                    settingsViewModel,
+                    backupJobRepository);
             });
 
             // Build service provider

@@ -378,12 +378,44 @@ namespace EasySave.ViewModels
 
             try
             {
-                string processNameToFind = Path.GetFileNameWithoutExtension(BusinessSoftwareName).ToLowerInvariant();
-                Process[] processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(_businessSoftwareName));
+                // Extraction correcte du nom du processus sans l'extension
+                string processNameToFind = Path.GetFileNameWithoutExtension(_businessSoftwareName);
+                
+                // Utiliser le nom du processus extrait pour la recherche
+                Process[] processes = Process.GetProcessesByName(processNameToFind);
+                
+                // Afficher des informations de débogage
+                Debug.WriteLine($"Recherche du processus: {processNameToFind}, trouvé: {processes.Length} instances");
+                
+                // Vérifier également les titres des fenêtres pour une détection plus robuste
+                if (processes.Length == 0)
+                {
+                    // Si aucun processus n'est trouvé par nom, essayer de chercher par titre de fenêtre
+                    Process[] allProcesses = Process.GetProcesses();
+                    foreach (var process in allProcesses)
+                    {
+                        try
+                        {
+                            // Vérifier si le titre de la fenêtre contient le nom du logiciel
+                            if (!string.IsNullOrEmpty(process.MainWindowTitle) && 
+                                process.MainWindowTitle.IndexOf(processNameToFind, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                Debug.WriteLine($"Processus trouvé par titre de fenêtre: {process.ProcessName}, titre: {process.MainWindowTitle}");
+                                return true;
+                            }
+                        }
+                        catch
+                        {
+                            // Ignorer les erreurs d'accès aux processus
+                        }
+                    }
+                }
+                
                 return processes.Length > 0;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"Erreur lors de la vérification du logiciel métier: {ex.Message}");
                 return false;
             }
         }
